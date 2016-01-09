@@ -16,19 +16,40 @@ public class App {
 	private static final String BASE64_PREFIX = "base64:";
 
 	public static void main(String[] args) throws IOException {
-		if (args.length != 3) {
-			throw new IllegalArgumentException("usage: " + App.class.getName() + " ROOT_URL USERNAME PASSWORD");
+		start(args, new DefaultConsole());
+	}
+
+	private static void start(String[] args, Console console) throws IOException {
+		String rootURL;
+		String username;
+		String password;
+		if (args.length == 0) {
+			console.print("Root URL: ");
+			rootURL = console.readLine();
+			console.print("Username: ");
+			username = emptyToNull(console.readLine());
+			console.print("Password: ");
+			password = emptyToNull(console.readLine());
+		} else if (args.length == 1) {
+			rootURL = args[0].trim();
+			username = null;
+			password = null;
+		} else if (args.length == 3) {
+			rootURL = args[0].trim();
+			username = args[1].trim();
+			password = getPassword(args[2]);
+		} else {
+			throw new IllegalArgumentException("usage: " + App.class.getName() + " ROOT_URL [USERNAME] [PASSWORD]");
 		}
 
-		String rootURL = args[0].trim();
-		String username = args[1].trim();
-		String password = getPassword(args[2]);
-
-		Console console = new DefaultConsole();
 		WebService webService = new DefaultWebService(rootURL, username, password);
 		Context context = new DefaultContext(console, webService);
 
 		new Shell(context).start();
+	}
+
+	private static String emptyToNull(String str) {
+		return (str.isEmpty() ? null : str);
 	}
 
 	private static String getPassword(String str) {

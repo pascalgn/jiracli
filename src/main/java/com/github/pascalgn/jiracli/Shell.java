@@ -47,8 +47,7 @@ class Shell {
 	public void start() throws IOException {
 		BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 		while (true) {
-			System.out.print(PROMPT.getBytes());
-			System.out.flush();
+			context.getConsole().print(PROMPT);
 
 			String raw = reader.readLine();
 			if (raw == null) {
@@ -59,6 +58,8 @@ class Shell {
 
 			if (line.equals(EXIT)) {
 				break;
+			} else if (line.isEmpty()) {
+				continue;
 			}
 
 			try {
@@ -74,7 +75,7 @@ class Shell {
 				pipeline.execute(context);
 			} catch (RuntimeException e) {
 				LOGGER.trace("Error", e);
-				System.err.println("Error: " + e.getLocalizedMessage());
+				context.getConsole().println("Error: " + e.getLocalizedMessage());
 			}
 		}
 	}

@@ -1,6 +1,7 @@
 package com.github.pascalgn.jiracli.command;
 
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -20,7 +21,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import com.mashape.unirest.request.GetRequest;
@@ -63,7 +63,7 @@ public class DefaultWebService implements WebService {
 			result = issueCache.get(issue);
 		}
 		if (result == null) {
-			result = call("/rest/api/latest/issue/{issue}", "issue", issue).getObject();
+			result = new JSONObject(call("/rest/api/latest/issue/{issue}", "issue", issue));
 			issueCache.put(issue, result);
 		}
 		return result;
@@ -73,7 +73,7 @@ public class DefaultWebService implements WebService {
 	public synchronized Map<String, String> getFieldMapping() {
 		if (fieldMapping == null) {
 			fieldMapping = new HashMap<String, String>();
-			JSONArray array = call("/rest/api/latest/field").getArray();
+			JSONArray array = new JSONArray(call("/rest/api/latest/field"));
 			for (Object obj : array) {
 				JSONObject field = (JSONObject) obj;
 				String id = field.getString("id");
@@ -87,25 +87,32 @@ public class DefaultWebService implements WebService {
 		return fieldMapping;
 	}
 
-	private JsonNode call(String path, String... routeParams) {
+	private String call(String path, String... routeParams) {
 		if (!path.startsWith("/")) {
 			throw new IllegalArgumentException("Invalid path: " + path);
 		}
 		if (routeParams.length % 2 != 0) {
 			throw new IllegalArgumentException("Invalid route parameters: " + Arrays.toString(routeParams));
 		}
-		GetRequest request = Unirest.get(rootURL + path).basicAuth(username, password);
+		GetRequest request = Unirest.get(rootURL + path);
+		if (username != null && password != null) {
+			request = request.basicAuth(username, password);
+		}
 		for (int i = 0; i < routeParams.length; i += 2) {
 			request = request.routeParam(routeParams[i], routeParams[i + 1]);
 		}
 		LOGGER.debug("Fetching URL: {}", request.getUrl());
-		HttpResponse<JsonNode> json;
+		HttpResponse<String> response;
 		try {
-			json = request.asJson();
+			response = request.asString();
 		} catch (UnirestException e) {
 			throw new IllegalStateException("Error fetching URL: " + request.getUrl(), e);
 		}
-		return json.getBody();
+		if (response.getStatus() == HttpURLConnection.HTTP_UNAUTHORIZED) {
+			throw new IllegalStateException("Unauthorized!");
+		} else {
+			return response.getBody();
+		}
 	}
 
 	@Override

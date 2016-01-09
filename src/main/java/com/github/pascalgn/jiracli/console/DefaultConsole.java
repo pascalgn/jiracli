@@ -14,6 +14,7 @@ public class DefaultConsole implements Console {
 	@Override
 	public void print(String str) {
 		System.out.print(str);
+		System.out.flush();
 	}
 
 	@Override
