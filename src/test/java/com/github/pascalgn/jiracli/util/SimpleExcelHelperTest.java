@@ -1,6 +1,6 @@
 package com.github.pascalgn.jiracli.util;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -13,6 +13,7 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.Test;
 
+import com.github.pascalgn.jiracli.testutil.ExcelUtils;
 import com.github.pascalgn.jiracli.util.ExcelHelper.CellHandler;
 
 public class SimpleExcelHelperTest {

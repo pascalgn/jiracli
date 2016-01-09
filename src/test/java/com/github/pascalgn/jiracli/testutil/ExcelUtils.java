@@ -1,10 +1,10 @@
-package com.github.pascalgn.jiracli.util;
+package com.github.pascalgn.jiracli.testutil;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 
-class ExcelUtils {
+public class ExcelUtils {
 	/**
 	 * @param row 0-based index
 	 * @param column 0-based index

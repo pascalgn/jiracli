@@ -24,6 +24,7 @@ class Shell {
 
 	private static final String PROMPT = "> ";
 	private static final String EXIT = "exit";
+	private static final String QUIT = "quit";
 
 	private static final List<CommandFactory> COMMAND_FACTORIES = Arrays.asList(new ReadFactory(),
 			new ReadExcelFactory(), new PrintFactory(), new Base64Factory());
@@ -56,7 +57,7 @@ class Shell {
 
 			String line = raw.trim();
 
-			if (line.equals(EXIT)) {
+			if (line.equals(EXIT) || line.equals(QUIT)) {
 				break;
 			} else if (line.isEmpty()) {
 				continue;

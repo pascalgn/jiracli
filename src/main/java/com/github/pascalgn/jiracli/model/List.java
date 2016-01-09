@@ -1,5 +1,6 @@
 package com.github.pascalgn.jiracli.model;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.function.Supplier;
 
@@ -20,5 +21,14 @@ abstract class List<T extends Type, E extends Data<?>> extends Data<T> {
 
 	public E next() {
 		return supplier.get();
+	}
+	
+	public java.util.List<E> remaining() {
+		java.util.List<E> result = new ArrayList<E>();
+		E item;
+		while ((item = next()) != null) {
+			result.add(item);
+		}
+		return result;
 	}
 }

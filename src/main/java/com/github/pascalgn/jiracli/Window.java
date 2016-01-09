@@ -14,8 +14,7 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.WindowConstants;
 
-public class Window {
-
+class Window {
 	private static class Panel extends JPanel {
 		private static final long serialVersionUID = 2206865626322221745L;
 

@@ -1,17 +1,19 @@
 package com.github.pascalgn.jiracli.command;
 
-import java.io.BufferedReader;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Supplier;
 
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.None;
 import com.github.pascalgn.jiracli.model.NoneType;
+import com.github.pascalgn.jiracli.util.ExcelHelper;
+import com.github.pascalgn.jiracli.util.ExcelHelper.CellHandler;
+import com.github.pascalgn.jiracli.util.ExcelHelperFactory;
 
 class ReadExcel implements Command<NoneType, None, IssueList> {
 	private final String filename;
@@ -31,46 +33,44 @@ class ReadExcel implements Command<NoneType, None, IssueList> {
 	}
 
 	private Supplier<Issue> getSupplier(Context context) {
-		return new ExcelReader(context, filename);
+		return new ExcelReader(filename);
 	}
 
 	private static class ExcelReader implements Supplier<Issue> {
-		private final Context context;
 		private final String filename;
 
-		private transient BufferedReader bufferedReader;
+		private transient List<Issue> issues;
+		private transient int index;
 
-		public ExcelReader(Context context, String filename) {
-			this.context = context;
+		public ExcelReader(String filename) {
 			this.filename = filename;
 		}
 
 		@Override
 		public Issue get() {
-			String line;
-			try {
-				line = getBufferedReader().readLine();
-			} catch (IOException e) {
-				throw new IllegalStateException("Error reading from " + filename, e);
-			}
-			if (line == null) {
+			init();
+			if (index < issues.size()) {
+				return issues.get(index++);
+			} else {
 				return null;
 			}
-			return Issue.valueOfOrNull(line.trim());
 		}
 
-		private synchronized BufferedReader getBufferedReader() {
-			if (bufferedReader == null) {
-				InputStream inputStream;
-				try {
-					inputStream = new FileInputStream(filename);
-				} catch (FileNotFoundException e) {
-					throw new IllegalStateException("File not found: " + filename);
+		private synchronized void init() {
+			if (issues == null) {
+				issues = new ArrayList<Issue>();
+				ExcelHelper excelHelper = ExcelHelperFactory.createExcelHelper();
+				try (InputStream input = new FileInputStream(filename)) {
+					excelHelper.parseWorkbook(input, new CellHandler() {
+						@Override
+						public void handleCell(int row, String column, String value) {
+							issues.addAll(Issue.findAll(value));
+						}
+					});
+				} catch (IOException e) {
+					throw new IllegalStateException("Error reading from file: " + filename, e);
 				}
-				context.onClose(() -> CommandUtils.closeUnchecked(inputStream));
-				bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
 			}
-			return bufferedReader;
 		}
 	}
 }
