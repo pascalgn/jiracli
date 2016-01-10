@@ -6,12 +6,12 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.function.Supplier;
 
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.None;
 import com.github.pascalgn.jiracli.model.NoneType;
+import com.github.pascalgn.jiracli.util.Supplier;
 
 class Read implements Command<NoneType, None, IssueList> {
 	private static final String STDIN_FILENAME = "-";
@@ -75,7 +75,7 @@ class Read implements Command<NoneType, None, IssueList> {
 
 		private synchronized BufferedReader getBufferedReader() {
 			if (bufferedReader == null) {
-				InputStream inputStream;
+				final InputStream inputStream;
 				if (filename.equals(STDIN_FILENAME)) {
 					inputStream = System.in;
 				} else {
@@ -84,7 +84,12 @@ class Read implements Command<NoneType, None, IssueList> {
 					} catch (FileNotFoundException e) {
 						throw new IllegalStateException("File not found: " + filename);
 					}
-					context.onClose(() -> CommandUtils.closeUnchecked(inputStream));
+					context.onClose(new Runnable() {
+						@Override
+						public void run() {
+							CommandUtils.closeUnchecked(inputStream);
+						}
+					});
 				}
 				bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
 			}

@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Supplier;
 
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
@@ -14,6 +13,7 @@ import com.github.pascalgn.jiracli.model.NoneType;
 import com.github.pascalgn.jiracli.util.ExcelHelper;
 import com.github.pascalgn.jiracli.util.ExcelHelper.CellHandler;
 import com.github.pascalgn.jiracli.util.ExcelHelperFactory;
+import com.github.pascalgn.jiracli.util.Supplier;
 
 class ReadExcel implements Command<NoneType, None, IssueList> {
 	private final String filename;

@@ -1,7 +1,8 @@
 package com.github.pascalgn.jiracli.model;
 
 import java.util.Iterator;
-import java.util.function.Supplier;
+
+import com.github.pascalgn.jiracli.util.Supplier;
 
 public class IssueList extends List<IssueListType, Issue> {
 	public IssueList() {

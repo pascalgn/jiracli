@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 
+import javax.xml.bind.DatatypeConverter;
+
 import com.github.pascalgn.jiracli.model.None;
 import com.github.pascalgn.jiracli.model.NoneType;
 
@@ -24,7 +26,7 @@ class Base64 implements Command<NoneType, None, None> {
 				if (line.isEmpty()) {
 					break;
 				}
-				String base64 = java.util.Base64.getEncoder().encodeToString(line.getBytes(StandardCharsets.UTF_8));
+				String base64 = DatatypeConverter.printBase64Binary(line.getBytes(StandardCharsets.UTF_8));
 				System.out.println(base64);
 			}
 		} catch (IOException e) {
