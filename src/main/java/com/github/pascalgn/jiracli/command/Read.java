@@ -28,95 +28,95 @@ import com.github.pascalgn.jiracli.model.NoneType;
 import com.github.pascalgn.jiracli.util.Supplier;
 
 class Read implements Command<NoneType, None, IssueList> {
-	private static final String STDIN_FILENAME = "-";
+    private static final String STDIN_FILENAME = "-";
 
-	private final String filename;
+    private final String filename;
 
-	public Read() {
-		this(STDIN_FILENAME);
-	}
+    public Read() {
+        this(STDIN_FILENAME);
+    }
 
-	public Read(String filename) {
-		this.filename = filename;
-	}
+    public Read(String filename) {
+        this.filename = filename;
+    }
 
-	@Override
-	public NoneType getInputType() {
-		return NoneType.getInstance();
-	}
+    @Override
+    public NoneType getInputType() {
+        return NoneType.getInstance();
+    }
 
-	@Override
-	public IssueList execute(Context context, None input) {
-		return new IssueList(getSupplier(context));
-	}
+    @Override
+    public IssueList execute(Context context, None input) {
+        return new IssueList(getSupplier(context));
+    }
 
-	private Supplier<Issue> getSupplier(Context context) {
-		if (filename.equals(STDIN_FILENAME)) {
-			return new TextReader(context, filename);
-		} else if (filename.toLowerCase().endsWith(".xlsx")) {
-			return null;
-		} else if (filename.toLowerCase().endsWith(".txt")) {
-			return new TextReader(context, filename);
-		} else {
-			return new TextReader(context, filename);
-		}
-	}
+    private Supplier<Issue> getSupplier(Context context) {
+        if (filename.equals(STDIN_FILENAME)) {
+            return new TextReader(context, filename);
+        } else if (filename.toLowerCase().endsWith(".xlsx")) {
+            return null;
+        } else if (filename.toLowerCase().endsWith(".txt")) {
+            return new TextReader(context, filename);
+        } else {
+            return new TextReader(context, filename);
+        }
+    }
 
-	private static class TextReader implements Supplier<Issue> {
-		private final Context context;
-		private final String filename;
+    private static class TextReader implements Supplier<Issue> {
+        private final Context context;
+        private final String filename;
 
-		private transient Supplier<String> stringSupplier;
+        private transient Supplier<String> stringSupplier;
 
-		public TextReader(Context context, String filename) {
-			this.context = context;
-			this.filename = filename;
-		}
+        public TextReader(Context context, String filename) {
+            this.context = context;
+            this.filename = filename;
+        }
 
-		@Override
-		public Issue get() {
-			String line = getStringSupplier().get();
-			if (line == null) {
-				return null;
-			}
-			return Issue.valueOfOrNull(line.trim());
-		}
+        @Override
+        public Issue get() {
+            String line = getStringSupplier().get();
+            if (line == null) {
+                return null;
+            }
+            return Issue.valueOfOrNull(line.trim());
+        }
 
-		private synchronized Supplier<String> getStringSupplier() {
-			if (stringSupplier == null) {
-				if (filename.equals(STDIN_FILENAME)) {
-					stringSupplier = new Supplier<String>() {
-						@Override
-						public String get() {
-							return context.getConsole().readLine();
-						}
-					};
-				} else {
-					final BufferedReader bufferedReader;
-					try {
-						bufferedReader = new BufferedReader(new InputStreamReader(new FileInputStream(filename)));
-					} catch (FileNotFoundException e) {
-						throw new IllegalStateException("File not found: " + filename);
-					}
-					context.onClose(new Runnable() {
-						@Override
-						public void run() {
-							CommandUtils.closeUnchecked(bufferedReader);
-						}
-					});
-					stringSupplier = new Supplier<String>() {
-						@Override
-						public String get() {
-							try {
-								return bufferedReader.readLine();
-							} catch (IOException e) {
-								throw new IllegalStateException("Error reading from " + filename, e);
-							}
-						}
-					};
-				}
-			}
-			return stringSupplier;
-		}
-	}
+        private synchronized Supplier<String> getStringSupplier() {
+            if (stringSupplier == null) {
+                if (filename.equals(STDIN_FILENAME)) {
+                    stringSupplier = new Supplier<String>() {
+                        @Override
+                        public String get() {
+                            return context.getConsole().readLine();
+                        }
+                    };
+                } else {
+                    final BufferedReader bufferedReader;
+                    try {
+                        bufferedReader = new BufferedReader(new InputStreamReader(new FileInputStream(filename)));
+                    } catch (FileNotFoundException e) {
+                        throw new IllegalStateException("File not found: " + filename);
+                    }
+                    context.onClose(new Runnable() {
+                        @Override
+                        public void run() {
+                            CommandUtils.closeUnchecked(bufferedReader);
+                        }
+                    });
+                    stringSupplier = new Supplier<String>() {
+                        @Override
+                        public String get() {
+                            try {
+                                return bufferedReader.readLine();
+                            } catch (IOException e) {
+                                throw new IllegalStateException("Error reading from " + filename, e);
+                            }
+                        }
+                    };
+                }
+            }
+            return stringSupplier;
+        }
+    }
 }

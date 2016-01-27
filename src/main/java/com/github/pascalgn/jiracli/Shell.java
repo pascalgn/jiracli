@@ -34,72 +34,72 @@ import com.github.pascalgn.jiracli.console.Console;
 import com.github.pascalgn.jiracli.model.Data;
 
 class Shell {
-	private static final Logger LOGGER = LoggerFactory.getLogger(Shell.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(Shell.class);
 
-	private static final String PROMPT = "jiracli> ";
-	private static final String EXIT = "exit";
-	private static final String QUIT = "quit";
+    private static final String PROMPT = "jiracli> ";
+    private static final String EXIT = "exit";
+    private static final String QUIT = "quit";
 
-	private static final List<CommandFactory> COMMAND_FACTORIES = Arrays.asList(new ReadFactory(),
-			new ReadExcelFactory(), new PrintFactory(), new Base64Factory());
+    private static final List<CommandFactory> COMMAND_FACTORIES = Arrays.asList(new ReadFactory(),
+            new ReadExcelFactory(), new PrintFactory(), new Base64Factory());
 
-	public static CommandFactory getCommandFactory(String commandName) {
-		for (CommandFactory commandFactory : COMMAND_FACTORIES) {
-			if (commandFactory.getName().equals(commandName)) {
-				return commandFactory;
-			}
-		}
-		throw new IllegalArgumentException("Unknown command: " + commandName);
-	}
+    public static CommandFactory getCommandFactory(String commandName) {
+        for (CommandFactory commandFactory : COMMAND_FACTORIES) {
+            if (commandFactory.getName().equals(commandName)) {
+                return commandFactory;
+            }
+        }
+        throw new IllegalArgumentException("Unknown command: " + commandName);
+    }
 
-	private final Context context;
+    private final Context context;
 
-	public Shell(Context context) {
-		this.context = context;
-	}
+    public Shell(Context context) {
+        this.context = context;
+    }
 
-	@SuppressWarnings("unchecked")
-	public void start() throws IOException {
-		Console console = context.getConsole();
-		while (true) {
-			console.print(PROMPT);
+    @SuppressWarnings("unchecked")
+    public void start() throws IOException {
+        Console console = context.getConsole();
+        while (true) {
+            console.print(PROMPT);
 
-			String raw = console.readLine();
-			if (raw == null) {
-				break;
-			}
+            String raw = console.readLine();
+            if (raw == null) {
+                break;
+            }
 
-			String line = raw.trim();
+            String line = raw.trim();
 
-			if (line.equals(EXIT) || line.equals(QUIT)) {
-				break;
-			} else if (line.isEmpty()) {
-				continue;
-			}
+            if (line.equals(EXIT) || line.equals(QUIT)) {
+                break;
+            } else if (line.isEmpty()) {
+                continue;
+            }
 
-			try {
-				Pipeline.Builder<Data<?>> pipelineBuilder = new Pipeline.Builder<>();
-				String[] commandNames = line.trim().split("\\s*\\|\\s*");
-				for (String commandName : commandNames) {
-					String[] arr = commandName.split(" ");
-					CommandFactory commandFactory = getCommandFactory(arr[0]);
-					Command<?, ?, ?> command = commandFactory.createCommand(toList(arr, 1, arr.length - 1));
-					pipelineBuilder.add((Command<?, Data<?>, Data<?>>) command);
-				}
-				Pipeline<Data<?>> pipeline = pipelineBuilder.build();
-				pipeline.execute(context);
-			} catch (RuntimeException e) {
-				LOGGER.trace("Error", e);
-				console.println("Error: " + e.getLocalizedMessage());
-			}
-		}
-	}
+            try {
+                Pipeline.Builder<Data<?>> pipelineBuilder = new Pipeline.Builder<>();
+                String[] commandNames = line.trim().split("\\s*\\|\\s*");
+                for (String commandName : commandNames) {
+                    String[] arr = commandName.split(" ");
+                    CommandFactory commandFactory = getCommandFactory(arr[0]);
+                    Command<?, ?, ?> command = commandFactory.createCommand(toList(arr, 1, arr.length - 1));
+                    pipelineBuilder.add((Command<?, Data<?>, Data<?>>) command);
+                }
+                Pipeline<Data<?>> pipeline = pipelineBuilder.build();
+                pipeline.execute(context);
+            } catch (RuntimeException e) {
+                LOGGER.trace("Error", e);
+                console.println("Error: " + e.getLocalizedMessage());
+            }
+        }
+    }
 
-	private static <T> List<T> toList(T[] arr, int offset, int length) {
-		List<T> result = new ArrayList<T>(length);
-		for (int i = offset; i < offset + length; i++) {
-			result.add(arr[i]);
-		}
-		return result;
-	}
+    private static <T> List<T> toList(T[] arr, int offset, int length) {
+        List<T> result = new ArrayList<T>(length);
+        for (int i = offset; i < offset + length; i++) {
+            result.add(arr[i]);
+        }
+        return result;
+    }
 }

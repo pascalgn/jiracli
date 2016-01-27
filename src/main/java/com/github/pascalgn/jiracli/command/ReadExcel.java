@@ -31,61 +31,61 @@ import com.github.pascalgn.jiracli.util.ExcelHelperFactory;
 import com.github.pascalgn.jiracli.util.Supplier;
 
 class ReadExcel implements Command<NoneType, None, IssueList> {
-	private final String filename;
+    private final String filename;
 
-	public ReadExcel(String filename) {
-		this.filename = filename;
-	}
+    public ReadExcel(String filename) {
+        this.filename = filename;
+    }
 
-	@Override
-	public NoneType getInputType() {
-		return NoneType.getInstance();
-	}
+    @Override
+    public NoneType getInputType() {
+        return NoneType.getInstance();
+    }
 
-	@Override
-	public IssueList execute(Context context, None input) {
-		return new IssueList(getSupplier(context));
-	}
+    @Override
+    public IssueList execute(Context context, None input) {
+        return new IssueList(getSupplier(context));
+    }
 
-	private Supplier<Issue> getSupplier(Context context) {
-		return new ExcelReader(filename);
-	}
+    private Supplier<Issue> getSupplier(Context context) {
+        return new ExcelReader(filename);
+    }
 
-	private static class ExcelReader implements Supplier<Issue> {
-		private final String filename;
+    private static class ExcelReader implements Supplier<Issue> {
+        private final String filename;
 
-		private transient List<Issue> issues;
-		private transient int index;
+        private transient List<Issue> issues;
+        private transient int index;
 
-		public ExcelReader(String filename) {
-			this.filename = filename;
-		}
+        public ExcelReader(String filename) {
+            this.filename = filename;
+        }
 
-		@Override
-		public Issue get() {
-			init();
-			if (index < issues.size()) {
-				return issues.get(index++);
-			} else {
-				return null;
-			}
-		}
+        @Override
+        public Issue get() {
+            init();
+            if (index < issues.size()) {
+                return issues.get(index++);
+            } else {
+                return null;
+            }
+        }
 
-		private synchronized void init() {
-			if (issues == null) {
-				issues = new ArrayList<Issue>();
-				ExcelHelper excelHelper = ExcelHelperFactory.createExcelHelper();
-				try (InputStream input = new FileInputStream(filename)) {
-					excelHelper.parseWorkbook(input, new CellHandler() {
-						@Override
-						public void handleCell(int row, String column, String value) {
-							issues.addAll(Issue.findAll(value));
-						}
-					});
-				} catch (IOException e) {
-					throw new IllegalStateException("Error reading from file: " + filename, e);
-				}
-			}
-		}
-	}
+        private synchronized void init() {
+            if (issues == null) {
+                issues = new ArrayList<Issue>();
+                ExcelHelper excelHelper = ExcelHelperFactory.createExcelHelper();
+                try (InputStream input = new FileInputStream(filename)) {
+                    excelHelper.parseWorkbook(input, new CellHandler() {
+                        @Override
+                        public void handleCell(int row, String column, String value) {
+                            issues.addAll(Issue.findAll(value));
+                        }
+                    });
+                } catch (IOException e) {
+                    throw new IllegalStateException("Error reading from file: " + filename, e);
+                }
+            }
+        }
+    }
 }

@@ -20,10 +20,10 @@ import java.util.Map;
 import org.json.JSONObject;
 
 public interface WebService extends AutoCloseable {
-	JSONObject getIssue(String issue);
-	
-	Map<String, String> getFieldMapping();
-	
-	@Override
-	void close();
+    JSONObject getIssue(String issue);
+    
+    Map<String, String> getFieldMapping();
+    
+    @Override
+    void close();
 }

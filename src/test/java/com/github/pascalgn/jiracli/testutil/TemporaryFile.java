@@ -23,32 +23,32 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 public class TemporaryFile implements Closeable {
-	private final File file;
+    private final File file;
 
-	public TemporaryFile() throws IOException {
-		this("temp", ".txt");
-	}
+    public TemporaryFile() throws IOException {
+        this("temp", ".txt");
+    }
 
-	public TemporaryFile(String prefix, String suffix) throws IOException {
-		file = File.createTempFile(prefix, suffix);
-	}
+    public TemporaryFile(String prefix, String suffix) throws IOException {
+        file = File.createTempFile(prefix, suffix);
+    }
 
-	public File getFile() {
-		return file;
-	}
+    public File getFile() {
+        return file;
+    }
 
-	public String getAbsolutePath() {
-		return file.getAbsolutePath();
-	}
-	
-	public OutputStream createOutputStream() throws FileNotFoundException {
-		return new FileOutputStream(file);
-	}
+    public String getAbsolutePath() {
+        return file.getAbsolutePath();
+    }
+    
+    public OutputStream createOutputStream() throws FileNotFoundException {
+        return new FileOutputStream(file);
+    }
 
-	@Override
-	public void close() throws IOException {
-		if (!file.delete() && file.exists()) {
-			throw new IOException("Cannot delete file: " + file);
-		}
-	}
+    @Override
+    public void close() throws IOException {
+        if (!file.delete() && file.exists()) {
+            throw new IOException("Cannot delete file: " + file);
+        }
+    }
 }
