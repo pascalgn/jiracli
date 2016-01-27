@@ -75,7 +75,16 @@ class Print implements Command<IssueListType, IssueList, None> {
             end = m.end();
 
             String name = m.group(1);
-            str.append(getFieldValue(webService, json, name));
+            if (name.contains(".")) {
+                String[] names = name.split("\\.");
+                Object obj = getFieldValue(webService, json, names[0]);
+                for (int i = 1; i < names.length; i++) {
+                    obj = ((JSONObject) obj).get(names[i]);
+                }
+                str.append(obj);
+            } else {
+                str.append(getFieldValue(webService, json, name));
+            }
         }
 
         str.append(pattern.substring(end));

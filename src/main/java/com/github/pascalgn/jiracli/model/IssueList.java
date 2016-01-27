@@ -15,6 +15,7 @@
  */
 package com.github.pascalgn.jiracli.model;
 
+import java.util.Arrays;
 import java.util.Iterator;
 
 import com.github.pascalgn.jiracli.util.Supplier;
@@ -22,6 +23,10 @@ import com.github.pascalgn.jiracli.util.Supplier;
 public class IssueList extends List<IssueListType, Issue> {
     public IssueList() {
         super();
+    }
+
+    public IssueList(Issue... issues) {
+        super(Arrays.asList(issues).iterator());
     }
 
     public IssueList(Iterator<Issue> iterator) {

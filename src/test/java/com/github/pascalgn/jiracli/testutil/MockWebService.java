@@ -15,6 +15,8 @@
  */
 package com.github.pascalgn.jiracli.testutil;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.json.JSONObject;
@@ -22,14 +24,34 @@ import org.json.JSONObject;
 import com.github.pascalgn.jiracli.command.WebService;
 
 public class MockWebService implements WebService {
+    private final Map<String, JSONObject> issues;
+    private Map<String, String> fieldMapping;
+
+    public MockWebService() {
+        issues = new HashMap<String, JSONObject>();
+        fieldMapping = Collections.emptyMap();
+    }
+
     @Override
     public JSONObject getIssue(String issue) {
-        return null;
+        return issues.get(issue);
+    }
+
+    public void clearIssues() {
+        issues.clear();
+    }
+
+    public void setIssue(String key, JSONObject issue) {
+        issues.put(key, issue);
     }
 
     @Override
     public Map<String, String> getFieldMapping() {
-        return null;
+        return fieldMapping;
+    }
+
+    public void setFieldMapping(Map<String, String> fieldMapping) {
+        this.fieldMapping = fieldMapping;
     }
 
     @Override
