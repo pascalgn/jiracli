@@ -47,7 +47,7 @@ class SimpleExcelHelper implements ExcelHelper {
         Objects.requireNonNull(sheets);
         parse(inputStream, sheets, cellHandler);
     }
-    
+
     private void parse(InputStream inputStream, List<String> sheets, CellHandler cellHandler) {
         SAXParserFactory saxParserFactory = SAXParserFactory.newInstance();
         SAXParser saxParser;
@@ -58,7 +58,7 @@ class SimpleExcelHelper implements ExcelHelper {
         } catch (SAXException e) {
             throw new IllegalStateException(e);
         }
-        
+
         ZipInputStream zipInputStream = new ZipInputStream(inputStream);
 
         InputStream noCloseInputStream = new ForwardingInputStream(zipInputStream) {
@@ -69,22 +69,22 @@ class SimpleExcelHelper implements ExcelHelper {
         };
 
         Map<Integer, String> sharedStrings = new HashMap<Integer, String>();
-        
+
         SharedStringsHandler sharedStringsHandler = new SharedStringsHandler(sharedStrings);
         WorkbookHandler workbookHandler = new WorkbookHandler();
         SheetHandler sheetHandler = new SheetHandler(sharedStrings, cellHandler);
-        
+
         try {
             ZipEntry entry;
             while ((entry = zipInputStream.getNextEntry()) != null) {
                 if (entry.getName().equals(SHARED_STRINGS)) {
                     saxParser.parse(noCloseInputStream, sharedStringsHandler);
                 }
-                
+
                 if (entry.getName().contentEquals(WORKBOOK)) {
                     saxParser.parse(noCloseInputStream, workbookHandler);
                 }
-                
+
                 if (entry.getName().startsWith(SHEET_PREFIX)) {
                     saxParser.parse(noCloseInputStream, sheetHandler);
                 }
@@ -98,16 +98,16 @@ class SimpleExcelHelper implements ExcelHelper {
 
     private static class SharedStringsHandler extends DefaultHandler {
         private final Map<Integer, String> sharedStrings;
-        
+
         private int index;
         private StringBuilder str;
-        
+
         public SharedStringsHandler(Map<Integer, String> sharedStrings) {
             this.sharedStrings = sharedStrings;
             this.index = -1;
             this.str = new StringBuilder();
         }
-        
+
         @Override
         public void startElement(String uri, String localName, String qName, Attributes attributes)
                 throws SAXException {
@@ -116,27 +116,27 @@ class SimpleExcelHelper implements ExcelHelper {
                 str.setLength(0);
             }
         }
-        
+
         @Override
         public void endElement(String uri, String localName, String qName) throws SAXException {
             if (qName.equals("si")) {
                 sharedStrings.put(index, str.toString());
             }
         }
-        
+
         @Override
         public void characters(char[] ch, int start, int length) throws SAXException {
             str.append(ch, start, length);
         }
     }
-    
+
     private static class WorkbookHandler extends DefaultHandler {
         private final Map<String, Integer> sheets;
-        
+
         public WorkbookHandler() {
             sheets = new HashMap<String, Integer>();
         }
-        
+
         @Override
         public void startElement(String uri, String localName, String qName, Attributes attributes)
                 throws SAXException {
@@ -154,13 +154,13 @@ class SimpleExcelHelper implements ExcelHelper {
     private static class SheetHandler extends DefaultHandler {
         private final Map<Integer, String> sharedStrings;
         private final CellHandler cellHandler;
-        
+
         private Integer row;
         private String column;
 
         private StringBuilder cellValue;
         private Integer cellStringIndex;
-        
+
         public SheetHandler(Map<Integer, String> sharedStrings, CellHandler cellHandler) {
             this.sharedStrings = sharedStrings;
             this.cellHandler = cellHandler;

@@ -29,7 +29,7 @@ import com.github.pascalgn.jiracli.model.None;
 
 class Print implements Command<IssueListType, IssueList, None> {
     private static final Logger LOGGER = LoggerFactory.getLogger(Print.class);
-    
+
     private static final String DEFAULT_PATTERN = "${key} - ${summary}";
     private static final Pattern PATTERN = Pattern.compile("\\$\\{([^}]+)\\}");
 
@@ -38,7 +38,7 @@ class Print implements Command<IssueListType, IssueList, None> {
     public Print() {
         this(DEFAULT_PATTERN);
     }
-    
+
     public Print(String pattern) {
         this.pattern = pattern;
     }

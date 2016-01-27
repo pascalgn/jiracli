@@ -23,9 +23,9 @@ import com.github.pascalgn.jiracli.console.Console;
 public class MockConsole implements Console {
     private final List<String> input;
     private final StringBuilder output;
-    
+
     private int index;
-    
+
     public MockConsole(String... input) {
         this.input = Arrays.asList(input);
         this.output = new StringBuilder();
@@ -34,7 +34,7 @@ public class MockConsole implements Console {
     public String getOutput() {
         return output.toString();
     }
-    
+
     @Override
     public void print(String str) {
         output.append(str);

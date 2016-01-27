@@ -27,11 +27,11 @@ public class IssueList extends List<IssueListType, Issue> {
     public IssueList(Iterator<Issue> iterator) {
         super(iterator);
     }
-    
+
     public IssueList(Supplier<Issue> supplier) {
         super(supplier);
     }
-    
+
     @Override
     public IssueListType getType() {
         return IssueListType.getInstance();
@@ -44,7 +44,7 @@ public class IssueList extends List<IssueListType, Issue> {
             public Issue visit(IssueType issue) {
                 return null;
             }
-            
+
             @Override
             public IssueList visit(IssueListType issueList) {
                 return IssueList.this;

@@ -25,12 +25,12 @@ public class None extends Data<NoneType> {
     private None() {
         // only allow one instance
     }
-    
+
     @Override
     public NoneType getType() {
         return NoneType.getInstance();
     }
-    
+
     @Override
     public <S extends Type> Data<S> convertTo(S target) {
         return target.accept(new DataConverter() {
@@ -38,7 +38,7 @@ public class None extends Data<NoneType> {
             public Issue visit(IssueType issue) {
                 return null;
             }
-            
+
             @Override
             public IssueList visit(IssueListType issueList) {
                 return null;

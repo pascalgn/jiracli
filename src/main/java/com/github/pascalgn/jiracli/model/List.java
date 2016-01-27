@@ -48,7 +48,7 @@ abstract class List<T extends Type, E extends Data<?>> extends Data<T> {
     public E next() {
         return supplier.get();
     }
-    
+
     public java.util.List<E> remaining() {
         java.util.List<E> result = new ArrayList<E>();
         E item;

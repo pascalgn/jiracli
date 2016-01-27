@@ -27,26 +27,26 @@ import com.github.pascalgn.jiracli.model.Type;
 class Pipeline<D extends Data<?>> {
     public static final class Builder<D extends Data<?>> {
         private final List<Command<?, ?, ?>> commands;
-        
+
         public static Builder<None> newInstance() {
             return new Builder<None>();
         }
-        
+
         public Builder() {
             this.commands = new ArrayList<>();
         }
-        
+
         @SuppressWarnings("unchecked")
         public <R extends Data<?>> Builder<R> add(Command<?, D, R> command) {
             commands.add(command);
             return (Builder<R>) this;
         }
-        
+
         public Pipeline<D> build() {
             return new Pipeline<>(commands);
         }
     }
-    
+
     private final List<Command<?, ?, ?>> commands;
 
     private Pipeline(List<Command<?, ?, ?>> commands) {

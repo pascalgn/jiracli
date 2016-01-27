@@ -25,6 +25,6 @@ import com.github.pascalgn.jiracli.model.Type;
  */
 public interface Command<T extends Type, D extends Data<T>, R extends Data<?>> {
     T getInputType();
-    
+
     R execute(Context context, D input);
 }

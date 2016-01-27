@@ -48,9 +48,9 @@ public class SimpleExcelHelperTest {
             }
             buf = out.toByteArray();
         }
-        
+
         final List<String> cellValues = new ArrayList<String>();
-        
+
         try (InputStream inputStream = new ByteArrayInputStream(buf)) {
             ExcelHelper excelHelper = new SimpleExcelHelper();
             excelHelper.parseWorkbook(inputStream, new CellHandler() {
@@ -60,7 +60,7 @@ public class SimpleExcelHelperTest {
                 }
             });
         }
-        
+
         assertEquals(10000, cellValues.size());
         assertEquals("12/34", cellValues.get(1234));
         assertEquals("43/21", cellValues.get(4321));

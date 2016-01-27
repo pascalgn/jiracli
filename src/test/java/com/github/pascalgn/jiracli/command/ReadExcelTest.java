@@ -47,13 +47,13 @@ public class ReadExcelTest {
                     wb.write(out);
                 }
             }
-            
+
             Context context = new DefaultContext(new MockConsole(), new MockWebService());
-            
+
             ReadExcel re = new ReadExcel(f.getAbsolutePath());
             IssueList list = re.execute(context, None.getInstance());
             assertNotNull(list);
-            
+
             List<Issue> issues = list.remaining();
             assertNotNull(issues);
             assertEquals(101, issues.size());

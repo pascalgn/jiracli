@@ -40,7 +40,7 @@ public class TemporaryFile implements Closeable {
     public String getAbsolutePath() {
         return file.getAbsolutePath();
     }
-    
+
     public OutputStream createOutputStream() throws FileNotFoundException {
         return new FileOutputStream(file);
     }

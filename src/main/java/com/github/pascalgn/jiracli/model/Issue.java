@@ -27,18 +27,18 @@ public class Issue extends Data<IssueType> {
     public static Pattern getKeyPattern() {
         return KEY_PATTERN;
     }
-    
+
     public static boolean isKey(String str) {
         return KEY_PATTERN.matcher(str).matches();
     }
-    
+
     public static Issue valueOf(String key) {
         if (!isKey(key)) {
             throw new IllegalArgumentException("Invalid issue key: " + key);
         }
         return new Issue(key);
     }
-    
+
     public static Issue valueOfOrNull(String str) {
         if (isKey(str)) {
             return new Issue(str);
@@ -46,7 +46,7 @@ public class Issue extends Data<IssueType> {
             return null;
         }
     }
-    
+
     public static List<Issue> findAll(String str) {
         List<Issue> result = null;
         Matcher m = KEY_PATTERN.matcher(str);
@@ -61,13 +61,13 @@ public class Issue extends Data<IssueType> {
         }
         return result;
     }
-    
+
     private final String key;
 
     private Issue(String key) {
         this.key = key;
     }
-    
+
     public String getKey() {
         return key;
     }

@@ -24,19 +24,19 @@ import org.slf4j.LoggerFactory;
 
 public abstract class AbstractContext implements Context {
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractContext.class);
-    
+
     private final List<Runnable> onClose;
-    
+
     public AbstractContext() {
         onClose = new ArrayList<Runnable>();
     }
-    
+
     @Override
     public void onClose(Runnable runnable) {
         Objects.requireNonNull(runnable);
         onClose.add(runnable);
     }
-    
+
     @Override
     public void close() {
         for (Runnable runnable : onClose) {

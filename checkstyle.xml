@@ -40,7 +40,6 @@
 
 		<module name="SuppressWarningsHolder" />
 
-		<module name="AvoidStarImport" />
 		<module name="IllegalImport" />
 		<module name="RedundantImport" />
 		<module name="UnusedImports">
@@ -52,7 +51,6 @@
 		</module>
 
 		<module name="ModifierOrder" />
-		<module name="RedundantModifier" />
 
 		<module name="EqualsHashCode" />
 		<module name="IllegalInstantiation" />
