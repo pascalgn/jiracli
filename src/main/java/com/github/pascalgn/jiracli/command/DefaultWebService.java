@@ -48,9 +48,13 @@ public class DefaultWebService implements WebService {
 	private transient Map<String, String> fieldMapping;
 
 	public DefaultWebService(String rootURL, String username, String password) {
-		this.rootURL = rootURL;
+		this.rootURL = stripEnd(rootURL, "/");
 		this.username = username;
 		this.password = password;
+	}
+
+	private static String stripEnd(String str, String end) {
+		return (str.endsWith(end) ? str.substring(0, str.length() - end.length()) : str);
 	}
 
 	@Override

@@ -1,8 +1,6 @@
 package com.github.pascalgn.jiracli;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -17,12 +15,13 @@ import com.github.pascalgn.jiracli.command.Context;
 import com.github.pascalgn.jiracli.command.PrintFactory;
 import com.github.pascalgn.jiracli.command.ReadExcelFactory;
 import com.github.pascalgn.jiracli.command.ReadFactory;
+import com.github.pascalgn.jiracli.console.Console;
 import com.github.pascalgn.jiracli.model.Data;
 
 class Shell {
 	private static final Logger LOGGER = LoggerFactory.getLogger(Shell.class);
 
-	private static final String PROMPT = "> ";
+	private static final String PROMPT = "jiracli> ";
 	private static final String EXIT = "exit";
 	private static final String QUIT = "quit";
 
@@ -46,11 +45,11 @@ class Shell {
 
 	@SuppressWarnings("unchecked")
 	public void start() throws IOException {
-		BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+		Console console = context.getConsole();
 		while (true) {
-			context.getConsole().print(PROMPT);
+			console.print(PROMPT);
 
-			String raw = reader.readLine();
+			String raw = console.readLine();
 			if (raw == null) {
 				break;
 			}
@@ -76,7 +75,7 @@ class Shell {
 				pipeline.execute(context);
 			} catch (RuntimeException e) {
 				LOGGER.trace("Error", e);
-				context.getConsole().println("Error: " + e.getLocalizedMessage());
+				console.println("Error: " + e.getLocalizedMessage());
 			}
 		}
 	}

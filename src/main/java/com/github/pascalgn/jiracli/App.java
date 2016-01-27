@@ -12,6 +12,9 @@ import com.github.pascalgn.jiracli.command.WebService;
 import com.github.pascalgn.jiracli.console.Console;
 import com.github.pascalgn.jiracli.console.DefaultConsole;
 
+/**
+ * Main class
+ */
 public class App {
 	private static final String BASE64_PREFIX = "base64:";
 

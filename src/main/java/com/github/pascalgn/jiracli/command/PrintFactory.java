@@ -10,7 +10,9 @@ public class PrintFactory implements CommandFactory {
 
 	@Override
 	public Print createCommand(List<String> arguments) {
-		if (arguments.size() == 1) {
+		if (arguments.size() == 0) {
+			return new Print();
+		} else if (arguments.size() == 1) {
 			return new Print(arguments.get(0));
 		} else {
 			throw new IllegalArgumentException("Invalid arguments: " + arguments);

@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 
 import com.github.pascalgn.jiracli.model.Issue;
@@ -52,7 +51,7 @@ class Read implements Command<NoneType, None, IssueList> {
 		private final Context context;
 		private final String filename;
 
-		private transient BufferedReader bufferedReader;
+		private transient Supplier<String> stringSupplier;
 
 		public TextReader(Context context, String filename) {
 			this.context = context;
@@ -61,39 +60,48 @@ class Read implements Command<NoneType, None, IssueList> {
 
 		@Override
 		public Issue get() {
-			String line;
-			try {
-				line = getBufferedReader().readLine();
-			} catch (IOException e) {
-				throw new IllegalStateException("Error reading from " + filename, e);
-			}
+			String line = getStringSupplier().get();
 			if (line == null) {
 				return null;
 			}
 			return Issue.valueOfOrNull(line.trim());
 		}
 
-		private synchronized BufferedReader getBufferedReader() {
-			if (bufferedReader == null) {
-				final InputStream inputStream;
+		private synchronized Supplier<String> getStringSupplier() {
+			if (stringSupplier == null) {
 				if (filename.equals(STDIN_FILENAME)) {
-					inputStream = System.in;
+					stringSupplier = new Supplier<String>() {
+						@Override
+						public String get() {
+							return context.getConsole().readLine();
+						}
+					};
 				} else {
+					final BufferedReader bufferedReader;
 					try {
-						inputStream = new FileInputStream(filename);
+						bufferedReader = new BufferedReader(new InputStreamReader(new FileInputStream(filename)));
 					} catch (FileNotFoundException e) {
 						throw new IllegalStateException("File not found: " + filename);
 					}
 					context.onClose(new Runnable() {
 						@Override
 						public void run() {
-							CommandUtils.closeUnchecked(inputStream);
+							CommandUtils.closeUnchecked(bufferedReader);
 						}
 					});
+					stringSupplier = new Supplier<String>() {
+						@Override
+						public String get() {
+							try {
+								return bufferedReader.readLine();
+							} catch (IOException e) {
+								throw new IllegalStateException("Error reading from " + filename, e);
+							}
+						}
+					};
 				}
-				bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
 			}
-			return bufferedReader;
+			return stringSupplier;
 		}
 	}
 }

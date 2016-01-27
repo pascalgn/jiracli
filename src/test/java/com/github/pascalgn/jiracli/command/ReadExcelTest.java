@@ -1,7 +1,7 @@
 package com.github.pascalgn.jiracli.command;
 
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.io.OutputStream;
 import java.util.List;
@@ -14,8 +14,9 @@ import org.junit.Test;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.None;
-import com.github.pascalgn.jiracli.testutil.DummyContext;
 import com.github.pascalgn.jiracli.testutil.ExcelUtils;
+import com.github.pascalgn.jiracli.testutil.MockConsole;
+import com.github.pascalgn.jiracli.testutil.MockWebService;
 import com.github.pascalgn.jiracli.testutil.TemporaryFile;
 
 public class ReadExcelTest {
@@ -32,7 +33,7 @@ public class ReadExcelTest {
 				}
 			}
 			
-			Context context = new DummyContext();
+			Context context = new DefaultContext(new MockConsole(), new MockWebService());
 			
 			ReadExcel re = new ReadExcel(f.getAbsolutePath());
 			IssueList list = re.execute(context, None.getInstance());

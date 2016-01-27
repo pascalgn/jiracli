@@ -1,12 +1,10 @@
 package com.github.pascalgn.jiracli.command;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 
 import javax.xml.bind.DatatypeConverter;
 
+import com.github.pascalgn.jiracli.console.Console;
 import com.github.pascalgn.jiracli.model.None;
 import com.github.pascalgn.jiracli.model.NoneType;
 
@@ -18,21 +16,16 @@ class Base64 implements Command<NoneType, None, None> {
 
 	@Override
 	public None execute(Context context, None input) {
-		try {
-			BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-			String raw;
-			while ((raw = reader.readLine()) != null) {
-				String line = raw.trim();
-				if (line.isEmpty()) {
-					break;
-				}
-				String base64 = DatatypeConverter.printBase64Binary(line.getBytes(StandardCharsets.UTF_8));
-				System.out.println(base64);
+		Console console = context.getConsole();
+		String raw;
+		while ((raw = console.readLine()) != null) {
+			String line = raw.trim();
+			if (line.isEmpty()) {
+				break;
 			}
-		} catch (IOException e) {
-			throw new IllegalStateException("Error reading input!", e);
+			String base64 = DatatypeConverter.printBase64Binary(line.getBytes(StandardCharsets.UTF_8));
+			console.println(base64);
 		}
-		
 		return None.getInstance();
 	}
 }

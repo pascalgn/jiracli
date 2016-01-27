@@ -15,10 +15,15 @@ import com.github.pascalgn.jiracli.model.None;
 class Print implements Command<IssueListType, IssueList, None> {
 	private static final Logger LOGGER = LoggerFactory.getLogger(Print.class);
 	
+	private static final String DEFAULT_PATTERN = "${key} - ${summary}";
 	private static final Pattern PATTERN = Pattern.compile("\\$\\{([^}]+)\\}");
 
 	private final String pattern;
 
+	public Print() {
+		this(DEFAULT_PATTERN);
+	}
+	
 	public Print(String pattern) {
 		this.pattern = pattern;
 	}
@@ -39,7 +44,7 @@ class Print implements Command<IssueListType, IssueList, None> {
 				LOGGER.debug("Error while reading issue: {}", issue.getKey(), e);
 				str = "[Invalid issue: " + e.getLocalizedMessage() + " - " + issue.getKey() + "]";
 			}
-			System.out.println(str);
+			context.getConsole().println(str);
 		}
 		return null;
 	}
