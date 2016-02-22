@@ -15,7 +15,6 @@
  */
 package com.github.pascalgn.jiracli;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -31,6 +30,7 @@ import com.github.pascalgn.jiracli.command.ReadExcelFactory;
 import com.github.pascalgn.jiracli.command.ReadFactory;
 import com.github.pascalgn.jiracli.console.Console;
 import com.github.pascalgn.jiracli.model.Data;
+import com.github.pascalgn.jiracli.parser.CommandReference;
 
 class Shell {
     private static final Logger LOGGER = LoggerFactory.getLogger(Shell.class);
@@ -78,13 +78,14 @@ class Shell {
 
             try {
                 Pipeline.Builder<Data<?>> pipelineBuilder = new Pipeline.Builder<>();
-                String[] commandNames = line.trim().split("\\s*\\|\\s*");
-                for (String commandName : commandNames) {
-                    String[] arr = commandName.split(" ");
-                    CommandFactory commandFactory = getCommandFactory(arr[0]);
-                    Command<?, ?, ?> command = commandFactory.createCommand(toList(arr, 1, arr.length - 1));
+
+                List<CommandReference> commands = CommandReference.parseCommandReferences(line);
+                for (CommandReference ref : commands) {
+                    CommandFactory commandFactory = getCommandFactory(ref.getName());
+                    Command<?, ?, ?> command = commandFactory.createCommand(ref.getArguments());
                     pipelineBuilder.add((Command<?, Data<?>, Data<?>>) command);
                 }
+
                 Pipeline<Data<?>> pipeline = pipelineBuilder.build();
                 pipeline.execute(context);
             } catch (RuntimeException e) {
@@ -92,13 +93,5 @@ class Shell {
                 console.println("Error: " + e.getLocalizedMessage());
             }
         }
-    }
-
-    private static <T> List<T> toList(T[] arr, int offset, int length) {
-        List<T> result = new ArrayList<T>(length);
-        for (int i = offset; i < offset + length; i++) {
-            result.add(arr[i]);
-        }
-        return result;
     }
 }
