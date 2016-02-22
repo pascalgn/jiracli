@@ -15,6 +15,7 @@
  */
 package com.github.pascalgn.jiracli;
 
+import java.awt.GraphicsEnvironment;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -62,7 +63,7 @@ public class Jiracli {
             } else if (options.get(Option.GUI) == Boolean.TRUE) {
                 gui = true;
             } else {
-                gui = (System.console() == null);
+                gui = (System.console() == null && !GraphicsEnvironment.isHeadless());
             }
 
             if (gui) {
