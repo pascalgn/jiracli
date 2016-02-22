@@ -15,12 +15,23 @@
  */
 package com.github.pascalgn.jiracli.command;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class Base64Factory implements CommandFactory {
     @Override
     public String getName() {
         return "base64";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Print text from standard input as Base64 encoded";
+    }
+
+    @Override
+    public List<String> getAliases() {
+        return Arrays.asList("b64");
     }
 
     @Override

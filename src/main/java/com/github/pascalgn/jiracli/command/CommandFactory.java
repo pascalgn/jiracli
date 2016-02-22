@@ -20,5 +20,9 @@ import java.util.List;
 public interface CommandFactory {
     String getName();
 
+    String getDescription();
+
+    List<String> getAliases();
+
     Command<?, ?, ?> createCommand(List<String> arguments);
 }

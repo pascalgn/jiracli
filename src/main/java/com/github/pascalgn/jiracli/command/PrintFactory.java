@@ -15,12 +15,23 @@
  */
 package com.github.pascalgn.jiracli.command;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class PrintFactory implements CommandFactory {
     @Override
     public String getName() {
         return "print";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Print the given JIRA issues using the given format";
+    }
+
+    @Override
+    public List<String> getAliases() {
+        return Arrays.asList("p");
     }
 
     @Override

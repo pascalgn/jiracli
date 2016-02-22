@@ -36,15 +36,17 @@ class Shell {
     private static final Logger LOGGER = LoggerFactory.getLogger(Shell.class);
 
     private static final String PROMPT = "jiracli> ";
-    private static final String EXIT = "exit";
-    private static final String QUIT = "quit";
+
+    private static final List<String> EXIT = Arrays.asList("exit", "quit", "q");
+
+    private static final List<String> HELP = Arrays.asList("help", "h", "?");
 
     private static final List<CommandFactory> COMMAND_FACTORIES = Arrays.asList(new ReadFactory(),
             new ReadExcelFactory(), new PrintFactory(), new Base64Factory());
 
     public static CommandFactory getCommandFactory(String commandName) {
         for (CommandFactory commandFactory : COMMAND_FACTORIES) {
-            if (commandFactory.getName().equals(commandName)) {
+            if (commandFactory.getName().equals(commandName) || commandFactory.getAliases().contains(commandName)) {
                 return commandFactory;
             }
         }
@@ -70,9 +72,25 @@ class Shell {
 
             String line = raw.trim();
 
-            if (line.equals(EXIT) || line.equals(QUIT)) {
+            if (EXIT.contains(line)) {
                 break;
             } else if (line.isEmpty()) {
+                continue;
+            }
+
+            if (HELP.contains(line)) {
+                for (CommandFactory commandFactory : COMMAND_FACTORIES) {
+                    StringBuilder str = new StringBuilder();
+                    str.append(commandFactory.getName());
+                    str.append("  ");
+                    str.append(commandFactory.getDescription());
+                    str.append("\n");
+                    str.append(repeat(" ", commandFactory.getName().length()));
+                    str.append("  (Aliases: ");
+                    str.append(join(commandFactory.getAliases(), ", "));
+                    str.append(")");
+                    console.println(str.toString());
+                }
                 continue;
             }
 
@@ -93,5 +111,24 @@ class Shell {
                 console.println("Error: " + e.getLocalizedMessage());
             }
         }
+    }
+
+    private static String join(List<String> list, String sep) {
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < list.size(); i++) {
+            if (i > 0) {
+                result.append(sep);
+            }
+            result.append(list.get(i));
+        }
+        return result.toString();
+    }
+
+    private static String repeat(String str, int times) {
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < times; i++) {
+            result.append(str);
+        }
+        return result.toString();
     }
 }

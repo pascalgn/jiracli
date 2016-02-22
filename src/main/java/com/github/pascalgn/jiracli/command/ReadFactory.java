@@ -15,12 +15,23 @@
  */
 package com.github.pascalgn.jiracli.command;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class ReadFactory implements CommandFactory {
     @Override
     public String getName() {
         return "read";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Read issue keys from standard input";
+    }
+
+    @Override
+    public List<String> getAliases() {
+        return Arrays.asList("r");
     }
 
     @Override

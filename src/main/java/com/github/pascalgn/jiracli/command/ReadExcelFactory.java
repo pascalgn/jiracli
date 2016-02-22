@@ -15,12 +15,23 @@
  */
 package com.github.pascalgn.jiracli.command;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class ReadExcelFactory implements CommandFactory {
     @Override
     public String getName() {
         return "readexcel";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Read issues from the given Excel file";
+    }
+
+    @Override
+    public List<String> getAliases() {
+        return Arrays.asList("re");
     }
 
     @Override
