@@ -49,6 +49,8 @@ public class ContextDialog extends JDialog {
             }
         };
 
+        setTitle("Jiracli");
+
         Object escapeActionKey = "escape-action-key";
         JRootPane root = getRootPane();
         root.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("ESCAPE"), escapeActionKey);

@@ -23,26 +23,26 @@ import javax.swing.WindowConstants;
 /**
  * Main window of the GUI: Displays the console for input/output
  */
-public class Window extends JFrame {
+public class MainWindow extends JFrame {
     private static final long serialVersionUID = -6569821157912403607L;
 
-    private final Panel consolePanel;
+    private final ConsoleTextArea consoleTextArea;
 
-    public Window(String rootURL, String username) {
-        super("Window");
-        consolePanel = new Panel(rootURL, username);
+    public MainWindow(String rootURL, String username) {
+        super("Jiracli");
+        consoleTextArea = new ConsoleTextArea(25, 80);
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         getContentPane().setLayout(new BorderLayout());
-        getContentPane().add(consolePanel);
+        getContentPane().add(consoleTextArea);
         pack();
         setLocationRelativeTo(null);
     }
 
     public void appendText(String str) {
-        consolePanel.appendText(str);
+        consoleTextArea.appendText(str);
     }
 
     public String readLine() {
-        return consolePanel.readLine();
+        return consoleTextArea.readLine();
     }
 }

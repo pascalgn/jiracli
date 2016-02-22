@@ -29,14 +29,14 @@ import com.github.pascalgn.jiracli.console.Console;
 import com.github.pascalgn.jiracli.console.DefaultConsole;
 import com.github.pascalgn.jiracli.console.DelegateConsole;
 import com.github.pascalgn.jiracli.gui.ContextDialog;
-import com.github.pascalgn.jiracli.gui.Window;
+import com.github.pascalgn.jiracli.gui.MainWindow;
 import com.github.pascalgn.jiracli.util.Consumer;
 import com.github.pascalgn.jiracli.util.Supplier;
 
 /**
  * Main class
  */
-public class App {
+public class Jiracli {
     private enum Option {
         HELP, CONSOLE, GUI, ROOT_URL, USERNAME;
     }
@@ -45,7 +45,7 @@ public class App {
         Map<Option, Object> options = parse(args);
         if (options.get(Option.HELP) == Boolean.TRUE
                 || (options.get(Option.CONSOLE) == Boolean.TRUE && options.get(Option.GUI) == Boolean.TRUE)) {
-            System.out.println("usage: " + App.class.getName() + " [-h] [-g|-c] [<root-url>] [<username>]");
+            System.out.println("usage: " + Jiracli.class.getName() + " [-h] [-g|-c] [<root-url>] [<username>]");
             System.out.println();
             System.out.println("JIRA Command Line Interface");
             System.out.println();
@@ -138,7 +138,7 @@ public class App {
                 String username = contextDialog.getUsername();
                 String password = new String(contextDialog.getPassword());
 
-                final Window window = new Window(rootURL, username);
+                final MainWindow window = new MainWindow(rootURL, username);
 
                 Consumer<String> appendText = new Consumer<String>() {
                     @Override
@@ -163,6 +163,9 @@ public class App {
                     @Override
                     public void run() {
                         new Shell(context).start();
+
+                        window.setVisible(false);
+                        window.dispose();
                     }
                 });
                 shellThread.setDaemon(true);

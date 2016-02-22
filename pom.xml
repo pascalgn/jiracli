@@ -103,7 +103,7 @@
 					<appendAssemblyId>false</appendAssemblyId>
 					<archive>
 						<manifest>
-							<mainClass>com.github.pascalgn.jiracli.App</mainClass>
+							<mainClass>com.github.pascalgn.jiracli.Jiracli</mainClass>
 						</manifest>
 					</archive>
 					<descriptorRefs>
