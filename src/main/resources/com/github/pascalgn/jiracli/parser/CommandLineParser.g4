@@ -32,6 +32,10 @@ commandName
 	;
 
 argument
+	: argumentPart+
+	;
+
+argumentPart
 	: NAME
 	| TEXT
 	;

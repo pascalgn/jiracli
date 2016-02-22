@@ -28,6 +28,7 @@ import com.github.pascalgn.jiracli.command.Context;
 import com.github.pascalgn.jiracli.command.PrintFactory;
 import com.github.pascalgn.jiracli.command.ReadExcelFactory;
 import com.github.pascalgn.jiracli.command.ReadFactory;
+import com.github.pascalgn.jiracli.command.SearchFactory;
 import com.github.pascalgn.jiracli.console.Console;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.parser.CommandReference;
@@ -42,7 +43,7 @@ class Shell {
     private static final List<String> HELP = Arrays.asList("help", "h", "?");
 
     private static final List<CommandFactory> COMMAND_FACTORIES = Arrays.asList(new ReadFactory(),
-            new ReadExcelFactory(), new PrintFactory(), new Base64Factory());
+            new ReadExcelFactory(), new PrintFactory(), new Base64Factory(), new SearchFactory());
 
     public static CommandFactory getCommandFactory(String commandName) {
         for (CommandFactory commandFactory : COMMAND_FACTORIES) {

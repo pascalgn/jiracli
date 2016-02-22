@@ -18,8 +18,10 @@ package com.github.pascalgn.jiracli.command;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.security.GeneralSecurityException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.net.ssl.SSLContext;
@@ -84,6 +86,17 @@ public class DefaultWebService implements WebService {
         if (result == null) {
             result = new JSONObject(call("/rest/api/latest/issue/{issue}", "issue", issue));
             issueCache.put(issue, result);
+        }
+        return result;
+    }
+
+    @Override
+    public List<JSONObject> searchIssues(String jql) {
+        JSONObject response = new JSONObject(call("/rest/api/latest/search?jql={jql}", "jql", jql));
+        JSONArray issues = response.getJSONArray("issues");
+        List<JSONObject> result = new ArrayList<JSONObject>();
+        for (Object issue : issues) {
+            result.add((JSONObject) issue);
         }
         return result;
     }

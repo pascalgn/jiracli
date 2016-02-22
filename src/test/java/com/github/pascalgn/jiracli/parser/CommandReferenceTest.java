@@ -47,6 +47,11 @@ public class CommandReferenceTest {
         parse("cmd1 arg1|cmd2", "cmd:cmd1;arg:arg1;cmd:cmd2;");
     }
 
+    @Test
+    public void testParse4a() throws Exception {
+        parse("c key=value | d", "cmd:c;arg:key=value;cmd:d;");
+    }
+
     private void parse(String input, String expected) {
         List<CommandReference> parsed = CommandReference.parseCommandReferences(input);
 

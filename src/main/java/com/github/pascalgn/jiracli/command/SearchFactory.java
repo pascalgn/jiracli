@@ -15,18 +15,31 @@
  */
 package com.github.pascalgn.jiracli.command;
 
+import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
-import org.json.JSONObject;
-
-public interface WebService extends AutoCloseable {
-    JSONObject getIssue(String issue);
-
-    List<JSONObject> searchIssues(String jql);
-
-    Map<String, String> getFieldMapping();
+public class SearchFactory implements CommandFactory {
+    @Override
+    public String getName() {
+        return "search";
+    }
 
     @Override
-    void close();
+    public String getDescription() {
+        return "Search for issues via JQL";
+    }
+
+    @Override
+    public List<String> getAliases() {
+        return Arrays.asList("s");
+    }
+
+    @Override
+    public Search createCommand(List<String> arguments) {
+        if (arguments.size() == 1) {
+            return new Search(arguments.get(0));
+        } else {
+            throw new IllegalArgumentException("Invalid arguments: " + arguments);
+        }
+    }
 }

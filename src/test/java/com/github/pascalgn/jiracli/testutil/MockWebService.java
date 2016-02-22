@@ -17,6 +17,7 @@ package com.github.pascalgn.jiracli.testutil;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.json.JSONObject;
@@ -43,6 +44,11 @@ public class MockWebService implements WebService {
 
     public void setIssue(String key, JSONObject issue) {
         issues.put(key, issue);
+    }
+
+    @Override
+    public List<JSONObject> searchIssues(String jql) {
+        return Collections.emptyList();
     }
 
     @Override
