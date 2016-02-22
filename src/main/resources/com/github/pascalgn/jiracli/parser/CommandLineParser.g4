@@ -32,7 +32,9 @@ commandName
 	;
 
 argument
-	: argumentPart+
+	: QUOTED_TEXT
+	| DOUBLE_QUOTED_TEXT
+	| argumentPart+
 	;
 
 argumentPart

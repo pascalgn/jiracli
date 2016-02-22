@@ -48,8 +48,27 @@ public class CommandReferenceTest {
     }
 
     @Test
-    public void testParse4a() throws Exception {
+    public void testParse4() throws Exception {
         parse("c key=value | d", "cmd:c;arg:key=value;cmd:d;");
+    }
+
+    @Test
+    public void testParse5a() throws Exception {
+        parse("cmd1 'arg with spaces'", "cmd:cmd1;arg:arg with spaces;");
+    }
+
+    @Test
+    public void testParse5b() throws Exception {
+        parse("cmd1 'arg1' 'arg2'", "cmd:cmd1;arg:arg1;arg:arg2;");
+    }
+    @Test
+    public void testParse5c() throws Exception {
+        parse("cmd1 \"arg with spaces\"", "cmd:cmd1;arg:arg with spaces;");
+    }
+
+    @Test
+    public void testParse5d() throws Exception {
+        parse("cmd1 \"arg1\" \"arg2\"", "cmd:cmd1;arg:arg1;arg:arg2;");
     }
 
     private void parse(String input, String expected) {

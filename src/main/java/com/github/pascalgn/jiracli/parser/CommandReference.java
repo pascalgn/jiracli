@@ -55,7 +55,14 @@ public final class CommandReference {
 
             @Override
             public void enterArgument(ArgumentContext ctx) {
-                arguments.add(ctx.getText());
+                String arg = ctx.getText();
+                if (arg.startsWith("'") && arg.endsWith("'")) {
+                    arguments.add(arg.substring(1, arg.length() - 1));
+                } else if (arg.startsWith("\"") && arg.endsWith("\"")) {
+                    arguments.add(arg.substring(1, arg.length() - 1));
+                } else {
+                    arguments.add(arg);
+                }
             }
 
             @Override
