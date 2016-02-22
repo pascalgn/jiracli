@@ -111,16 +111,25 @@ public class Jiracli {
             username = givenUsername;
         }
 
-        final String password;
+        final char[] password;
         if (username == null) {
             password = null;
         } else {
             console.print("Password: ");
-            password = emptyToNull(console.readLine());
+            password = emptyToNull(console.readPassword());
         }
 
         WebService webService = new DefaultWebService(rootURL, username, password);
         Context context = new DefaultContext(console, webService);
+
+        context.onClose(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < password.length; i++) {
+                    password[i] = '\0';
+                }
+            }
+        });
 
         new Shell(context).start();
     }
@@ -129,14 +138,18 @@ public class Jiracli {
         return (str.isEmpty() ? null : str);
     }
 
+    private static char[] emptyToNull(char[] str) {
+        return (str.length == 0 ? null : str);
+    }
+
     private static void startGUI(String givenRootURL, String givenUsername) {
         final ContextDialog contextDialog = new ContextDialog(givenRootURL, givenUsername);
         contextDialog.setOkListener(new Runnable() {
             @Override
             public void run() {
-                String rootURL = contextDialog.getRootURL();
-                String username = contextDialog.getUsername();
-                String password = new String(contextDialog.getPassword());
+                final String rootURL = contextDialog.getRootURL();
+                final String username = contextDialog.getUsername();
+                final char[] password = contextDialog.getPassword();
 
                 final MainWindow window = new MainWindow(rootURL, username);
 
@@ -158,6 +171,15 @@ public class Jiracli {
 
                 WebService webService = new DefaultWebService(rootURL, username, password);
                 final Context context = new DefaultContext(console, webService);
+
+                context.onClose(new Runnable() {
+                    @Override
+                    public void run() {
+                        for (int i = 0; i < password.length; i++) {
+                            password[i] = '\0';
+                        }
+                    }
+                });
 
                 Thread shellThread = new Thread(new Runnable() {
                     @Override

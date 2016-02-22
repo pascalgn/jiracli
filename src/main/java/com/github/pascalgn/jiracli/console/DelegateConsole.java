@@ -41,4 +41,10 @@ public class DelegateConsole implements Console {
     public String readLine() {
         return readLine.get();
     }
+
+    @Override
+    public char[] readPassword() {
+        String str = readLine();
+        return (str == null ? null : str.toCharArray());
+    }
 }

@@ -21,4 +21,6 @@ public interface Console {
     void println(String str);
 
     String readLine();
+
+    char[] readPassword();
 }

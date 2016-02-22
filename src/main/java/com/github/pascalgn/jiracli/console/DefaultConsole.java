@@ -45,4 +45,15 @@ public class DefaultConsole implements Console {
             throw new IllegalStateException("Error reading line!", e);
         }
     }
+
+    @Override
+    public char[] readPassword() {
+        java.io.Console console = System.console();
+        if (console == null) {
+            String str = readLine();
+            return (str == null ? null : str.toCharArray());
+        } else {
+            return console.readPassword();
+        }
+    }
 }

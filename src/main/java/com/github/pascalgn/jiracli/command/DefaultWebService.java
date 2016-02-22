@@ -57,12 +57,12 @@ public class DefaultWebService implements WebService {
 
     private final String rootURL;
     private final String username;
-    private final String password;
+    private final char[] password;
 
     private transient Map<String, JSONObject> issueCache;
     private transient Map<String, String> fieldMapping;
 
-    public DefaultWebService(String rootURL, String username, String password) {
+    public DefaultWebService(String rootURL, String username, char[] password) {
         this.rootURL = stripEnd(rootURL, "/");
         this.username = username;
         this.password = password;
@@ -115,7 +115,7 @@ public class DefaultWebService implements WebService {
         }
         GetRequest request = Unirest.get(rootURL + path);
         if (username != null && password != null) {
-            request = request.basicAuth(username, password);
+            request = request.basicAuth(username, new String(password));
         }
         for (int i = 0; i < routeParams.length; i += 2) {
             request = request.routeParam(routeParams[i], routeParams[i + 1]);

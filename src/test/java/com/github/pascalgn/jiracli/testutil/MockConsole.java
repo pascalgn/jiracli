@@ -50,4 +50,10 @@ public class MockConsole implements Console {
     public String readLine() {
         return (index < input.size() ? input.get(index++) : null);
     }
+
+    @Override
+    public char[] readPassword() {
+        String str = readLine();
+        return (str == null ? null : str.toCharArray());
+    }
 }
