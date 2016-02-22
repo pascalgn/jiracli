@@ -13,9 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.pascalgn.jiracli.command;
-
-import com.github.pascalgn.jiracli.console.Console;
+package com.github.pascalgn.jiracli.context;
 
 public interface Context extends AutoCloseable {
     Console getConsole();

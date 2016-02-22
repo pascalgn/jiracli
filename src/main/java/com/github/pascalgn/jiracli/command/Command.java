@@ -15,6 +15,7 @@
  */
 package com.github.pascalgn.jiracli.command;
 
+import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Type;
 

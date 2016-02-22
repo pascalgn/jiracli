@@ -19,7 +19,8 @@ import java.nio.charset.StandardCharsets;
 
 import javax.xml.bind.DatatypeConverter;
 
-import com.github.pascalgn.jiracli.console.Console;
+import com.github.pascalgn.jiracli.context.Console;
+import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.None;
 import com.github.pascalgn.jiracli.model.NoneType;
 

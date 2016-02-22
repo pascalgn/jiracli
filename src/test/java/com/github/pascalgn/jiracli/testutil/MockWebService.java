@@ -22,7 +22,7 @@ import java.util.Map;
 
 import org.json.JSONObject;
 
-import com.github.pascalgn.jiracli.command.WebService;
+import com.github.pascalgn.jiracli.context.WebService;
 
 public class MockWebService implements WebService {
     private final Map<String, JSONObject> issues;

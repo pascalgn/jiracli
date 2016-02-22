@@ -20,6 +20,7 @@ import java.util.List;
 
 import org.json.JSONObject;
 
+import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.None;

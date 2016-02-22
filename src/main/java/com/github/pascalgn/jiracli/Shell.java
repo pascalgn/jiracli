@@ -24,12 +24,12 @@ import org.slf4j.LoggerFactory;
 import com.github.pascalgn.jiracli.command.Base64Factory;
 import com.github.pascalgn.jiracli.command.Command;
 import com.github.pascalgn.jiracli.command.CommandFactory;
-import com.github.pascalgn.jiracli.command.Context;
 import com.github.pascalgn.jiracli.command.PrintFactory;
 import com.github.pascalgn.jiracli.command.ReadExcelFactory;
 import com.github.pascalgn.jiracli.command.ReadFactory;
 import com.github.pascalgn.jiracli.command.SearchFactory;
-import com.github.pascalgn.jiracli.console.Console;
+import com.github.pascalgn.jiracli.context.Console;
+import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.parser.CommandReference;
 

@@ -19,6 +19,8 @@ import static org.junit.Assert.*;
 
 import org.junit.Test;
 
+import com.github.pascalgn.jiracli.context.Context;
+import com.github.pascalgn.jiracli.context.DefaultContext;
 import com.github.pascalgn.jiracli.model.None;
 import com.github.pascalgn.jiracli.testutil.MockConsole;
 import com.github.pascalgn.jiracli.testutil.MockWebService;

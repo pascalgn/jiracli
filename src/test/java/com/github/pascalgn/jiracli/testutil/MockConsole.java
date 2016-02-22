@@ -18,7 +18,7 @@ package com.github.pascalgn.jiracli.testutil;
 import java.util.Arrays;
 import java.util.List;
 
-import com.github.pascalgn.jiracli.console.Console;
+import com.github.pascalgn.jiracli.context.Console;
 
 public class MockConsole implements Console {
     private final List<String> input;

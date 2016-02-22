@@ -13,26 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.pascalgn.jiracli.command;
+package com.github.pascalgn.jiracli.context;
 
-import com.github.pascalgn.jiracli.console.Console;
+public interface Console {
+    void print(String str);
 
-public class DefaultContext extends AbstractContext {
-    private final Console console;
-    private final WebService webService;
+    void println(String str);
 
-    public DefaultContext(Console console, WebService webService) {
-        this.console = console;
-        this.webService = webService;
-    }
+    String readLine();
 
-    @Override
-    public Console getConsole() {
-        return console;
-    }
-
-    @Override
-    public WebService getWebService() {
-        return webService;
-    }
+    char[] readPassword();
 }

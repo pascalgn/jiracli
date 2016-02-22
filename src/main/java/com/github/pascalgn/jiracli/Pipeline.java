@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.github.pascalgn.jiracli.command.Command;
-import com.github.pascalgn.jiracli.command.Context;
+import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.None;
 import com.github.pascalgn.jiracli.model.Type;

@@ -26,6 +26,8 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.Test;
 
+import com.github.pascalgn.jiracli.context.Context;
+import com.github.pascalgn.jiracli.context.DefaultContext;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.None;
