@@ -28,7 +28,7 @@ public class MainWindow extends JFrame {
 
     private final ConsoleTextArea consoleTextArea;
 
-    public MainWindow(String rootURL, String username) {
+    public MainWindow() {
         super("Jiracli");
         consoleTextArea = new ConsoleTextArea(25, 80);
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);

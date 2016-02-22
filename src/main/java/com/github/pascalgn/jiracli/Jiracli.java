@@ -21,6 +21,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.prefs.Preferences;
 
 import com.github.pascalgn.jiracli.command.Context;
 import com.github.pascalgn.jiracli.command.DefaultContext;
@@ -38,6 +40,9 @@ import com.github.pascalgn.jiracli.util.Supplier;
  * Main class
  */
 public class Jiracli {
+    private static final String ROOT_URL = "rootURL";
+    private static final String USERNAME = "username";
+
     private enum Option {
         HELP, CONSOLE, GUI, ROOT_URL, USERNAME;
     }
@@ -126,33 +131,30 @@ public class Jiracli {
         context.onClose(new Runnable() {
             @Override
             public void run() {
-                for (int i = 0; i < password.length; i++) {
-                    password[i] = '\0';
-                }
+                clearPassword(password);
             }
         });
 
         new Shell(context).start();
     }
 
-    private static String emptyToNull(String str) {
-        return (str.isEmpty() ? null : str);
-    }
-
-    private static char[] emptyToNull(char[] str) {
-        return (str.length == 0 ? null : str);
-    }
-
     private static void startGUI(String givenRootURL, String givenUsername) {
-        final ContextDialog contextDialog = new ContextDialog(givenRootURL, givenUsername);
+        final Preferences preferences = Preferences.userNodeForPackage(Jiracli.class);
+        String storedRootURL = preferences.get(ROOT_URL, givenRootURL);
+        String storedUsername = preferences.get(USERNAME, givenUsername);
+
+        final ContextDialog contextDialog = new ContextDialog(storedRootURL, storedUsername);
         contextDialog.setOkListener(new Runnable() {
             @Override
             public void run() {
                 final String rootURL = contextDialog.getRootURL();
-                final String username = contextDialog.getUsername();
-                final char[] password = contextDialog.getPassword();
+                final String username = emptyToNull(contextDialog.getUsername());
+                final char[] password = emptyToNull(contextDialog.getPassword());
 
-                final MainWindow window = new MainWindow(rootURL, username);
+                preferences.put(ROOT_URL, rootURL);
+                preferences.put(USERNAME, Objects.toString(username, ""));
+
+                final MainWindow window = new MainWindow();
 
                 Consumer<String> appendText = new Consumer<String>() {
                     @Override
@@ -176,9 +178,7 @@ public class Jiracli {
                 context.onClose(new Runnable() {
                     @Override
                     public void run() {
-                        for (int i = 0; i < password.length; i++) {
-                            password[i] = '\0';
-                        }
+                        clearPassword(password);
                     }
                 });
 
@@ -201,5 +201,21 @@ public class Jiracli {
             }
         });
         contextDialog.setVisible(true);
+    }
+
+    private static String emptyToNull(String str) {
+        return (str.isEmpty() ? null : str);
+    }
+
+    private static char[] emptyToNull(char[] str) {
+        return (str.length == 0 ? null : str);
+    }
+
+    private static void clearPassword(char[] password) {
+        if (password != null) {
+            for (int i = 0; i < password.length; i++) {
+                password[i] = '\0';
+            }
+        }
     }
 }
