@@ -12,6 +12,7 @@
 	<!-- EOL check -->
 	<module name="RegexpMultiline">
 		<property name="format" value="\S\z" />
+		<property name="message" value="Missing newline at end of file" />
 	</module>
 	<module name="RegexpSingleline">
 		<property name="format" value="\s+$" />
