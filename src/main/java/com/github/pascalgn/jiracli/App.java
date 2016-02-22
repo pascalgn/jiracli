@@ -15,10 +15,11 @@
  */
 package com.github.pascalgn.jiracli;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-
-import org.apache.commons.codec.binary.Base64;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import com.github.pascalgn.jiracli.command.Context;
 import com.github.pascalgn.jiracli.command.DefaultContext;
@@ -26,38 +27,96 @@ import com.github.pascalgn.jiracli.command.DefaultWebService;
 import com.github.pascalgn.jiracli.command.WebService;
 import com.github.pascalgn.jiracli.console.Console;
 import com.github.pascalgn.jiracli.console.DefaultConsole;
+import com.github.pascalgn.jiracli.console.DelegateConsole;
+import com.github.pascalgn.jiracli.gui.ContextDialog;
+import com.github.pascalgn.jiracli.gui.Window;
+import com.github.pascalgn.jiracli.util.Consumer;
+import com.github.pascalgn.jiracli.util.Supplier;
 
 /**
  * Main class
  */
 public class App {
-    private static final String BASE64_PREFIX = "base64:";
-
-    public static void main(String[] args) throws IOException {
-        start(args, new DefaultConsole());
+    private enum Option {
+        HELP, CONSOLE, GUI, ROOT_URL, USERNAME;
     }
 
-    private static void start(String[] args, Console console) throws IOException {
-        String rootURL;
-        String username;
-        String password;
-        if (args.length == 0) {
+    public static void main(String[] args) {
+        Map<Option, Object> options = parse(args);
+        if (options.get(Option.HELP) == Boolean.TRUE
+                || (options.get(Option.CONSOLE) == Boolean.TRUE && options.get(Option.GUI) == Boolean.TRUE)) {
+            System.out.println("usage: " + App.class.getName() + " [-h] [-g|-c] [<root-url>] [<username>]");
+            System.out.println();
+            System.out.println("JIRA Command Line Interface");
+            System.out.println();
+            System.out.println("options:");
+            System.out.println("  -h, --help      show this help message");
+            System.out.println("  -g, --gui       show a graphical console window");
+            System.out.println("  -c, --console   run in console mode, using stdin and stdout");
+            System.out.println("  <root-url>      the root URL of the JIRA service");
+            System.out.println("  <username>      the username to use for authentication");
+        } else {
+            final boolean gui;
+            if (options.get(Option.CONSOLE) == Boolean.TRUE) {
+                gui = false;
+            } else if (options.get(Option.GUI) == Boolean.TRUE) {
+                gui = true;
+            } else {
+                gui = (System.console() == null);
+            }
+
+            if (gui) {
+                startGUI((String) options.get(Option.USERNAME), (String) options.get(Option.USERNAME));
+            } else {
+                startConsole((String) options.get(Option.USERNAME), (String) options.get(Option.USERNAME));
+            }
+        }
+    }
+
+    private static Map<Option, Object> parse(String[] args) {
+        List<String> list = new ArrayList<String>(Arrays.asList(args));
+        Map<Option, Object> map = new HashMap<Option, Object>();
+        map.put(Option.HELP, list.contains("-h") || list.contains("--help"));
+        map.put(Option.CONSOLE, list.contains("-c") || list.contains("--console"));
+        map.put(Option.GUI, list.contains("-g") || list.contains("--gui"));
+        list.removeAll(Arrays.asList("-h", "--help", "-c", "--console", "-g", "--gui"));
+        if (!list.isEmpty()) {
+            map.put(Option.ROOT_URL, list.remove(0));
+        }
+        if (!list.isEmpty()) {
+            map.put(Option.USERNAME, list.remove(0));
+        }
+        if (!list.isEmpty()) {
+            map.put(Option.HELP, true);
+        }
+        return map;
+    }
+
+    private static void startConsole(String givenRootURL, String givenUsername) {
+        Console console = new DefaultConsole();
+
+        final String rootURL;
+        if (givenRootURL == null) {
             console.print("Root URL: ");
             rootURL = console.readLine();
+        } else {
+            rootURL = givenRootURL;
+        }
+
+        final String username;
+        if (givenUsername == null) {
             console.print("Username: ");
             username = emptyToNull(console.readLine());
+        } else {
+            username = givenUsername;
+        }
+
+        final String password;
+        if (username == null) {
+            password = null;
+        } else {
             console.print("Password: ");
             password = emptyToNull(console.readLine());
-        } else if (args.length == 1) {
-            rootURL = args[0].trim();
-            username = null;
-            password = null;
-        } else if (args.length == 3) {
-            rootURL = args[0].trim();
-            username = args[1].trim();
-            password = getPassword(args[2]);
-        } else {
-            throw new IllegalArgumentException("usage: " + App.class.getName() + " ROOT_URL [USERNAME] [PASSWORD]");
         }
 
         WebService webService = new DefaultWebService(rootURL, username, password);
@@ -70,11 +129,51 @@ public class App {
         return (str.isEmpty() ? null : str);
     }
 
-    private static String getPassword(String str) {
-        if (str.startsWith(BASE64_PREFIX)) {
-            return new String(Base64.decodeBase64(str.substring(BASE64_PREFIX.length())), StandardCharsets.UTF_8);
-        } else {
-            return str;
-        }
+    private static void startGUI(String givenRootURL, String givenUsername) {
+        final ContextDialog contextDialog = new ContextDialog(givenRootURL, givenUsername);
+        contextDialog.setOkListener(new Runnable() {
+            @Override
+            public void run() {
+                String rootURL = contextDialog.getRootURL();
+                String username = contextDialog.getUsername();
+                String password = new String(contextDialog.getPassword());
+
+                final Window window = new Window(rootURL, username);
+
+                Consumer<String> appendText = new Consumer<String>() {
+                    @Override
+                    public void accept(String str) {
+                        window.appendText(str);
+                    }
+                };
+
+                Supplier<String> readLine = new Supplier<String>() {
+                    @Override
+                    public String get() {
+                        return window.readLine();
+                    }
+                };
+
+                Console console = new DelegateConsole(appendText, readLine);
+
+                WebService webService = new DefaultWebService(rootURL, username, password);
+                final Context context = new DefaultContext(console, webService);
+
+                Thread shellThread = new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        new Shell(context).start();
+                    }
+                });
+                shellThread.setDaemon(true);
+                shellThread.start();
+
+                contextDialog.setVisible(false);
+                contextDialog.dispose();
+
+                window.setVisible(true);
+            }
+        });
+        contextDialog.setVisible(true);
     }
 }

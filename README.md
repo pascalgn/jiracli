@@ -2,10 +2,9 @@
 
 ## Usage
 
-    $ java -jar jiracli.jar
+    $ java -jar jiracli.jar -c
     Root URL: https://jira.atlassian.com/
     Username:
-    Password:
     jiracli> read | print ${summary}/${status.name}
     JRA-123
     New Report: Voted Issues/Closed

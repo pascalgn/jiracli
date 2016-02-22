@@ -15,7 +15,6 @@
  */
 package com.github.pascalgn.jiracli;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -59,7 +58,7 @@ class Shell {
     }
 
     @SuppressWarnings("unchecked")
-    public void start() throws IOException {
+    public void start() {
         Console console = context.getConsole();
         while (true) {
             console.print(PROMPT);
