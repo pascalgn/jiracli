@@ -31,6 +31,10 @@ public final class CommandReference {
     public static List<CommandReference> parseCommandReferences(String str) {
         CommandLineLexer lexer = new CommandLineLexer(new ANTLRInputStream(str));
         CommandLineParser parser = new CommandLineParser(new CommonTokenStream(lexer));
+
+        lexer.removeErrorListeners();
+        parser.removeErrorListeners();
+
         CommandLineContext commandLine = parser.commandLine();
 
         final List<CommandReference> commands = new ArrayList<CommandReference>();
