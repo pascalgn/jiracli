@@ -146,6 +146,9 @@ class ConsoleTextArea extends JTextArea {
             }
         }
         if (getCaret() != null) {
+            if (editable && getDocument() != null) {
+                getCaret().setDot(getDocument().getLength());
+            }
             getCaret().setVisible(editable && isFocusOwner());
         }
         super.setEditable(editable);

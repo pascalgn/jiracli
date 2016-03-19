@@ -18,6 +18,8 @@ package com.github.pascalgn.jiracli.gui;
 import java.awt.BorderLayout;
 
 import javax.swing.JFrame;
+import javax.swing.JScrollPane;
+import javax.swing.ScrollPaneConstants;
 import javax.swing.WindowConstants;
 
 /**
@@ -31,9 +33,12 @@ public class MainWindow extends JFrame {
     public MainWindow() {
         super("Jiracli");
         consoleTextArea = new ConsoleTextArea(25, 80);
+        JScrollPane consoleTextAreaScroll = new JScrollPane(consoleTextArea);
+        consoleTextAreaScroll.setBorder(null);
+        consoleTextAreaScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         getContentPane().setLayout(new BorderLayout());
-        getContentPane().add(consoleTextArea);
+        getContentPane().add(consoleTextAreaScroll);
         pack();
         setLocationRelativeTo(null);
     }
