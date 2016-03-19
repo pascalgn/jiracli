@@ -41,8 +41,8 @@ public class JavaScriptTest {
 
         webService.setIssue(issue1.getKey(), new JSONObject("{key:'ISSUE-1',fields:{author:{name:'Author-Name'}}}"));
 
-        JavaScript javaScript = new JavaScript("forEach.call(input, function(issue) { print(issue.key);"
-                + " print(': '); print(issue.fields.author.name); });");
+        JavaScript javaScript = new JavaScript("forEach.call(input, function(issue) { print(issue.key"
+                + " + ': ' + issue.fields.author.name); });");
         javaScript.execute(context, new IssueList(issue1));
 
         assertEquals("ISSUE-1: Author-Name", console.getOutput().trim());

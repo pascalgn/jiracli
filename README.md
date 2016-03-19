@@ -19,7 +19,7 @@ JavaScript evaluation:
     Suggestion
     jiracli> exit
 
-Search and filter issues:
+Search and issue filtering:
 
     jiracli> s "project=JRA and text~'new report'" | filter summary '^New report' | p
     JRA-2020 - New reports tab + report

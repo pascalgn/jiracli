@@ -62,6 +62,7 @@ public class DefaultWebService implements WebService {
     private final char[] password;
 
     private transient Map<String, JSONObject> issueCache;
+    private transient Map<String, List<JSONObject>> searchCache;
     private transient Map<String, String> fieldMapping;
 
     public DefaultWebService(String rootURL, String username, char[] password) {
@@ -91,12 +92,36 @@ public class DefaultWebService implements WebService {
     }
 
     @Override
-    public List<JSONObject> searchIssues(String jql) {
-        JSONObject response = new JSONObject(call("/rest/api/latest/search?jql={jql}", "jql", jql));
-        JSONArray issues = response.getJSONArray("issues");
-        List<JSONObject> result = new ArrayList<JSONObject>();
-        for (Object issue : issues) {
-            result.add((JSONObject) issue);
+    public synchronized List<JSONObject> searchIssues(String jql) {
+        List<JSONObject> result;
+        if (searchCache == null) {
+            searchCache = new HashMap<String, List<JSONObject>>();
+            result = null;
+        } else {
+            result = searchCache.get(jql.trim());
+        }
+        if (result == null) {
+            JSONObject response = new JSONObject(call("/rest/api/latest/search?jql={jql}", "jql", jql));
+            JSONArray issues = response.getJSONArray("issues");
+
+            if (issueCache == null) {
+                issueCache = new HashMap<String, JSONObject>();
+            }
+
+            result = new ArrayList<JSONObject>();
+            for (Object issue : issues) {
+                JSONObject obj = (JSONObject) issue;
+                String key = obj.getString("key");
+                JSONObject cached = issueCache.get(key);
+                if (cached == null) {
+                    issueCache.put(key, obj);
+                    result.add(obj);
+                } else {
+                    result.add(cached);
+                }
+            }
+
+            searchCache.put(jql.trim(), result);
         }
         return result;
     }
