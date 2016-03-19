@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import com.github.pascalgn.jiracli.command.Base64Factory;
 import com.github.pascalgn.jiracli.command.Command;
 import com.github.pascalgn.jiracli.command.CommandFactory;
+import com.github.pascalgn.jiracli.command.FilterFactory;
 import com.github.pascalgn.jiracli.command.GetFactory;
 import com.github.pascalgn.jiracli.command.JavaScriptFactory;
 import com.github.pascalgn.jiracli.command.PrintFactory;
@@ -46,7 +47,7 @@ class Shell {
 
     private static final List<CommandFactory> COMMAND_FACTORIES = Arrays.asList(new ReadFactory(),
             new ReadExcelFactory(), new PrintFactory(), new Base64Factory(), new SearchFactory(), new GetFactory(),
-            new JavaScriptFactory());
+            new JavaScriptFactory(), new FilterFactory());
 
     public static CommandFactory getCommandFactory(String commandName) {
         for (CommandFactory commandFactory : COMMAND_FACTORIES) {
@@ -83,16 +84,23 @@ class Shell {
             }
 
             if (HELP.contains(line)) {
+                int maxLen = 0;
+                for (CommandFactory commandFactory : COMMAND_FACTORIES) {
+                    maxLen = Math.max(maxLen, commandFactory.getName().length());
+                }
                 for (CommandFactory commandFactory : COMMAND_FACTORIES) {
                     StringBuilder str = new StringBuilder();
-                    str.append(commandFactory.getName());
-                    str.append("  ");
+                    String name = commandFactory.getName();
+                    str.append(name);
+                    str.append(repeat(" ", (maxLen - name.length()) + 2));
                     str.append(commandFactory.getDescription());
-                    str.append("\n");
-                    str.append(repeat(" ", commandFactory.getName().length()));
-                    str.append("  (Aliases: ");
-                    str.append(join(commandFactory.getAliases(), ", "));
-                    str.append(")");
+                    if (!commandFactory.getAliases().isEmpty()) {
+                        str.append("\n");
+                        str.append(repeat(" ", maxLen + 2));
+                        str.append("(Aliases: ");
+                        str.append(join(commandFactory.getAliases(), ", "));
+                        str.append(")");
+                    }
                     console.println(str.toString());
                 }
                 continue;

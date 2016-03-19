@@ -19,6 +19,12 @@ JavaScript evaluation:
     Suggestion
     jiracli> exit
 
+Search and filter issues:
+
+    jiracli> s "project=JRA and text~'new report'" | filter summary '^New report' | p
+    JRA-2020 - New reports tab + report
+    jiracli> exit
+
 ## License
 
 Jiracli is licensed under the Apache License, Version 2.0

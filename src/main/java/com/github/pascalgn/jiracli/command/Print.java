@@ -77,43 +77,11 @@ class Print implements Command<IssueListType, IssueList, None> {
             end = m.end();
 
             String name = m.group(1);
-            if (name.contains(".")) {
-                String[] names = name.split("\\.");
-                Object obj = getFieldValue(webService, json, names[0]);
-                for (int i = 1; i < names.length; i++) {
-                    obj = ((JSONObject) obj).get(names[i]);
-                }
-                str.append(obj);
-            } else {
-                str.append(getFieldValue(webService, json, name));
-            }
+            str.append(CommandUtils.getFieldValue(webService, json, name));
         }
 
         str.append(pattern.substring(end));
 
         return str.toString();
-    }
-
-    private static Object getFieldValue(WebService webService, JSONObject json, String name) {
-        if (json.has(name)) {
-            return json.get(name);
-        } else {
-            JSONObject fields = json.getJSONObject("fields");
-            if (fields.has(name)) {
-                return fields.get(name);
-            }
-
-            // Try custom field names:
-            String fieldId = webService.getFieldMapping().get(name);
-            if (fieldId != null) {
-                if (json.has(fieldId)) {
-                    return json.get(fieldId);
-                } else if (fields.has(fieldId)) {
-                    return fields.get(fieldId);
-                }
-            }
-
-            throw new IllegalStateException("Name '" + name + "' not found: " + json.toString(2));
-        }
     }
 }

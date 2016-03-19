@@ -18,15 +18,15 @@ package com.github.pascalgn.jiracli.command;
 import java.util.Collections;
 import java.util.List;
 
-public class GetFactory implements CommandFactory {
+public class FilterFactory implements CommandFactory {
     @Override
     public String getName() {
-        return "get";
+        return "filter";
     }
 
     @Override
     public String getDescription() {
-        return "Return the given issues";
+        return "Filter issues by the given field value";
     }
 
     @Override
@@ -35,9 +35,9 @@ public class GetFactory implements CommandFactory {
     }
 
     @Override
-    public Get createCommand(List<String> arguments) {
-        if (arguments.size() > 0) {
-            return new Get(arguments);
+    public Filter createCommand(List<String> arguments) {
+        if (arguments.size() == 2) {
+            return new Filter(arguments.get(0), arguments.get(1));
         } else {
             throw new IllegalArgumentException("Invalid arguments: " + arguments);
         }
