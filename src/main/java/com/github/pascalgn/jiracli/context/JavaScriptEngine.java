@@ -15,15 +15,6 @@
  */
 package com.github.pascalgn.jiracli.context;
 
-public interface Context extends AutoCloseable {
-    Console getConsole();
-
-    WebService getWebService();
-
-    JavaScriptEngine getJavaScriptEngine();
-
-    void onClose(Runnable runnable);
-
-    @Override
-    void close();
+public interface JavaScriptEngine {
+    Object evaluate(String js, Object input);
 }

@@ -28,8 +28,10 @@ import com.github.pascalgn.jiracli.context.Console;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.context.DefaultConsole;
 import com.github.pascalgn.jiracli.context.DefaultContext;
+import com.github.pascalgn.jiracli.context.DefaultJavaScriptEngine;
 import com.github.pascalgn.jiracli.context.DefaultWebService;
 import com.github.pascalgn.jiracli.context.DelegateConsole;
+import com.github.pascalgn.jiracli.context.JavaScriptEngine;
 import com.github.pascalgn.jiracli.context.WebService;
 import com.github.pascalgn.jiracli.gui.ContextDialog;
 import com.github.pascalgn.jiracli.gui.MainWindow;
@@ -126,7 +128,8 @@ public class Jiracli {
         }
 
         WebService webService = new DefaultWebService(rootURL, username, password);
-        Context context = new DefaultContext(console, webService);
+        JavaScriptEngine javaScriptEngine = new DefaultJavaScriptEngine(console);
+        Context context = new DefaultContext(console, webService, javaScriptEngine);
 
         context.onClose(new Runnable() {
             @Override
@@ -173,7 +176,8 @@ public class Jiracli {
                 Console console = new DelegateConsole(appendText, readLine);
 
                 WebService webService = new DefaultWebService(rootURL, username, password);
-                final Context context = new DefaultContext(console, webService);
+                JavaScriptEngine javaScriptEngine = new DefaultJavaScriptEngine(console);
+                final Context context = new DefaultContext(console, webService, javaScriptEngine);
 
                 context.onClose(new Runnable() {
                     @Override

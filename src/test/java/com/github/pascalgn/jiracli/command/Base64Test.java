@@ -15,12 +15,13 @@
  */
 package com.github.pascalgn.jiracli.command;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.context.DefaultContext;
+import com.github.pascalgn.jiracli.context.DefaultJavaScriptEngine;
 import com.github.pascalgn.jiracli.model.None;
 import com.github.pascalgn.jiracli.testutil.MockConsole;
 import com.github.pascalgn.jiracli.testutil.MockWebService;
@@ -29,7 +30,7 @@ public class Base64Test {
     @Test
     public void test1() throws Exception {
         MockConsole console = new MockConsole("hello");
-        Context context = new DefaultContext(console, new MockWebService());
+        Context context = new DefaultContext(console, new MockWebService(), new DefaultJavaScriptEngine(console));
         Base64 base64 = new Base64();
         base64.execute(context, None.getInstance());
         assertEquals("aGVsbG8=", console.getOutput().trim());

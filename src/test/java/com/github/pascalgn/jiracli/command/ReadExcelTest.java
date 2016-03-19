@@ -26,8 +26,10 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.Test;
 
+import com.github.pascalgn.jiracli.context.Console;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.context.DefaultContext;
+import com.github.pascalgn.jiracli.context.DefaultJavaScriptEngine;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.None;
@@ -50,7 +52,8 @@ public class ReadExcelTest {
                 }
             }
 
-            Context context = new DefaultContext(new MockConsole(), new MockWebService());
+            Console console = new MockConsole();
+            Context context = new DefaultContext(console, new MockWebService(), new DefaultJavaScriptEngine(console));
 
             ReadExcel re = new ReadExcel(f.getAbsolutePath());
             IssueList list = re.execute(context, None.getInstance());

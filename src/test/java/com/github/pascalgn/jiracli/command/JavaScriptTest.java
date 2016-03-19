@@ -29,7 +29,7 @@ import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.testutil.MockConsole;
 import com.github.pascalgn.jiracli.testutil.MockWebService;
 
-public class PrintTest {
+public class JavaScriptTest {
     @Test
     public void test1() throws Exception {
         MockConsole console = new MockConsole();
@@ -38,11 +38,13 @@ public class PrintTest {
         Context context = new DefaultContext(console, webService, javaScriptEngine);
 
         Issue issue1 = Issue.valueOf("ISSUE-1");
-        webService.setIssue(issue1.getKey(), new JSONObject("{fields:{author:{name:'Author-Name'}}}"));
 
-        Print print = new Print("${author.name}");
-        print.execute(context, new IssueList(issue1));
+        webService.setIssue(issue1.getKey(), new JSONObject("{key:'ISSUE-1',fields:{author:{name:'Author-Name'}}}"));
 
-        assertEquals("Author-Name", console.getOutput().trim());
+        JavaScript javaScript = new JavaScript("forEach.call(input, function(issue) { print(issue.key);"
+                + " print(': '); print(issue.fields.author.name); });");
+        javaScript.execute(context, new IssueList(issue1));
+
+        assertEquals("ISSUE-1: Author-Name", console.getOutput().trim());
     }
 }

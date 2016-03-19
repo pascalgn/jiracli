@@ -18,10 +18,12 @@ package com.github.pascalgn.jiracli.context;
 public class DefaultContext extends AbstractContext {
     private final Console console;
     private final WebService webService;
+    private final JavaScriptEngine javaScriptEngine;
 
-    public DefaultContext(Console console, WebService webService) {
+    public DefaultContext(Console console, WebService webService, JavaScriptEngine javaScriptEngine) {
         this.console = console;
         this.webService = webService;
+        this.javaScriptEngine = javaScriptEngine;
     }
 
     @Override
@@ -32,5 +34,10 @@ public class DefaultContext extends AbstractContext {
     @Override
     public WebService getWebService() {
         return webService;
+    }
+
+    @Override
+    public JavaScriptEngine getJavaScriptEngine() {
+        return javaScriptEngine;
     }
 }
