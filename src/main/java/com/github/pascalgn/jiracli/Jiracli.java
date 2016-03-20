@@ -65,7 +65,7 @@ public class Jiracli {
             System.out.println("  <root-url>      the root URL of the JIRA service");
             System.out.println("  <username>      the username to use for authentication");
         } else if (options.get(Option.VERSION) == Boolean.TRUE) {
-            System.out.println("jiracli 1.0.0");
+            System.out.println("jiracli 1.0.1-SNAPSHOT");
         } else {
             final boolean gui;
             if (options.get(Option.CONSOLE) == Boolean.TRUE) {

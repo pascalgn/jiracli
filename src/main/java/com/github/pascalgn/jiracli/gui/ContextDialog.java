@@ -49,7 +49,7 @@ public class ContextDialog extends JDialog {
             }
         };
 
-        setTitle("Jiracli 1.0.0");
+        setTitle("Jiracli 1.0.1-SNAPSHOT");
 
         Object escapeActionKey = "escape-action-key";
         JRootPane root = getRootPane();
