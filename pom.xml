@@ -22,7 +22,7 @@
 
 	<groupId>com.github.pascalgn.jiracli</groupId>
 	<artifactId>jiracli</artifactId>
-	<version>0.9.0-SNAPSHOT</version>
+	<version>1.0.0</version>
 	<packaging>jar</packaging>
 
 	<name>jiracli</name>

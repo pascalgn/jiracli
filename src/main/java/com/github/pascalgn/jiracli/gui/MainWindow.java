@@ -31,7 +31,7 @@ public class MainWindow extends JFrame {
     private final ConsoleTextArea consoleTextArea;
 
     public MainWindow() {
-        super("Jiracli");
+        super("Jiracli 1.0.0");
         consoleTextArea = new ConsoleTextArea(25, 80);
         JScrollPane consoleTextAreaScroll = new JScrollPane(consoleTextArea);
         consoleTextAreaScroll.setBorder(null);

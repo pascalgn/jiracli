@@ -46,7 +46,7 @@ public class Jiracli {
     private static final String USERNAME = "username";
 
     private enum Option {
-        HELP, CONSOLE, GUI, ROOT_URL, USERNAME;
+        HELP, VERSION, CONSOLE, GUI, ROOT_URL, USERNAME;
     }
 
     public static void main(String[] args) {
@@ -61,8 +61,11 @@ public class Jiracli {
             System.out.println("  -h, --help      show this help message");
             System.out.println("  -g, --gui       show a graphical console window");
             System.out.println("  -c, --console   run in console mode, using stdin and stdout");
+            System.out.println("  --version       show the program version and exit");
             System.out.println("  <root-url>      the root URL of the JIRA service");
             System.out.println("  <username>      the username to use for authentication");
+        } else if (options.get(Option.VERSION) == Boolean.TRUE) {
+            System.out.println("jiracli 1.0.0");
         } else {
             final boolean gui;
             if (options.get(Option.CONSOLE) == Boolean.TRUE) {
@@ -87,7 +90,8 @@ public class Jiracli {
         map.put(Option.HELP, list.contains("-h") || list.contains("--help"));
         map.put(Option.CONSOLE, list.contains("-c") || list.contains("--console"));
         map.put(Option.GUI, list.contains("-g") || list.contains("--gui"));
-        list.removeAll(Arrays.asList("-h", "--help", "-c", "--console", "-g", "--gui"));
+        map.put(Option.VERSION, list.contains("--version"));
+        list.removeAll(Arrays.asList("-h", "--help", "-c", "--console", "-g", "--gui", "--version"));
         if (!list.isEmpty()) {
             map.put(Option.ROOT_URL, list.remove(0));
         }
