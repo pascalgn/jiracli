@@ -20,6 +20,7 @@ import java.util.List;
 
 import org.json.JSONObject;
 
+import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
@@ -29,7 +30,7 @@ import com.github.pascalgn.jiracli.model.None;
 
 @CommandDescription(names = { "javascript", "js" }, description = "Execute JavaScript code for the given issues")
 class JavaScript implements Command {
-    @Argument(variable = "<javascript>", description = "the javascript code")
+    @Argument(variable = "<javascript>", description = "the javascript code", parameters = Parameters.ONE)
     private String js;
 
     public JavaScript() {

@@ -27,7 +27,7 @@ import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.util.Supplier;
 
-@CommandDescription(names = "search", description = "Search for issues via JQL")
+@CommandDescription(names = { "search", "s" }, description = "Search for issues via JQL")
 class Search implements Command {
     @Argument(variable = "<jql>", description = "the JQL to search", parameters = Parameters.ONE)
     private String jql;

@@ -25,6 +25,13 @@ Search and issue filtering:
     JRA-2020 - New reports tab + report
     jiracli> exit
 
+Issue browsing:
+
+    jiracli> get JRA-123 | browse -n
+    https://jira.atlassian.com/browse/JRA-123
+    jiracli> get JRA-123 | browse
+    jiracli> exit
+
 ## License
 
 Jiracli is licensed under the Apache License, Version 2.0
