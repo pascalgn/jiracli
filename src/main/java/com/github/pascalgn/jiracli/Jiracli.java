@@ -42,6 +42,10 @@ import com.github.pascalgn.jiracli.util.Supplier;
  * Main class
  */
 public class Jiracli {
+    public static String getTitle() {
+        return "Jiracli 1.1.0";
+    }
+
     private static final String ROOT_URL = "rootURL";
     private static final String USERNAME = "username";
 
@@ -65,7 +69,7 @@ public class Jiracli {
             System.out.println("  <root-url>      the root URL of the JIRA service");
             System.out.println("  <username>      the username to use for authentication");
         } else if (options.get(Option.VERSION) == Boolean.TRUE) {
-            System.out.println("jiracli 1.0.1-SNAPSHOT");
+            System.out.println(getTitle().toLowerCase());
         } else {
             final boolean gui;
             if (options.get(Option.CONSOLE) == Boolean.TRUE) {

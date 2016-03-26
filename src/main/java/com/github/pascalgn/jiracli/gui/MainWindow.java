@@ -22,6 +22,8 @@ import javax.swing.JScrollPane;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.WindowConstants;
 
+import com.github.pascalgn.jiracli.Jiracli;
+
 /**
  * Main window of the GUI: Displays the console for input/output
  */
@@ -31,7 +33,7 @@ public class MainWindow extends JFrame {
     private final ConsoleTextArea consoleTextArea;
 
     public MainWindow() {
-        super("Jiracli 1.0.1-SNAPSHOT");
+        super(Jiracli.getTitle());
         setIconImages(Images.getIcons());
         consoleTextArea = new ConsoleTextArea(25, 80);
         JScrollPane consoleTextAreaScroll = new JScrollPane(consoleTextArea);
