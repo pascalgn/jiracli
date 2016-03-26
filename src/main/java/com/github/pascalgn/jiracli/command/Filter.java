@@ -20,34 +20,40 @@ import java.util.regex.Pattern;
 
 import org.json.JSONObject;
 
+import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.context.WebService;
+import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.IssueListType;
 import com.github.pascalgn.jiracli.util.Supplier;
 
-class Filter implements Command<IssueListType, IssueList, IssueList> {
-    private final String field;
-    private final Pattern pattern;
+@CommandDescription(names = "filter", description = "Filter issues by the given field value")
+class Filter implements Command {
+    @Argument(parameters = Parameters.ONE, variable = "<field>", order = 1, description = "issue's field name")
+    private String field;
 
-    public Filter(String field, String value) {
+    @Argument(parameters = Parameters.ONE, variable = "<value>", order = 2, description = "the filter value")
+    private Pattern pattern;
+
+    public Filter() {
+        // default constructor
+    }
+
+    Filter(String field, String value) {
         this.field = field;
         this.pattern = Pattern.compile(value);
     }
 
     @Override
-    public IssueListType getInputType() {
-        return IssueListType.getInstance();
-    }
-
-    @Override
-    public IssueList execute(final Context context, final IssueList input) {
+    public IssueList execute(final Context context, final Data<?> input) {
+        final IssueList issueList = (IssueList) input.convertTo(IssueListType.getInstance());
         return new IssueList(new Supplier<Issue>() {
             @Override
             public Issue get() {
                 Issue issue;
-                while ((issue = input.next()) != null) {
+                while ((issue = issueList.next()) != null) {
                     if (matches(context, issue)) {
                         break;
                     }

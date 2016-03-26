@@ -22,13 +22,13 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 
 import com.github.pascalgn.jiracli.context.Context;
+import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
-import com.github.pascalgn.jiracli.model.None;
-import com.github.pascalgn.jiracli.model.NoneType;
 import com.github.pascalgn.jiracli.util.Supplier;
 
-class Read implements Command<NoneType, None, IssueList> {
+@CommandDescription(names = { "read", "r" }, description = "Read issue keys from standard input")
+class Read implements Command {
     private static final String STDIN_FILENAME = "-";
 
     private final String filename;
@@ -42,12 +42,7 @@ class Read implements Command<NoneType, None, IssueList> {
     }
 
     @Override
-    public NoneType getInputType() {
-        return NoneType.getInstance();
-    }
-
-    @Override
-    public IssueList execute(Context context, None input) {
+    public IssueList execute(Context context, Data<?> input) {
         return new IssueList(getSupplier(context));
     }
 

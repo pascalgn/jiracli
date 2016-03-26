@@ -18,6 +18,7 @@ lexer grammar CommandLineLexer;
 
 NAME
 	: [a-z][a-z0-9]*
+	| '?'
 	;
 
 TEXT

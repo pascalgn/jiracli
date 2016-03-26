@@ -22,38 +22,42 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.context.WebService;
+import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.IssueListType;
 import com.github.pascalgn.jiracli.model.None;
 
-class Print implements Command<IssueListType, IssueList, None> {
+@CommandDescription(names = { "print", "p" }, description = "Print the given JIRA issues using the given format")
+class Print implements Command {
     private static final Logger LOGGER = LoggerFactory.getLogger(Print.class);
 
     private static final String DEFAULT_PATTERN = "${key} - ${summary}";
     private static final Pattern PATTERN = Pattern.compile("\\$\\{([^}]+)\\}");
 
-    private final String pattern;
+    @Argument(names = { "-n" }, description = "don't print a newline at the end")
+    private boolean noNewline = false;
+
+    @Argument(parameters = Parameters.ZERO_OR_ONE, variable = "<format>", description = "the print format")
+    private String pattern = DEFAULT_PATTERN;
 
     public Print() {
-        this(DEFAULT_PATTERN);
+        // default constructor
     }
 
-    public Print(String pattern) {
+    Print(String pattern) {
         this.pattern = pattern;
     }
 
     @Override
-    public IssueListType getInputType() {
-        return IssueListType.getInstance();
-    }
+    public None execute(Context context, Data<?> input) {
+        IssueList issueList = (IssueList) input.convertTo(IssueListType.getInstance());
 
-    @Override
-    public None execute(Context context, IssueList input) {
         Issue issue;
-        while ((issue = input.next()) != null) {
+        while ((issue = issueList.next()) != null) {
             String str;
             try {
                 str = toString(context.getWebService(), issue, pattern);

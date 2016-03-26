@@ -21,29 +21,33 @@ import java.util.List;
 import org.json.JSONObject;
 
 import com.github.pascalgn.jiracli.context.Context;
+import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.IssueListType;
 import com.github.pascalgn.jiracli.model.None;
 
-class JavaScript implements Command<IssueListType, IssueList, None> {
-    private final String js;
+@CommandDescription(names = { "javascript", "js" }, description = "Execute JavaScript code for the given issues")
+class JavaScript implements Command {
+    @Argument(variable = "<javascript>", description = "the javascript code")
+    private String js;
 
-    public JavaScript(String js) {
+    public JavaScript() {
+        // default constructor
+    }
+
+    JavaScript(String js) {
         this.js = js;
     }
 
     @Override
-    public IssueListType getInputType() {
-        return IssueListType.getInstance();
-    }
+    public None execute(Context context, Data<?> input) {
+        IssueList issueList = (IssueList) input.convertTo(IssueListType.getInstance());
 
-    @Override
-    public None execute(Context context, IssueList input) {
         List<Object> issues = new ArrayList<Object>();
 
         Issue issue;
-        while ((issue = input.next()) != null) {
+        while ((issue = issueList.next()) != null) {
             JSONObject json = context.getWebService().getIssue(issue.getKey());
             Object obj = context.getJavaScriptEngine().evaluate("JSON.parse(input)", json.toString());
             issues.add(obj);

@@ -15,29 +15,27 @@
  */
 package com.github.pascalgn.jiracli.command;
 
-import java.nio.charset.StandardCharsets;
-
-import javax.xml.bind.DatatypeConverter;
-
+import com.github.pascalgn.jiracli.command.CommandFactory.CommandDescriptor;
 import com.github.pascalgn.jiracli.context.Console;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.None;
 
-@CommandDescription(names = { "base64", "b64" }, description = "Print text from standard input as Base64 encoded")
-class Base64 implements Command {
+@CommandDescription(names = { "help", "h", "?" }, description = "Show a list of available commands")
+public class Help implements Command {
     @Override
-    public None execute(Context context, Data<?> input) {
+    public Data<?> execute(Context context, Data<?> input) {
         Console console = context.getConsole();
-        String raw;
-        while ((raw = console.readLine()) != null) {
-            String line = raw.trim();
-            if (line.isEmpty()) {
-                break;
-            }
-            String base64 = DatatypeConverter.printBase64Binary(line.getBytes(StandardCharsets.UTF_8));
-            console.println(base64);
+        CommandFactory commandFactory = CommandFactory.getInstance();
+        StringBuilder str = new StringBuilder();
+        for (CommandDescriptor commandDescriptor : commandFactory.getCommandDescriptors()) {
+            str.append(CommandUtils.join(commandDescriptor.getNames(), ", "));
+            str.append(System.lineSeparator());
+            str.append("    ");
+            str.append(commandDescriptor.getDescription());
+            str.append(System.lineSeparator());
         }
+        console.print(str.toString());
         return None.getInstance();
     }
 }

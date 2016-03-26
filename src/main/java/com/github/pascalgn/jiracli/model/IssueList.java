@@ -43,11 +43,11 @@ public class IssueList extends List<IssueListType, Issue> {
     }
 
     @Override
-    public <S extends Type> Data<S> convertTo(S target) {
+    public <S extends Type> Data<S> convertTo(final S target) {
         return target.accept(new DataConverter() {
             @Override
             public Issue visit(IssueType issue) {
-                return null;
+                throw new ConversionException(IssueList.this, target);
             }
 
             @Override

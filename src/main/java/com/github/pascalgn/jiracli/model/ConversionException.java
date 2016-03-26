@@ -13,11 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.pascalgn.jiracli.command;
+package com.github.pascalgn.jiracli.model;
 
-import com.github.pascalgn.jiracli.context.Context;
-import com.github.pascalgn.jiracli.model.Data;
+public class ConversionException extends IllegalArgumentException {
+    private static final long serialVersionUID = 8697033161921750282L;
 
-public interface Command {
-    Data<?> execute(Context context, Data<?> input);
+    public ConversionException(Data<?> source, Type target) {
+        super("Cannot convert " + source + " to " + target);
+    }
 }

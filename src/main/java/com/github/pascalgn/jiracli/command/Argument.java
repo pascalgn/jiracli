@@ -15,31 +15,28 @@
  */
 package com.github.pascalgn.jiracli.command;
 
-import java.util.Arrays;
-import java.util.List;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-public class SearchFactory implements CommandFactory {
-    @Override
-    public String getName() {
-        return "search";
+@Target(ElementType.FIELD)
+@Retention(RetentionPolicy.RUNTIME)
+@interface Argument {
+    enum Parameters {
+        ZERO, ZERO_OR_ONE, ONE, ONE_OR_MORE;
     }
 
-    @Override
-    public String getDescription() {
-        return "Search for issues via JQL";
-    }
+    String[] names() default {};
 
-    @Override
-    public List<String> getAliases() {
-        return Arrays.asList("s");
-    }
+    String description();
 
-    @Override
-    public Search createCommand(List<String> arguments) {
-        if (arguments.size() == 1) {
-            return new Search(arguments.get(0));
-        } else {
-            throw new IllegalArgumentException("Invalid arguments: " + arguments);
-        }
-    }
+    Parameters parameters() default Parameters.ZERO;
+
+    /**
+     * <code>%s</code> will be replaced by the long name
+     */
+    String variable() default "<%s>";
+
+    int order() default -1;
 }

@@ -18,30 +18,19 @@ package com.github.pascalgn.jiracli.command;
 import java.util.Arrays;
 import java.util.List;
 
-public class ReadFactory implements CommandFactory {
-    @Override
-    public String getName() {
-        return "read";
+final class CommandList {
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    private static final List<Class<Command>> COMMANDS = (List) Arrays.asList(Base64.class, Filter.class, Get.class,
+            Help.class, JavaScript.class, Print.class, Read.class, ReadExcel.class, Search.class);
+
+    private CommandList() {
+        // don't allow instances
     }
 
-    @Override
-    public String getDescription() {
-        return "Read issue keys from standard input";
-    }
-
-    @Override
-    public List<String> getAliases() {
-        return Arrays.asList("r");
-    }
-
-    @Override
-    public Read createCommand(List<String> arguments) {
-        if (arguments.size() == 0) {
-            return new Read();
-        } else if (arguments.size() == 1) {
-            return new Read(arguments.get(0));
-        } else {
-            throw new IllegalArgumentException("Invalid arguments: " + arguments);
-        }
+    /**
+     * @return A list of all types implementing {@link Command}
+     */
+    public static List<Class<Command>> getCommands() {
+        return COMMANDS;
     }
 }

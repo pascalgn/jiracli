@@ -21,30 +21,35 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
+import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
-import com.github.pascalgn.jiracli.model.None;
-import com.github.pascalgn.jiracli.model.NoneType;
 import com.github.pascalgn.jiracli.util.ExcelHelper;
 import com.github.pascalgn.jiracli.util.ExcelHelper.CellHandler;
 import com.github.pascalgn.jiracli.util.ExcelHelperFactory;
 import com.github.pascalgn.jiracli.util.Supplier;
 
-class ReadExcel implements Command<NoneType, None, IssueList> {
-    private final String filename;
+@CommandDescription(names = { "readexcel", "re" }, description = "Read issues from the given Excel file")
+class ReadExcel implements Command {
+    @Argument(names = { "-c", "--col" }, parameters = Parameters.ONE, variable = "<col>",
+            description = "the column to read")
+    private Integer column;
 
-    public ReadExcel(String filename) {
+    @Argument(parameters = Parameters.ONE, variable = "<file>", description = "the excel file to read")
+    private String filename;
+
+    public ReadExcel() {
+        // default constructor
+    }
+
+    ReadExcel(String filename) {
         this.filename = filename;
     }
 
     @Override
-    public NoneType getInputType() {
-        return NoneType.getInstance();
-    }
-
-    @Override
-    public IssueList execute(Context context, None input) {
+    public IssueList execute(Context context, Data<?> input) {
         return new IssueList(getSupplier(context));
     }
 

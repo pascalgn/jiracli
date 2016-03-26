@@ -22,11 +22,10 @@ import com.github.pascalgn.jiracli.command.Command;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.None;
-import com.github.pascalgn.jiracli.model.Type;
 
 class Pipeline<D extends Data<?>> {
     public static final class Builder<D extends Data<?>> {
-        private final List<Command<?, ?, ?>> commands;
+        private final List<Command> commands;
 
         public static Builder<None> newInstance() {
             return new Builder<None>();
@@ -37,7 +36,7 @@ class Pipeline<D extends Data<?>> {
         }
 
         @SuppressWarnings("unchecked")
-        public <R extends Data<?>> Builder<R> add(Command<?, D, R> command) {
+        public <R extends Data<?>> Builder<R> add(Command command) {
             commands.add(command);
             return (Builder<R>) this;
         }
@@ -47,22 +46,17 @@ class Pipeline<D extends Data<?>> {
         }
     }
 
-    private final List<Command<?, ?, ?>> commands;
+    private final List<Command> commands;
 
-    private Pipeline(List<Command<?, ?, ?>> commands) {
+    private Pipeline(List<Command> commands) {
         this.commands = commands;
     }
 
     @SuppressWarnings("unchecked")
     public D execute(Context context) {
         Data<?> result = None.getInstance();
-        for (Command<?, ?, ?> command : commands) {
-            Type inputType = command.getInputType();
-            Data<?> input = result.convertTo(inputType);
-            if (input == null) {
-                throw new IllegalStateException("Cannot convert data to " + inputType + ": " + result);
-            }
-            result = ((Command<?, Data<?>, Data<?>>) command).execute(context, input);
+        for (Command command : commands) {
+            result = command.execute(context, result);
         }
         return (D) result;
     }

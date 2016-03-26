@@ -20,27 +20,28 @@ import java.util.List;
 
 import org.json.JSONObject;
 
+import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
+import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
-import com.github.pascalgn.jiracli.model.None;
-import com.github.pascalgn.jiracli.model.NoneType;
 import com.github.pascalgn.jiracli.util.Supplier;
 
-class Search implements Command<NoneType, None, IssueList> {
-    private final String jql;
+@CommandDescription(names = "search", description = "Search for issues via JQL")
+class Search implements Command {
+    @Argument(variable = "<jql>", description = "the JQL to search", parameters = Parameters.ONE)
+    private String jql;
 
-    public Search(String jql) {
+    public Search() {
+        // default constructor
+    }
+
+    Search(String jql) {
         this.jql = jql;
     }
 
     @Override
-    public NoneType getInputType() {
-        return NoneType.getInstance();
-    }
-
-    @Override
-    public IssueList execute(Context context, None input) {
+    public IssueList execute(Context context, Data<?> input) {
         return new IssueList(new IssueSupplier(context, jql));
     }
 

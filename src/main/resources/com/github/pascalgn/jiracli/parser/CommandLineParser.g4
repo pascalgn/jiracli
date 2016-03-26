@@ -24,7 +24,7 @@ commandLine
 	;
 
 command
-	: commandName (SPACE* argument)*
+	: commandName (SPACE+ argument)*
 	;
 
 commandName

@@ -32,16 +32,16 @@ public class None extends Data<NoneType> {
     }
 
     @Override
-    public <S extends Type> Data<S> convertTo(S target) {
+    public <S extends Type> Data<S> convertTo(final S target) {
         return target.accept(new DataConverter() {
             @Override
             public Issue visit(IssueType issue) {
-                return null;
+                throw new ConversionException(None.this, target);
             }
 
             @Override
             public IssueList visit(IssueListType issueList) {
-                return null;
+                throw new ConversionException(None.this, target);
             }
         });
     }

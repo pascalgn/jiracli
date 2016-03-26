@@ -17,6 +17,7 @@ package com.github.pascalgn.jiracli.command;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.List;
 
 import org.json.JSONObject;
 
@@ -29,6 +30,25 @@ class CommandUtils {
         } catch (IOException e) {
             throw new IllegalStateException("Exception while trying to close: " + closeable, e);
         }
+    }
+
+    public static String join(List<String> list, String sep) {
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < list.size(); i++) {
+            if (i > 0) {
+                result.append(sep);
+            }
+            result.append(list.get(i));
+        }
+        return result.toString();
+    }
+
+    public static String repeat(String str, int times) {
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < times; i++) {
+            result.append(str);
+        }
+        return result.toString();
     }
 
     public static Object getFieldValue(WebService webService, JSONObject json, String name) {

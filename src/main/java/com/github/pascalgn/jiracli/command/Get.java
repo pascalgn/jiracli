@@ -15,30 +15,22 @@
  */
 package com.github.pascalgn.jiracli.command;
 
-import java.util.ArrayList;
 import java.util.List;
 
+import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
+import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
-import com.github.pascalgn.jiracli.model.None;
-import com.github.pascalgn.jiracli.model.NoneType;
 import com.github.pascalgn.jiracli.util.Supplier;
 
-class Get implements Command<NoneType, None, IssueList> {
-    private final List<String> issues;
-
-    public Get(List<String> issues) {
-        this.issues = new ArrayList<String>(issues);
-    }
+@CommandDescription(names = "get", description = "Return the given issues")
+class Get implements Command {
+    @Argument(parameters = Parameters.ONE_OR_MORE, variable = "<issue>", description = "the issues")
+    private List<String> issues;
 
     @Override
-    public NoneType getInputType() {
-        return NoneType.getInstance();
-    }
-
-    @Override
-    public IssueList execute(Context context, None input) {
+    public IssueList execute(Context context, Data<?> input) {
         return new IssueList(new Supplier<Issue>() {
             @Override
             public Issue get() {

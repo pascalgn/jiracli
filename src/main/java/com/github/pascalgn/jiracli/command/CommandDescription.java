@@ -15,31 +15,15 @@
  */
 package com.github.pascalgn.jiracli.command;
 
-import java.util.Collections;
-import java.util.List;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-public class GetFactory implements CommandFactory {
-    @Override
-    public String getName() {
-        return "get";
-    }
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+@interface CommandDescription {
+    String[] names();
 
-    @Override
-    public String getDescription() {
-        return "Return the given issues";
-    }
-
-    @Override
-    public List<String> getAliases() {
-        return Collections.emptyList();
-    }
-
-    @Override
-    public Get createCommand(List<String> arguments) {
-        if (arguments.size() > 0) {
-            return new Get(arguments);
-        } else {
-            throw new IllegalArgumentException("Invalid arguments: " + arguments);
-        }
-    }
+    String description();
 }
