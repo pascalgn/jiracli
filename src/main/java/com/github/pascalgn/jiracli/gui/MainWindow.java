@@ -32,6 +32,7 @@ public class MainWindow extends JFrame {
 
     public MainWindow() {
         super("Jiracli 1.0.1-SNAPSHOT");
+        setIconImages(Images.getIcons());
         consoleTextArea = new ConsoleTextArea(25, 80);
         JScrollPane consoleTextAreaScroll = new JScrollPane(consoleTextArea);
         consoleTextAreaScroll.setBorder(null);

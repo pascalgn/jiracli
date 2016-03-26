@@ -20,12 +20,12 @@ import java.awt.event.ActionEvent;
 
 import javax.swing.AbstractAction;
 import javax.swing.JComponent;
-import javax.swing.JDialog;
+import javax.swing.JFrame;
 import javax.swing.JRootPane;
 import javax.swing.KeyStroke;
 import javax.swing.WindowConstants;
 
-public class ContextDialog extends JDialog {
+public class ContextDialog extends JFrame {
     private static final long serialVersionUID = 8255092098159010094L;
 
     private final ContextPanel contextPanel;
@@ -33,6 +33,9 @@ public class ContextDialog extends JDialog {
     private Runnable cancelListener;
 
     public ContextDialog(String givenRootURL, String givenUsername) {
+        super("Jiracli 1.0.1-SNAPSHOT");
+        setIconImages(Images.getIcons());
+
         contextPanel = new ContextPanel(givenRootURL, givenUsername);
         contextPanel.setCancelListener(new Runnable() {
             @Override
@@ -48,8 +51,6 @@ public class ContextDialog extends JDialog {
                 dispose();
             }
         };
-
-        setTitle("Jiracli 1.0.1-SNAPSHOT");
 
         Object escapeActionKey = "escape-action-key";
         JRootPane root = getRootPane();
