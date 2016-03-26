@@ -15,6 +15,7 @@
  */
 package com.github.pascalgn.jiracli.testutil;
 
+import java.net.URI;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -31,6 +32,11 @@ public class MockWebService implements WebService {
     public MockWebService() {
         issues = new HashMap<String, JSONObject>();
         fieldMapping = Collections.emptyMap();
+    }
+
+    @Override
+    public URI getURI(String issue) {
+        return URI.create("issue://" + issue);
     }
 
     @Override

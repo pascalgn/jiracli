@@ -15,12 +15,15 @@
  */
 package com.github.pascalgn.jiracli.context;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
 import org.json.JSONObject;
 
 public interface WebService extends AutoCloseable {
+    URI getURI(String issue);
+
     JSONObject getIssue(String issue);
 
     List<JSONObject> searchIssues(String jql);

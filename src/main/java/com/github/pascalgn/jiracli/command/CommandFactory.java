@@ -108,10 +108,8 @@ public class CommandFactory {
                             if (params == null) {
                                 throw new IllegalArgumentException(commandName + ": " + arg + ": missing parameter!");
                             }
-                            if (!params.isEmpty()) {
-                                argument.setParameter(command, params);
-                                i += params.size();
-                            }
+                            argument.setParameter(command, params);
+                            i += params.size();
                         }
                     } else {
                         mainArgs.add(arg);
@@ -432,18 +430,23 @@ public class CommandFactory {
         private static Object convertParameter(Field field, List<String> params) {
             if (field.getType() == List.class) {
                 return params;
-            } else {
-                if (params.size() == 1) {
-                    String param = params.get(0);
-                    if (field.getType() == String.class) {
-                        return param;
-                    } else if (field.getType() == Pattern.class) {
-                        return Pattern.compile(param);
-                    } else if (field.getType() == Integer.class) {
-                        return Integer.valueOf(param);
-                    } else if (field.getType() == int.class) {
-                        return Integer.parseInt(param);
-                    }
+            }
+            if (params.isEmpty()) {
+                if (field.getType() == boolean.class) {
+                    return true;
+                } else if (field.getType() == Boolean.class) {
+                    return Boolean.TRUE;
+                }
+            } else if (params.size() == 1) {
+                String param = params.get(0);
+                if (field.getType() == String.class) {
+                    return param;
+                } else if (field.getType() == Pattern.class) {
+                    return Pattern.compile(param);
+                } else if (field.getType() == Integer.class) {
+                    return Integer.valueOf(param);
+                } else if (field.getType() == int.class) {
+                    return Integer.parseInt(param);
                 }
             }
             throw new IllegalArgumentException("Cannot convert parameter: field " + field + ", parameter: " + params);

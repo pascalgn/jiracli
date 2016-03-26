@@ -38,7 +38,7 @@ class Print implements Command {
     private static final String DEFAULT_PATTERN = "${key} - ${summary}";
     private static final Pattern PATTERN = Pattern.compile("\\$\\{([^}]+)\\}");
 
-    @Argument(names = { "-n" }, description = "don't print a newline at the end")
+    @Argument(names = "-n", description = "don't print a newline at the end")
     private boolean noNewline = false;
 
     @Argument(parameters = Parameters.ZERO_OR_ONE, variable = "<format>", description = "the print format")
@@ -65,7 +65,11 @@ class Print implements Command {
                 LOGGER.debug("Error while reading issue: {}", issue.getKey(), e);
                 str = "[Invalid issue: " + e.getLocalizedMessage() + " - " + issue.getKey() + "]";
             }
-            context.getConsole().println(str);
+            if (noNewline) {
+                context.getConsole().print(str);
+            } else {
+                context.getConsole().println(str);
+            }
         }
         return null;
     }

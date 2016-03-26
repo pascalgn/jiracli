@@ -55,7 +55,7 @@ public class ReadExcelTest {
             Console console = new MockConsole();
             Context context = new DefaultContext(console, new MockWebService(), new DefaultJavaScriptEngine(console));
 
-            ReadExcel re = new ReadExcel(f.getAbsolutePath());
+            ReadExcel re = new ReadExcel("U", f.getAbsolutePath());
             IssueList list = re.execute(context, None.getInstance());
             assertNotNull(list);
 

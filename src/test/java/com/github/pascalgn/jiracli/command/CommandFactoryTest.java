@@ -52,8 +52,8 @@ public class CommandFactoryTest {
 
     @Test
     public void testParseReadExcel() throws Exception {
-        Command readExcel = parse("re", "-c", "100", "-");
-        assertEquals(100, getFieldValue(readExcel, "column"));
+        Command readExcel = parse("re", "-c", "ABC", "-");
+        assertEquals("ABC", getFieldValue(readExcel, "column"));
     }
 
     @Test
@@ -61,6 +61,12 @@ public class CommandFactoryTest {
         Command filter = parse("filter", "field1", "value1");
         assertEquals("field1", getFieldValue(filter, "field"));
         assertEquals("value1", ((Pattern) getFieldValue(filter, "pattern")).pattern());
+    }
+
+    @Test
+    public void testParsePrint() throws Exception {
+        Command print = parse("print", "-n");
+        assertEquals(true, getFieldValue(print, "noNewline"));
     }
 
     private Command parse(String name, String... args) {

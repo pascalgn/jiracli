@@ -17,6 +17,7 @@ package com.github.pascalgn.jiracli.context;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -73,6 +74,11 @@ public class DefaultWebService implements WebService {
 
     private static String stripEnd(String str, String end) {
         return (str.endsWith(end) ? str.substring(0, str.length() - end.length()) : str);
+    }
+
+    @Override
+    public URI getURI(String issue) {
+        return URI.create(rootURL + "/browse/" + issue);
     }
 
     @Override

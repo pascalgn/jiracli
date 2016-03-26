@@ -172,7 +172,7 @@ class SimpleExcelHelper implements ExcelHelper {
             if (qName.equals("row")) {
                 row = Integer.valueOf(attributes.getValue("r"));
             } else if (qName.equals("c")) {
-                column = attributes.getValue("r");
+                column = getColumn(attributes.getValue("r"));
                 String type = attributes.getValue("t");
                 if (type.equals("s")) {
                     cellValue = null;
@@ -180,6 +180,15 @@ class SimpleExcelHelper implements ExcelHelper {
                     cellValue = new StringBuilder();
                 }
             }
+        }
+
+        private static String getColumn(String str) {
+            for (int i = 0; i < str.length(); i++) {
+                if (Character.isDigit(str.charAt(i))) {
+                    return str.substring(0, i);
+                }
+            }
+            return str;
         }
 
         @Override

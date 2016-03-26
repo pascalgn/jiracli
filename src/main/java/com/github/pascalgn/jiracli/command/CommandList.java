@@ -20,8 +20,8 @@ import java.util.List;
 
 final class CommandList {
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    private static final List<Class<Command>> COMMANDS = (List) Arrays.asList(Base64.class, Filter.class, Get.class,
-            Help.class, JavaScript.class, Print.class, Read.class, ReadExcel.class, Search.class);
+    private static final List<Class<Command>> COMMANDS = (List) Arrays.asList(Base64.class, Browse.class, Filter.class,
+            Get.class, Help.class, JavaScript.class, Print.class, Read.class, ReadExcel.class, Search.class);
 
     private CommandList() {
         // don't allow instances

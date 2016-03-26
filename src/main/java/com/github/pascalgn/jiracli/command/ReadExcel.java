@@ -35,7 +35,7 @@ import com.github.pascalgn.jiracli.util.Supplier;
 class ReadExcel implements Command {
     @Argument(names = { "-c", "--col" }, parameters = Parameters.ONE, variable = "<col>",
             description = "the column to read")
-    private Integer column;
+    private String column;
 
     @Argument(parameters = Parameters.ONE, variable = "<file>", description = "the excel file to read")
     private String filename;
@@ -44,7 +44,8 @@ class ReadExcel implements Command {
         // default constructor
     }
 
-    ReadExcel(String filename) {
+    ReadExcel(String column, String filename) {
+        this.column = column;
         this.filename = filename;
     }
 
@@ -54,17 +55,19 @@ class ReadExcel implements Command {
     }
 
     private Supplier<Issue> getSupplier(Context context) {
-        return new ExcelReader(filename);
+        return new ExcelReader(filename, column);
     }
 
     private static class ExcelReader implements Supplier<Issue> {
         private final String filename;
+        private final String column;
 
         private transient List<Issue> issues;
         private transient int index;
 
-        public ExcelReader(String filename) {
+        public ExcelReader(String filename, String column) {
             this.filename = filename;
+            this.column = column;
         }
 
         @Override
@@ -85,6 +88,11 @@ class ReadExcel implements Command {
                     excelHelper.parseWorkbook(input, new CellHandler() {
                         @Override
                         public void handleCell(int row, String column, String value) {
+                            if (ExcelReader.this.column != null) {
+                                if (!ExcelReader.this.column.equals(column)) {
+                                    return;
+                                }
+                            }
                             issues.addAll(Issue.findAll(value));
                         }
                     });

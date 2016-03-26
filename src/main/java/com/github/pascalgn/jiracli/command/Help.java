@@ -22,7 +22,7 @@ import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.None;
 
 @CommandDescription(names = { "help", "h", "?" }, description = "Show a list of available commands")
-public class Help implements Command {
+class Help implements Command {
     @Override
     public Data<?> execute(Context context, Data<?> input) {
         Console console = context.getConsole();
