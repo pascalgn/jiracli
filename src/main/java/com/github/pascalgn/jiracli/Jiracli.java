@@ -43,7 +43,7 @@ import com.github.pascalgn.jiracli.util.Supplier;
  */
 public class Jiracli {
     public static String getTitle() {
-        return "Jiracli 1.1.1";
+        return "Jiracli 1.1.2-SNAPSHOT";
     }
 
     private static final String ROOT_URL = "rootURL";
