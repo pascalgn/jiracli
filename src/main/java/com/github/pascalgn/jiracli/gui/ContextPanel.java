@@ -161,6 +161,14 @@ class ContextPanel extends JPanel {
         setLayout(groupLayout);
     }
 
+    public void setInitialFocus() {
+        if (!rootURL.getText().isEmpty() && !username.getText().isEmpty()) {
+            password.requestFocusInWindow();
+        } else {
+            rootURL.requestFocusInWindow();
+        }
+    }
+
     public JButton getOk() {
         return ok;
     }

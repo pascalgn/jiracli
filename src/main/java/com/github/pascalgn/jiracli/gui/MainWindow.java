@@ -39,7 +39,7 @@ public class MainWindow extends JFrame {
         JScrollPane consoleTextAreaScroll = new JScrollPane(consoleTextArea);
         consoleTextAreaScroll.setBorder(null);
         consoleTextAreaScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         getContentPane().setLayout(new BorderLayout());
         getContentPane().add(consoleTextAreaScroll);
         pack();
@@ -52,5 +52,9 @@ public class MainWindow extends JFrame {
 
     public String readLine() {
         return consoleTextArea.readLine();
+    }
+
+    public void setNewWindowListener(Runnable newWindowListener) {
+        consoleTextArea.setNewWindowListener(newWindowListener);
     }
 }

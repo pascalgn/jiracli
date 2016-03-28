@@ -16,12 +16,15 @@
 package com.github.pascalgn.jiracli;
 
 import java.awt.GraphicsEnvironment;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.prefs.Preferences;
 
 import com.github.pascalgn.jiracli.context.Console;
@@ -48,6 +51,8 @@ public class Jiracli {
 
     private static final String ROOT_URL = "rootURL";
     private static final String USERNAME = "username";
+
+    private static final AtomicInteger SHELL_THREAD_INDEX = new AtomicInteger(0);
 
     private enum Option {
         HELP, VERSION, CONSOLE, GUI, ROOT_URL, USERNAME;
@@ -162,54 +167,20 @@ public class Jiracli {
                 final String username = emptyToNull(contextDialog.getUsername());
                 final char[] password = emptyToNull(contextDialog.getPassword());
 
-                preferences.put(ROOT_URL, rootURL);
-                preferences.put(USERNAME, Objects.toString(username, ""));
-
-                final MainWindow window = new MainWindow();
-
-                Consumer<String> appendText = new Consumer<String>() {
-                    @Override
-                    public void accept(String str) {
-                        window.appendText(str);
-                    }
-                };
-
-                Supplier<String> readLine = new Supplier<String>() {
-                    @Override
-                    public String get() {
-                        return window.readLine();
-                    }
-                };
-
-                Console console = new DelegateConsole(appendText, readLine);
-
-                WebService webService = new DefaultWebService(rootURL, username, password);
-                JavaScriptEngine javaScriptEngine = new DefaultJavaScriptEngine(console);
-                final Context context = new DefaultContext(console, webService, javaScriptEngine);
-
-                context.onClose(new Runnable() {
+                Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
                     @Override
                     public void run() {
                         clearPassword(password);
                     }
-                });
+                }));
 
-                Thread shellThread = new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        new Shell(context).start();
+                preferences.put(ROOT_URL, rootURL);
+                preferences.put(USERNAME, Objects.toString(username, ""));
 
-                        window.setVisible(false);
-                        window.dispose();
-                    }
-                });
-                shellThread.setDaemon(true);
-                shellThread.start();
+                openNewWindow(new WebServiceFactory(rootURL, username, password));
 
                 contextDialog.setVisible(false);
                 contextDialog.dispose();
-
-                window.setVisible(true);
             }
         });
         contextDialog.setVisible(true);
@@ -229,5 +200,58 @@ public class Jiracli {
                 password[i] = '\0';
             }
         }
+    }
+
+    private static void openNewWindow(final WebServiceFactory webServiceFactory) {
+        final MainWindow window = new MainWindow();
+
+        window.setNewWindowListener(new Runnable() {
+            @Override
+            public void run() {
+                openNewWindow(webServiceFactory);
+            }
+        });
+
+        Consumer<String> appendText = new Consumer<String>() {
+            @Override
+            public void accept(String str) {
+                window.appendText(str);
+            }
+        };
+
+        Supplier<String> readLine = new Supplier<String>() {
+            @Override
+            public String get() {
+                return window.readLine();
+            }
+        };
+
+        Console console = new DelegateConsole(appendText, readLine);
+
+        WebService webService = webServiceFactory.createWebService();
+        JavaScriptEngine javaScriptEngine = new DefaultJavaScriptEngine(console);
+        final Context context = new DefaultContext(console, webService, javaScriptEngine);
+
+        final Thread shellThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                new Shell(context).start();
+
+                window.setVisible(false);
+                window.dispose();
+            }
+        });
+        shellThread.setName("Shell-" + SHELL_THREAD_INDEX.incrementAndGet());
+        shellThread.setDaemon(true);
+        shellThread.start();
+
+        window.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosed(WindowEvent evt) {
+                shellThread.interrupt();
+            }
+        });
+
+        window.setVisible(true);
     }
 }

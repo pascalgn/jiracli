@@ -75,6 +75,12 @@ public class ContextDialog extends JFrame {
         setLocationRelativeTo(null);
     }
 
+    @Override
+    public void pack() {
+        super.pack();
+        contextPanel.setInitialFocus();
+    }
+
     public String getRootURL() {
         return contextPanel.getRootURL();
     }

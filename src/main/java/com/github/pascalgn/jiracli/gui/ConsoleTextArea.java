@@ -44,6 +44,7 @@ class ConsoleTextArea extends JTextArea {
     private static final Logger LOGGER = LoggerFactory.getLogger(ConsoleTextArea.class);
 
     private final BlockingQueue<String> input;
+    private final ContextMenu contextMenu;
 
     private transient Integer editStart;
 
@@ -55,11 +56,15 @@ class ConsoleTextArea extends JTextArea {
         super(rows, columns);
         input = new LinkedBlockingQueue<String>();
 
+        contextMenu = new ContextMenu();
+
         setCaret(new BlockCaret());
         setFont(new Font(Font.MONOSPACED, 0, getFont().getSize()));
         setLineWrap(true);
 
         setEditable(false);
+
+        setComponentPopupMenu(contextMenu);
 
         Object enterActionKey = getInputMap(JComponent.WHEN_FOCUSED).get(KeyStroke.getKeyStroke("ENTER"));
         getActionMap().put(enterActionKey, new EnterAction());
@@ -127,10 +132,14 @@ class ConsoleTextArea extends JTextArea {
             try {
                 str = input.take();
             } catch (InterruptedException e) {
-                throw new IllegalStateException(e);
+                return null;
             }
         }
         return str;
+    }
+
+    public void setNewWindowListener(Runnable newWindowListener) {
+        contextMenu.setNewWindowListener(newWindowListener);
     }
 
     @Override
