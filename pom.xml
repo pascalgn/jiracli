@@ -137,6 +137,33 @@
 				</executions>
 			</plugin>
 			<plugin>
+				<groupId>com.mycila</groupId>
+				<artifactId>license-maven-plugin</artifactId>
+				<configuration>
+					<header>${basedir}/LICENSE</header>
+					<strictCheck>true</strictCheck>
+					<failIfUnknown>true</failIfUnknown>
+					<mapping>
+						<g4>SLASHSTAR_STYLE</g4>
+						<svg>XML_STYLE</svg>
+					</mapping>
+					<excludes>
+						<exclude>**/checkstyle.xml</exclude>
+						<exclude>**/LICENSE</exclude>
+						<exclude>**/src/test/resources/**</exclude>
+					</excludes>
+				</configuration>
+				<executions>
+					<execution>
+						<id>check-licenses</id>
+						<phase>package</phase>
+						<goals>
+							<goal>check</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-assembly-plugin</artifactId>
 				<configuration>
@@ -158,30 +185,6 @@
 						<phase>package</phase>
 						<goals>
 							<goal>single</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>com.mycila</groupId>
-				<artifactId>license-maven-plugin</artifactId>
-				<configuration>
-					<header>${basedir}/LICENSE</header>
-					<strictCheck>true</strictCheck>
-					<failIfUnknown>true</failIfUnknown>
-					<mapping>
-						<g4>SLASHSTAR_STYLE</g4>
-						<svg>XML_STYLE</svg>
-					</mapping>
-					<excludes>
-						<exclude>**/checkstyle.xml</exclude>
-						<exclude>**/LICENSE</exclude>
-					</excludes>
-				</configuration>
-				<executions>
-					<execution>
-						<goals>
-							<goal>check</goal>
 						</goals>
 					</execution>
 				</executions>
@@ -226,6 +229,13 @@
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<version>4.12</version>
+			<scope>test</scope>
+		</dependency>
+		
+	    <dependency>
+			<groupId>org.nanohttpd</groupId>
+			<artifactId>nanohttpd</artifactId>
+			<version>2.3.0</version>
 			<scope>test</scope>
 		</dependency>
 
