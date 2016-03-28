@@ -27,7 +27,7 @@ import com.github.pascalgn.jiracli.model.None;
 @CommandDescription(names = { "base64", "b64" }, description = "Print text from standard input as Base64 encoded")
 class Base64 implements Command {
     @Override
-    public None execute(Context context, Data<?> input) {
+    public None execute(Context context, Data input) {
         Console console = context.getConsole();
         String raw;
         while ((raw = console.readLine()) != null) {

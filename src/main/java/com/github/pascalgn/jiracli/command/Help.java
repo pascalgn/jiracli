@@ -24,7 +24,7 @@ import com.github.pascalgn.jiracli.model.None;
 @CommandDescription(names = { "help", "h", "?" }, description = "Show a list of available commands")
 class Help implements Command {
     @Override
-    public Data<?> execute(Context context, Data<?> input) {
+    public Data execute(Context context, Data input) {
         Console console = context.getConsole();
         CommandFactory commandFactory = CommandFactory.getInstance();
         StringBuilder str = new StringBuilder();

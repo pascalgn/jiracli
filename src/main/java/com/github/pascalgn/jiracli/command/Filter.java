@@ -26,7 +26,6 @@ import com.github.pascalgn.jiracli.context.WebService;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
-import com.github.pascalgn.jiracli.model.IssueListType;
 import com.github.pascalgn.jiracli.util.Supplier;
 
 @CommandDescription(names = "filter", description = "Filter issues by the given field value")
@@ -47,8 +46,8 @@ class Filter implements Command {
     }
 
     @Override
-    public IssueList execute(final Context context, final Data<?> input) {
-        final IssueList issueList = (IssueList) input.convertTo(IssueListType.getInstance());
+    public IssueList execute(final Context context, final Data input) {
+        final IssueList issueList = input.toIssueList();
         return new IssueList(new Supplier<Issue>() {
             @Override
             public Issue get() {

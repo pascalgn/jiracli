@@ -15,19 +15,20 @@
  */
 package com.github.pascalgn.jiracli.model;
 
-public final class IssueListType extends Type {
-    private static final IssueListType INSTANCE = new IssueListType();
+import com.github.pascalgn.jiracli.util.Supplier;
 
-    public static IssueListType getInstance() {
-        return INSTANCE;
-    }
+abstract class ListSupplier<D extends Data, R> implements Supplier<R> {
+    private final List<D> list;
 
-    private IssueListType() {
-        // only allow a single instance
+    public ListSupplier(List<D> list) {
+        this.list = list;
     }
 
     @Override
-    public <T> T accept(TypeVisitor<T> visitor) {
-        return visitor.visit(this);
+    public R get() {
+        D next = list.next();
+        return (next == null ? null : convert(next));
     }
+
+    protected abstract R convert(D item);
 }

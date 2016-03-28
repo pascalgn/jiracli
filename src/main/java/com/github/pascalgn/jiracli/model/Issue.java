@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class Issue extends Data<IssueType> {
+public class Issue extends Data {
     private static final Pattern KEY_PATTERN = Pattern.compile("[A-Z]+-[0-9]+");
 
     public static Pattern getKeyPattern() {
@@ -73,27 +73,27 @@ public class Issue extends Data<IssueType> {
     }
 
     @Override
-    public IssueType getType() {
-        return IssueType.getInstance();
+    public Issue toIssue() {
+        return this;
     }
 
     @Override
-    public <S extends Type> Data<S> convertTo(S target) {
-        return target.accept(new DataConverter() {
-            @Override
-            public Issue visit(IssueType issue) {
-                return Issue.this;
-            }
+    public IssueList toIssueList() {
+        return new IssueList(this);
+    }
 
-            @Override
-            public IssueList visit(IssueListType issueList) {
-                return new IssueList(Collections.singleton(Issue.this).iterator());
-            }
-        });
+    @Override
+    public Text toText() {
+        return new Text(key);
+    }
+
+    @Override
+    public TextList toTextList() {
+        return new TextList(toText());
     }
 
     @Override
     public String toString() {
-        return "Issue[" + key + "]";
+        return key;
     }
 }

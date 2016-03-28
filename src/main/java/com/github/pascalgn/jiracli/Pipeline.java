@@ -23,8 +23,8 @@ import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.None;
 
-class Pipeline<D extends Data<?>> {
-    public static final class Builder<D extends Data<?>> {
+class Pipeline<D extends Data> {
+    public static final class Builder<D extends Data> {
         private final List<Command> commands;
 
         public static Builder<None> newInstance() {
@@ -36,7 +36,7 @@ class Pipeline<D extends Data<?>> {
         }
 
         @SuppressWarnings("unchecked")
-        public <R extends Data<?>> Builder<R> add(Command command) {
+        public <R extends Data> Builder<R> add(Command command) {
             commands.add(command);
             return (Builder<R>) this;
         }
@@ -54,7 +54,7 @@ class Pipeline<D extends Data<?>> {
 
     @SuppressWarnings("unchecked")
     public D execute(Context context) {
-        Data<?> result = None.getInstance();
+        Data result = None.getInstance();
         for (Command command : commands) {
             result = command.execute(context, result);
         }

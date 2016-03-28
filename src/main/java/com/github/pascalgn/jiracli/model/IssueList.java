@@ -18,9 +18,10 @@ package com.github.pascalgn.jiracli.model;
 import java.util.Arrays;
 import java.util.Iterator;
 
+import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.Supplier;
 
-public class IssueList extends List<IssueListType, Issue> {
+public class IssueList extends List<Issue> {
     public IssueList() {
         super();
     }
@@ -38,22 +39,27 @@ public class IssueList extends List<IssueListType, Issue> {
     }
 
     @Override
-    public IssueListType getType() {
-        return IssueListType.getInstance();
+    public Issue toIssue() {
+        return null;
     }
 
     @Override
-    public <S extends Type> Data<S> convertTo(final S target) {
-        return target.accept(new DataConverter() {
-            @Override
-            public Issue visit(IssueType issue) {
-                throw new ConversionException(IssueList.this, target);
-            }
+    public IssueList toIssueList() {
+        return this;
+    }
 
+    @Override
+    public Text toText() {
+        return null;
+    }
+
+    @Override
+    public TextList toTextList() {
+        return new TextList(IssueList.this.convertingSupplier(new Function<Issue, Text>() {
             @Override
-            public IssueList visit(IssueListType issueList) {
-                return IssueList.this;
+            public Text apply(Issue issue) {
+                return issue.toText();
             }
-        });
+        }));
     }
 }

@@ -25,7 +25,6 @@ import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
-import com.github.pascalgn.jiracli.model.IssueListType;
 import com.github.pascalgn.jiracli.model.None;
 
 @CommandDescription(names = { "javascript", "js" }, description = "Execute JavaScript code for the given issues")
@@ -42,8 +41,8 @@ class JavaScript implements Command {
     }
 
     @Override
-    public None execute(Context context, Data<?> input) {
-        IssueList issueList = (IssueList) input.convertTo(IssueListType.getInstance());
+    public None execute(Context context, Data input) {
+        IssueList issueList = input.toIssueList();
 
         List<Object> issues = new ArrayList<Object>();
 

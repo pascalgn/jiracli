@@ -28,8 +28,9 @@ import com.github.pascalgn.jiracli.context.WebService;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
-import com.github.pascalgn.jiracli.model.IssueListType;
-import com.github.pascalgn.jiracli.model.None;
+import com.github.pascalgn.jiracli.model.Text;
+import com.github.pascalgn.jiracli.model.TextList;
+import com.github.pascalgn.jiracli.util.Function;
 
 @CommandDescription(names = { "print", "p" }, description = "Print the given JIRA issues using the given format")
 class Print implements Command {
@@ -53,25 +54,21 @@ class Print implements Command {
     }
 
     @Override
-    public None execute(Context context, Data<?> input) {
-        IssueList issueList = (IssueList) input.convertTo(IssueListType.getInstance());
-
-        Issue issue;
-        while ((issue = issueList.next()) != null) {
-            String str;
-            try {
-                str = toString(context.getWebService(), issue, pattern);
-            } catch (RuntimeException e) {
-                LOGGER.debug("Error while reading issue: {}", issue.getKey(), e);
-                str = "[Invalid issue: " + e.getLocalizedMessage() + " - " + issue.getKey() + "]";
+    public TextList execute(final Context context, Data input) {
+        IssueList issueList = input.toIssueList();
+        return new TextList(issueList.convertingSupplier(new Function<Issue, Text>() {
+            @Override
+            public Text apply(Issue issue) {
+                String str;
+                try {
+                    str = Print.toString(context.getWebService(), issue, pattern);
+                } catch (RuntimeException e) {
+                    LOGGER.debug("Error while reading issue: {}", issue, e);
+                    str = "[Invalid issue: " + e.getLocalizedMessage() + " - " + issue + "]";
+                }
+                return new Text(str);
             }
-            if (noNewline) {
-                context.getConsole().print(str);
-            } else {
-                context.getConsole().println(str);
-            }
-        }
-        return null;
+        }));
     }
 
     private static String toString(WebService webService, Issue issue, String pattern) {

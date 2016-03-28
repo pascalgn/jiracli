@@ -30,7 +30,7 @@ class Get implements Command {
     private List<String> issues;
 
     @Override
-    public IssueList execute(Context context, Data<?> input) {
+    public IssueList execute(Context context, Data input) {
         return new IssueList(new Supplier<Issue>() {
             @Override
             public Issue get() {

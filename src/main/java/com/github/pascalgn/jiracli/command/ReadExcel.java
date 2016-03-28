@@ -50,7 +50,7 @@ class ReadExcel implements Command {
     }
 
     @Override
-    public IssueList execute(Context context, Data<?> input) {
+    public IssueList execute(Context context, Data input) {
         return new IssueList(getSupplier(context));
     }
 

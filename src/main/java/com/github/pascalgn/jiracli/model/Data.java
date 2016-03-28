@@ -15,8 +15,12 @@
  */
 package com.github.pascalgn.jiracli.model;
 
-public abstract class Data<T extends Type> {
-    public abstract T getType();
+public abstract class Data {
+    public abstract Issue toIssue();
 
-    public abstract <S extends Type> Data<S> convertTo(S target);
+    public abstract IssueList toIssueList();
+
+    public abstract Text toText();
+
+    public abstract TextList toTextList();
 }

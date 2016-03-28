@@ -15,15 +15,26 @@
  */
 package com.github.pascalgn.jiracli.model;
 
-public class None extends Data {
-    private static final None INSTANCE = new None();
+import java.util.Arrays;
+import java.util.Iterator;
 
-    public static None getInstance() {
-        return INSTANCE;
+import com.github.pascalgn.jiracli.util.Supplier;
+
+public class TextList extends List<Text> {
+    public TextList() {
+        super();
     }
 
-    private None() {
-        // only allow one instance
+    public TextList(Text... texts) {
+        super(Arrays.asList(texts).iterator());
+    }
+
+    public TextList(Iterator<Text> iterator) {
+        super(iterator);
+    }
+
+    public TextList(Supplier<Text> supplier) {
+        super(supplier);
     }
 
     @Override
@@ -33,7 +44,7 @@ public class None extends Data {
 
     @Override
     public IssueList toIssueList() {
-        return new IssueList();
+        return null;
     }
 
     @Override
@@ -43,6 +54,6 @@ public class None extends Data {
 
     @Override
     public TextList toTextList() {
-        return new TextList();
+        return this;
     }
 }

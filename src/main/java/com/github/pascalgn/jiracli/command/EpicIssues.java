@@ -25,14 +25,13 @@ import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
-import com.github.pascalgn.jiracli.model.IssueListType;
 import com.github.pascalgn.jiracli.util.Supplier;
 
 @CommandDescription(names = { "epicissues", "epici" }, description = "List all issues associated with the given epic")
 class EpicIssues implements Command {
     @Override
-    public IssueList execute(Context context, Data<?> input) {
-        IssueList issueList = (IssueList) input.convertTo(IssueListType.getInstance());
+    public IssueList execute(Context context, Data input) {
+        IssueList issueList = input.toIssueList();
         return new IssueList(new IssueSupplier(context, issueList));
     }
 

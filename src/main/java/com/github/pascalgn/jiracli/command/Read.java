@@ -42,20 +42,12 @@ class Read implements Command {
     }
 
     @Override
-    public IssueList execute(Context context, Data<?> input) {
+    public IssueList execute(Context context, Data input) {
         return new IssueList(getSupplier(context));
     }
 
     private Supplier<Issue> getSupplier(Context context) {
-        if (filename.equals(STDIN_FILENAME)) {
-            return new TextReader(context, filename);
-        } else if (filename.toLowerCase().endsWith(".xlsx")) {
-            return null;
-        } else if (filename.toLowerCase().endsWith(".txt")) {
-            return new TextReader(context, filename);
-        } else {
-            return new TextReader(context, filename);
-        }
+        return new TextReader(context, filename);
     }
 
     private static class TextReader implements Supplier<Issue> {

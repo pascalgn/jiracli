@@ -24,8 +24,9 @@ import org.slf4j.LoggerFactory;
 import com.github.pascalgn.jiracli.command.CommandFactory;
 import com.github.pascalgn.jiracli.context.Console;
 import com.github.pascalgn.jiracli.context.Context;
-import com.github.pascalgn.jiracli.model.ConversionException;
 import com.github.pascalgn.jiracli.model.Data;
+import com.github.pascalgn.jiracli.model.Text;
+import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.parser.CommandReference;
 
 class Shell {
@@ -61,18 +62,22 @@ class Shell {
             }
 
             try {
-                Pipeline.Builder<Data<?>> pipelineBuilder = new Pipeline.Builder<>();
+                Pipeline.Builder<Data> pipelineBuilder = new Pipeline.Builder<>();
 
                 List<CommandReference> commands = CommandReference.parseCommandReferences(line);
                 for (CommandReference ref : commands) {
                     pipelineBuilder.add(commandFactory.parseCommand(ref.getName(), ref.getArguments()));
                 }
 
-                Pipeline<Data<?>> pipeline = pipelineBuilder.build();
-                pipeline.execute(context);
-            } catch (ConversionException e) {
-                LOGGER.trace("Conversion error", e);
-                console.println("invalid input!");
+                Pipeline<Data> pipeline = pipelineBuilder.build();
+                Data result = pipeline.execute(context);
+                TextList textList = result.toTextList();
+                if (textList != null) {
+                    Text text;
+                    while ((text = textList.next()) != null) {
+                        console.println(text.getText());
+                    }
+                }
             } catch (RuntimeException e) {
                 if (e.getLocalizedMessage() == null) {
                     LOGGER.info("Error", e);

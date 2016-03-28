@@ -15,10 +15,39 @@
  */
 package com.github.pascalgn.jiracli.model;
 
-public class ConversionException extends IllegalArgumentException {
-    private static final long serialVersionUID = 8697033161921750282L;
+public class Text extends Data {
+    private final String text;
 
-    public ConversionException(Data<?> source, Type target) {
-        super("Cannot convert " + source + " to " + target);
+    public Text(String text) {
+        this.text = text;
+    }
+
+    public String getText() {
+        return text;
+    }
+
+    @Override
+    public Issue toIssue() {
+        return null;
+    }
+
+    @Override
+    public IssueList toIssueList() {
+        return null;
+    }
+
+    @Override
+    public Text toText() {
+        return this;
+    }
+
+    @Override
+    public TextList toTextList() {
+        return new TextList(this);
+    }
+
+    @Override
+    public String toString() {
+        return text;
     }
 }

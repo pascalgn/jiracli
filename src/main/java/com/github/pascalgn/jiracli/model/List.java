@@ -18,9 +18,10 @@ package com.github.pascalgn.jiracli.model;
 import java.util.ArrayList;
 import java.util.Iterator;
 
+import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.Supplier;
 
-abstract class List<T extends Type, E extends Data<?>> extends Data<T> {
+abstract class List<E extends Data> extends Data {
     private final Supplier<E> supplier;
 
     public List() {
@@ -56,5 +57,14 @@ abstract class List<T extends Type, E extends Data<?>> extends Data<T> {
             result.add(item);
         }
         return result;
+    }
+
+    public <T> Supplier<T> convertingSupplier(final Function<E, T> function) {
+        return new ListSupplier<E, T>(this) {
+            @Override
+            protected T convert(E item) {
+                return function.apply(item);
+            }
+        };
     }
 }

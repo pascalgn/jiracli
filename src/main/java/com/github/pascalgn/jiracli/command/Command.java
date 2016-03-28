@@ -19,5 +19,5 @@ import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 
 public interface Command {
-    Data<?> execute(Context context, Data<?> input);
+    Data execute(Context context, Data input);
 }
