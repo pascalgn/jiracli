@@ -27,6 +27,8 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.prefs.Preferences;
 
+import javax.swing.SwingUtilities;
+
 import com.github.pascalgn.jiracli.context.Console;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.context.DefaultConsole;
@@ -140,9 +142,16 @@ public class Jiracli {
             password = emptyToNull(console.readPassword());
         }
 
-        WebService webService = new DefaultWebService(rootURL, username, password);
+        final WebService webService = new DefaultWebService(rootURL, username, password);
         JavaScriptEngine javaScriptEngine = new DefaultJavaScriptEngine(console);
         Context context = new DefaultContext(console, webService, javaScriptEngine);
+
+        context.onClose(new Runnable() {
+            @Override
+            public void run() {
+                webService.close();
+            }
+        });
 
         context.onClose(new Runnable() {
             @Override
@@ -228,19 +237,32 @@ public class Jiracli {
 
         Console console = new DelegateConsole(appendText, readLine);
 
-        WebService webService = webServiceFactory.createWebService();
-        JavaScriptEngine javaScriptEngine = new DefaultJavaScriptEngine(console);
+        final WebService webService = webServiceFactory.createWebService();
+        final JavaScriptEngine javaScriptEngine = new DefaultJavaScriptEngine(console);
         final Context context = new DefaultContext(console, webService, javaScriptEngine);
+
+        context.onClose(new Runnable() {
+            @Override
+            public void run() {
+                webService.close();
+            }
+        });
 
         final Thread shellThread = new Thread(new Runnable() {
             @Override
             public void run() {
                 new Shell(context).start();
 
-                window.setVisible(false);
-                window.dispose();
+                SwingUtilities.invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        window.setVisible(false);
+                        window.dispose();
+                    }
+                });
             }
         });
+
         shellThread.setName("Shell-" + SHELL_THREAD_INDEX.incrementAndGet());
         shellThread.setDaemon(true);
         shellThread.start();
@@ -248,7 +270,11 @@ public class Jiracli {
         window.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosed(WindowEvent evt) {
-                shellThread.interrupt();
+                try {
+                    shellThread.interrupt();
+                } finally {
+                    context.close();
+                }
             }
         });
 

@@ -31,11 +31,11 @@ import javax.swing.JTextArea;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.WindowConstants;
 
-public class TextAreaConsoleDemo extends JFrame {
+public class ConsoleTextAreaDemo extends JFrame {
     private static final long serialVersionUID = -509073864020457352L;
 
-    public TextAreaConsoleDemo() {
-        super(TextAreaConsoleDemo.class.getSimpleName());
+    public ConsoleTextAreaDemo() {
+        super(ConsoleTextAreaDemo.class.getSimpleName());
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         getContentPane().setLayout(new BorderLayout());
         getContentPane().add(new Panel());
@@ -135,6 +135,6 @@ public class TextAreaConsoleDemo extends JFrame {
     }
 
     public static void main(String[] args) {
-        new TextAreaConsoleDemo().setVisible(true);
+        new ConsoleTextAreaDemo().setVisible(true);
     }
 }

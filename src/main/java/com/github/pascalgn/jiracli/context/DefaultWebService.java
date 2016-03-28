@@ -16,35 +16,49 @@
 package com.github.pascalgn.jiracli.context;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.Charset;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import javax.net.ssl.SSLContext;
 
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
+import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.ssl.SSLContexts;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.json.JSONTokener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
-import com.mashape.unirest.request.GetRequest;
+import com.github.pascalgn.jiracli.util.Function;
 
 public class DefaultWebService implements WebService {
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultWebService.class);
+
+    private static final SSLConnectionSocketFactory SSL_SOCKET_FACTORY;
 
     static {
         SSLContext sslcontext;
@@ -53,14 +67,25 @@ public class DefaultWebService implements WebService {
         } catch (GeneralSecurityException e) {
             throw new IllegalStateException(e);
         }
-        SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslcontext, NoopHostnameVerifier.INSTANCE);
-        CloseableHttpClient httpclient = HttpClients.custom().setSSLSocketFactory(sslsf).build();
-        Unirest.setHttpClient(httpclient);
+        SSL_SOCKET_FACTORY = new SSLConnectionSocketFactory(sslcontext, NoopHostnameVerifier.INSTANCE);
     }
 
+    private static final Function<Reader, JSONObject> TO_OBJECT = new Function<Reader, JSONObject>() {
+        @Override
+        public JSONObject apply(Reader reader) {
+            return new JSONObject(new JSONTokener(reader));
+        }
+    };
+
+    private static final Function<Reader, JSONArray> TO_ARRAY = new Function<Reader, JSONArray>() {
+        @Override
+        public JSONArray apply(Reader reader) {
+            return new JSONArray(new JSONTokener(reader));
+        }
+    };
+
     private final String rootURL;
-    private final String username;
-    private final char[] password;
+    private final CloseableHttpClient httpClient;
 
     private transient Map<String, JSONObject> issueCache;
     private transient Map<String, List<JSONObject>> issueListCache;
@@ -68,8 +93,19 @@ public class DefaultWebService implements WebService {
 
     public DefaultWebService(String rootURL, String username, char[] password) {
         this.rootURL = stripEnd(rootURL, "/");
-        this.username = username;
-        this.password = password;
+        this.httpClient = createHttpClient(username, password);
+    }
+
+    private static CloseableHttpClient createHttpClient(String username, char[] password) {
+        HttpClientBuilder httpClientBuilder = HttpClients.custom();
+        httpClientBuilder.setSSLSocketFactory(SSL_SOCKET_FACTORY);
+        if (username != null && password != null) {
+            CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+            UsernamePasswordCredentials credentials = new UsernamePasswordCredentials(username, new String(password));
+            credentialsProvider.setCredentials(AuthScope.ANY, credentials);
+            httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+        }
+        return httpClientBuilder.build();
     }
 
     private static String stripEnd(String str, String end) {
@@ -91,7 +127,7 @@ public class DefaultWebService implements WebService {
             result = issueCache.get(issue);
         }
         if (result == null) {
-            result = new JSONObject(call("/rest/api/latest/issue/{issue}", "issue", issue));
+            result = call("/rest/api/latest/issue/" + issue, TO_OBJECT);
             issueCache.put(issue, result);
         }
         return result;
@@ -104,7 +140,15 @@ public class DefaultWebService implements WebService {
 
     @Override
     public List<JSONObject> searchIssues(String jql) {
-        return getIssueList("/rest/api/latest/search?jql=" + jql.trim());
+        return getIssueList("/rest/api/latest/search?jql=" + encode(jql.trim()));
+    }
+
+    private static String encode(String str) {
+        try {
+            return URLEncoder.encode(str, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new IllegalStateException("Unsupported encoding!", e);
+        }
     }
 
     private synchronized List<JSONObject> getIssueList(String path) {
@@ -116,7 +160,7 @@ public class DefaultWebService implements WebService {
             result = issueListCache.get(path);
         }
         if (result == null) {
-            JSONObject response = new JSONObject(call(path));
+            JSONObject response = call(path, TO_OBJECT);
             JSONArray issues = response.getJSONArray("issues");
 
             if (issueCache == null) {
@@ -147,7 +191,7 @@ public class DefaultWebService implements WebService {
     public synchronized Map<String, String> getFieldMapping() {
         if (fieldMapping == null) {
             fieldMapping = new HashMap<String, String>();
-            JSONArray array = new JSONArray(call("/rest/api/latest/field"));
+            JSONArray array = call("/rest/api/latest/field", TO_ARRAY);
             for (Object obj : array) {
                 JSONObject field = (JSONObject) obj;
                 String id = field.getString("id");
@@ -161,32 +205,50 @@ public class DefaultWebService implements WebService {
         return fieldMapping;
     }
 
-    private String call(String path, String... routeParams) {
+    private <T> T call(String path, Function<Reader, T> function) {
         if (!path.startsWith("/")) {
             throw new IllegalArgumentException("Invalid path: " + path);
         }
-        if (routeParams.length % 2 != 0) {
-            throw new IllegalArgumentException("Invalid route parameters: " + Arrays.toString(routeParams));
-        }
-        GetRequest request = Unirest.get(rootURL + path);
-        if (username != null && password != null) {
-            request = request.basicAuth(username, new String(password));
-        }
-        for (int i = 0; i < routeParams.length; i += 2) {
-            request = request.routeParam(routeParams[i], routeParams[i + 1]);
-        }
-        LOGGER.debug("Fetching URL: {}", request.getUrl());
-        HttpResponse<String> response;
+
+        HttpUriRequest request = new HttpGet(rootURL + path);
+        LOGGER.debug("Fetching URL: {}", request.getURI());
+
+        HttpResponse response;
         try {
-            response = request.asString();
-        } catch (UnirestException e) {
-            throw new IllegalStateException("Error fetching URL: " + request.getUrl(), e);
+            response = httpClient.execute(request);
+        } catch (IOException e) {
+            throw new IllegalStateException("Could not fetch URL: " + request.getURI());
         }
-        if (response.getStatus() == HttpURLConnection.HTTP_UNAUTHORIZED) {
+
+        HttpEntity entity = response.getEntity();
+        LOGGER.debug("Response received ({} bytes)", entity.getContentLength());
+
+        if (response.getStatusLine().getStatusCode() == HttpURLConnection.HTTP_UNAUTHORIZED) {
             throw new IllegalStateException("Unauthorized!");
         } else {
-            return response.getBody();
+            try (InputStream input = entity.getContent()) {
+                try (Reader reader = new InputStreamReader(input, getEncoding(entity))) {
+                    return function.apply(reader);
+                }
+            } catch (IOException e) {
+                throw new IllegalStateException("Could not read response for URL: " + request.getURI());
+            }
         }
+    }
+
+    private static Charset getEncoding(HttpEntity entity) {
+        if (entity.getContentEncoding() != null) {
+            String value = entity.getContentEncoding().getValue();
+            if (value != null) {
+                try {
+                    return Charset.forName(value);
+                } catch (RuntimeException e) {
+                    // use the default charset!
+                    LOGGER.debug("Unsupported charset: {}", value, e);
+                }
+            }
+        }
+        return Charset.defaultCharset();
     }
 
     @Override
@@ -194,9 +256,9 @@ public class DefaultWebService implements WebService {
         issueCache = null;
         fieldMapping = null;
         try {
-            Unirest.shutdown();
+            httpClient.close();
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to shutdown!", e);
+            throw new IllegalStateException("Failed to close HTTP client!", e);
         }
     }
 }

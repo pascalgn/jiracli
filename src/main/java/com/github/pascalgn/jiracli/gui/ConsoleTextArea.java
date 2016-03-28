@@ -112,7 +112,8 @@ class ConsoleTextArea extends JTextArea {
             } catch (InvocationTargetException e) {
                 throw new IllegalStateException(e);
             } catch (InterruptedException e) {
-                throw new IllegalStateException(e);
+                Thread.currentThread().interrupt();
+                return;
             }
         }
     }
@@ -132,6 +133,7 @@ class ConsoleTextArea extends JTextArea {
             try {
                 str = input.take();
             } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
                 return null;
             }
         }
