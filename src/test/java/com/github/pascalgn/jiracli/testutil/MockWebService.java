@@ -53,6 +53,11 @@ public class MockWebService implements WebService {
     }
 
     @Override
+    public List<JSONObject> getEpicIssues(String epic) {
+        return Collections.emptyList();
+    }
+
+    @Override
     public List<JSONObject> searchIssues(String jql) {
         return Collections.emptyList();
     }

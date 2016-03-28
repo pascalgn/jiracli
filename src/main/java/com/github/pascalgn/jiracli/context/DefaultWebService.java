@@ -63,7 +63,7 @@ public class DefaultWebService implements WebService {
     private final char[] password;
 
     private transient Map<String, JSONObject> issueCache;
-    private transient Map<String, List<JSONObject>> searchCache;
+    private transient Map<String, List<JSONObject>> issueListCache;
     private transient Map<String, String> fieldMapping;
 
     public DefaultWebService(String rootURL, String username, char[] password) {
@@ -98,16 +98,25 @@ public class DefaultWebService implements WebService {
     }
 
     @Override
-    public synchronized List<JSONObject> searchIssues(String jql) {
+    public List<JSONObject> getEpicIssues(String epic) {
+        return getIssueList("/rest/agile/latest/epic/" + epic + "/issue");
+    }
+
+    @Override
+    public List<JSONObject> searchIssues(String jql) {
+        return getIssueList("/rest/api/latest/search?jql=" + jql.trim());
+    }
+
+    private synchronized List<JSONObject> getIssueList(String path) {
         List<JSONObject> result;
-        if (searchCache == null) {
-            searchCache = new HashMap<String, List<JSONObject>>();
+        if (issueListCache == null) {
+            issueListCache = new HashMap<String, List<JSONObject>>();
             result = null;
         } else {
-            result = searchCache.get(jql.trim());
+            result = issueListCache.get(path);
         }
         if (result == null) {
-            JSONObject response = new JSONObject(call("/rest/api/latest/search?jql={jql}", "jql", jql));
+            JSONObject response = new JSONObject(call(path));
             JSONArray issues = response.getJSONArray("issues");
 
             if (issueCache == null) {
@@ -127,7 +136,9 @@ public class DefaultWebService implements WebService {
                 }
             }
 
-            searchCache.put(jql.trim(), result);
+            issueListCache.put(path, result);
+        } else {
+            result = new ArrayList<JSONObject>(result);
         }
         return result;
     }

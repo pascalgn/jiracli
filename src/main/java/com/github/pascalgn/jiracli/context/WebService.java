@@ -26,6 +26,8 @@ public interface WebService extends AutoCloseable {
 
     JSONObject getIssue(String issue);
 
+    List<JSONObject> getEpicIssues(String epic);
+
     List<JSONObject> searchIssues(String jql);
 
     Map<String, String> getFieldMapping();
