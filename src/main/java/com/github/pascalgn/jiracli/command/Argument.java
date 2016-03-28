@@ -24,7 +24,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @interface Argument {
     enum Parameters {
-        ZERO, ZERO_OR_ONE, ONE, ONE_OR_MORE;
+        ZERO, ZERO_OR_ONE, ZERO_OR_MORE, ONE, ONE_OR_MORE;
     }
 
     String[] names() default {};

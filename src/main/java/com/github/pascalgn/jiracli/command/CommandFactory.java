@@ -158,6 +158,18 @@ public class CommandFactory {
             }
             return Collections.emptyList();
 
+        case ZERO_OR_MORE:
+            List<String> params0 = new ArrayList<String>();
+            for (int j = i + 1; j < args.size(); j++) {
+                String arg = args.get(j);
+                if (isOption(arg)) {
+                    break;
+                } else {
+                    params0.add(arg);
+                }
+            }
+            return params0;
+
         case ONE:
             if (i + 1 < args.size()) {
                 String arg = args.get(i + 1);
@@ -168,16 +180,16 @@ public class CommandFactory {
             return null;
 
         case ONE_OR_MORE:
-            List<String> params = new ArrayList<String>();
+            List<String> params1 = new ArrayList<String>();
             for (int j = i + 1; j < args.size(); j++) {
                 String arg = args.get(j);
                 if (isOption(arg)) {
                     break;
                 } else {
-                    params.add(arg);
+                    params1.add(arg);
                 }
             }
-            return (params.isEmpty() ? null : params);
+            return (params1.isEmpty() ? null : params1);
 
         default:
             throw new IllegalStateException();
@@ -283,6 +295,12 @@ public class CommandFactory {
             str.append(" [");
             str.append(argument.getVariable());
             str.append("]");
+            break;
+
+        case ZERO_OR_MORE:
+            str.append(" [");
+            str.append(argument.getVariable());
+            str.append("...]");
             break;
 
         case ONE:

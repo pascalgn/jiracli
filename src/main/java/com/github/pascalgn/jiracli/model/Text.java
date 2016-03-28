@@ -15,11 +15,13 @@
  */
 package com.github.pascalgn.jiracli.model;
 
+import java.util.Objects;
+
 public class Text extends Data {
     private final String text;
 
     public Text(String text) {
-        this.text = text;
+        this.text = Objects.requireNonNull(text);
     }
 
     public String getText() {
@@ -44,6 +46,23 @@ public class Text extends Data {
     @Override
     public TextList toTextList() {
         return new TextList(this);
+    }
+
+    @Override
+    public int hashCode() {
+        return 31 + text.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        Text other = (Text) obj;
+        return text.equals(other.text);
     }
 
     @Override

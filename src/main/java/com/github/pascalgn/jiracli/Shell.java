@@ -28,6 +28,7 @@ import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.parser.CommandReference;
+import com.github.pascalgn.jiracli.util.Supplier;
 
 class Shell {
     private static final Logger LOGGER = LoggerFactory.getLogger(Shell.class);
@@ -44,6 +45,7 @@ class Shell {
 
     public void start() {
         Console console = context.getConsole();
+        ConsoleTextSupplier consoleTextSupplier = new ConsoleTextSupplier(console);
         CommandFactory commandFactory = CommandFactory.getInstance();
         while (true) {
             console.print(PROMPT);
@@ -62,15 +64,18 @@ class Shell {
             }
 
             try {
-                Pipeline.Builder<Data> pipelineBuilder = new Pipeline.Builder<>();
+                Pipeline.Builder pipelineBuilder = new Pipeline.Builder();
 
                 List<CommandReference> commands = CommandReference.parseCommandReferences(line);
                 for (CommandReference ref : commands) {
                     pipelineBuilder.add(commandFactory.parseCommand(ref.getName(), ref.getArguments()));
                 }
 
-                Pipeline<Data> pipeline = pipelineBuilder.build();
-                Data result = pipeline.execute(context);
+                Pipeline pipeline = pipelineBuilder.build();
+
+                TextList input = new TextList(consoleTextSupplier);
+
+                Data result = pipeline.execute(context, input);
                 TextList textList = result.toTextList();
                 if (textList != null) {
                     Text text;
@@ -87,6 +92,24 @@ class Shell {
                     console.println(e.getLocalizedMessage());
                 }
             }
+        }
+    }
+
+    private static class ConsoleTextSupplier implements Supplier<Text> {
+        private final Console console;
+
+        public ConsoleTextSupplier(Console console) {
+            this.console = console;
+        }
+
+        @Override
+        public Text get() {
+            String raw = console.readLine();
+            if (raw == null) {
+                return null;
+            }
+            String line = raw.trim();
+            return (line.isEmpty() ? null : new Text(line));
         }
     }
 }

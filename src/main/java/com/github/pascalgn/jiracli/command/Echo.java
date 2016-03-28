@@ -15,25 +15,21 @@
  */
 package com.github.pascalgn.jiracli.command;
 
-import static org.junit.Assert.assertEquals;
-
 import java.util.List;
 
-import org.junit.Test;
-
+import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
+import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
-import com.github.pascalgn.jiracli.testutil.MockContext;
 
-public class Base64Test {
-    @Test
-    public void test1() throws Exception {
-        Context context = new MockContext();
-        Base64 base64 = new Base64();
-        TextList result = base64.execute(context, new TextList(new Text("hello")));
-        List<Text> list = result.remaining();
-        assertEquals(1, list.size());
-        assertEquals("aGVsbG8=", list.get(0).getText());
+@CommandDescription(names = "echo", description = "Print the given text")
+class Echo implements Command {
+    @Argument(parameters = Parameters.ZERO_OR_MORE, variable = "<text>", description = "the text")
+    private List<String> text;
+
+    @Override
+    public TextList execute(Context context, Data input) {
+        return new TextList(new Text(CommandUtils.join(text, " ")));
     }
 }

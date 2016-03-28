@@ -18,9 +18,32 @@ package com.github.pascalgn.jiracli.model;
 public abstract class Data {
     public abstract Issue toIssue();
 
+    public final Issue toIssueOrFail() {
+        return convertOrFail(toIssue(), Issue.class);
+    }
+
     public abstract IssueList toIssueList();
+
+    public final IssueList toIssueListOrFail() {
+        return convertOrFail(toIssueList(), IssueList.class);
+    }
 
     public abstract Text toText();
 
+    public final Text toTextOrFail() {
+        return convertOrFail(toText(), Text.class);
+    }
+
     public abstract TextList toTextList();
+
+    public final TextList toTextListOrFail() {
+        return convertOrFail(toTextList(), TextList.class);
+    }
+
+    private <T> T convertOrFail(T instance, Class<T> type) {
+        if (instance == null) {
+            throw new IllegalStateException("Could not convert to " + type.getSimpleName() + ": " + this);
+        }
+        return instance;
+    }
 }

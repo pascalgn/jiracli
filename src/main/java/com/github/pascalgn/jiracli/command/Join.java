@@ -15,29 +15,30 @@
  */
 package com.github.pascalgn.jiracli.command;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import com.github.pascalgn.jiracli.command.CommandFactory.CommandDescriptor;
+import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
 
-@CommandDescription(names = { "help", "h", "?" }, description = "Show a list of available commands")
-class Help implements Command {
+@CommandDescription(names = "join", description = "Join the input texts into a single text")
+class Join implements Command {
+    @Argument(parameters = Parameters.ZERO_OR_ONE, variable = "<separator>", description = "the string between the texts")
+    private String separator = "";
+
     @Override
     public Data execute(Context context, Data input) {
-        List<Text> textList = new ArrayList<Text>();
-        CommandFactory commandFactory = CommandFactory.getInstance();
-        for (CommandDescriptor commandDescriptor : commandFactory.getCommandDescriptors()) {
-            StringBuilder str = new StringBuilder();
-            str.append(CommandUtils.join(commandDescriptor.getNames(), ", "));
-            str.append(System.lineSeparator());
-            str.append("    ");
-            str.append(commandDescriptor.getDescription());
-            textList.add(new Text(str.toString()));
+        TextList textList = input.toTextListOrFail();
+
+        StringBuilder str = new StringBuilder();
+        Text text;
+        while ((text = textList.next()) != null) {
+            if (str.length() > 0) {
+                str.append(separator);
+            }
+            str.append(text.getText());
         }
-        return new TextList(textList.iterator());
+
+        return new Text(str.toString());
     }
 }

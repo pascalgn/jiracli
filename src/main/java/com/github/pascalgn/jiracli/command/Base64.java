@@ -19,25 +19,31 @@ import java.nio.charset.StandardCharsets;
 
 import javax.xml.bind.DatatypeConverter;
 
-import com.github.pascalgn.jiracli.context.Console;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
-import com.github.pascalgn.jiracli.model.None;
+import com.github.pascalgn.jiracli.model.Text;
+import com.github.pascalgn.jiracli.model.TextList;
+import com.github.pascalgn.jiracli.util.Function;
 
 @CommandDescription(names = { "base64", "b64" }, description = "Print text from standard input as Base64 encoded")
 class Base64 implements Command {
+    @Argument(names = { "-d", "--decode" }, description = "decode base64 text")
+    private boolean decode = false;
+
     @Override
-    public None execute(Context context, Data input) {
-        Console console = context.getConsole();
-        String raw;
-        while ((raw = console.readLine()) != null) {
-            String line = raw.trim();
-            if (line.isEmpty()) {
-                break;
+    public TextList execute(Context context, Data input) {
+        TextList textList = input.toTextListOrFail();
+        return textList.toTextList(new Function<Text, Text>() {
+            @Override
+            public Text apply(Text text) {
+                if (decode) {
+                    String plain = new String(DatatypeConverter.parseBase64Binary(text.getText()), StandardCharsets.UTF_8);
+                    return new Text(plain);
+                } else {
+                    String base64 = DatatypeConverter.printBase64Binary(text.getText().getBytes(StandardCharsets.UTF_8));
+                    return new Text(base64);
+                }
             }
-            String base64 = DatatypeConverter.printBase64Binary(line.getBytes(StandardCharsets.UTF_8));
-            console.println(base64);
-        }
-        return None.getInstance();
+        });
     }
 }

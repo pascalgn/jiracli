@@ -21,43 +21,39 @@ import java.util.List;
 import com.github.pascalgn.jiracli.command.Command;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
-import com.github.pascalgn.jiracli.model.None;
 
-class Pipeline<D extends Data> {
-    public static final class Builder<D extends Data> {
+class Pipeline {
+    public static final class Builder {
         private final List<Command> commands;
-
-        public static Builder<None> newInstance() {
-            return new Builder<None>();
-        }
 
         public Builder() {
             this.commands = new ArrayList<>();
         }
 
-        @SuppressWarnings("unchecked")
-        public <R extends Data> Builder<R> add(Command command) {
+        public Builder add(Command command) {
             commands.add(command);
-            return (Builder<R>) this;
+            return this;
         }
 
-        public Pipeline<D> build() {
-            return new Pipeline<>(commands);
+        public Pipeline build() {
+            return new Pipeline(commands);
         }
     }
 
     private final List<Command> commands;
 
     private Pipeline(List<Command> commands) {
-        this.commands = commands;
+        if (commands.isEmpty()) {
+            throw new IllegalArgumentException("No commands given!");
+        }
+        this.commands = new ArrayList<>(commands);
     }
 
-    @SuppressWarnings("unchecked")
-    public D execute(Context context) {
-        Data result = None.getInstance();
+    public Data execute(Context context, Data input) {
+        Data result = input;
         for (Command command : commands) {
             result = command.execute(context, result);
         }
-        return (D) result;
+        return result;
     }
 }

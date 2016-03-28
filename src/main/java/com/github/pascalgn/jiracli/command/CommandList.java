@@ -22,7 +22,7 @@ final class CommandList {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private static final List<Class<Command>> COMMANDS = (List) Arrays.asList(Base64.class, Browse.class, Filter.class,
             Get.class, Help.class, JavaScript.class, Print.class, Read.class, ReadExcel.class, Search.class,
-            EpicIssues.class);
+            EpicIssues.class, Echo.class, Sort.class, Join.class, Split.class);
 
     private CommandList() {
         // don't allow instances

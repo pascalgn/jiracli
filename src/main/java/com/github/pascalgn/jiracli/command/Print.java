@@ -39,9 +39,6 @@ class Print implements Command {
     private static final String DEFAULT_PATTERN = "${key} - ${summary}";
     private static final Pattern PATTERN = Pattern.compile("\\$\\{([^}]+)\\}");
 
-    @Argument(names = "-n", description = "don't print a newline at the end")
-    private boolean noNewline = false;
-
     @Argument(parameters = Parameters.ZERO_OR_ONE, variable = "<format>", description = "the print format")
     private String pattern = DEFAULT_PATTERN;
 
@@ -55,8 +52,8 @@ class Print implements Command {
 
     @Override
     public TextList execute(final Context context, Data input) {
-        IssueList issueList = input.toIssueList();
-        return new TextList(issueList.convertingSupplier(new Function<Issue, Text>() {
+        IssueList issueList = input.toIssueListOrFail();
+        return issueList.toTextList(new Function<Issue, Text>() {
             @Override
             public Text apply(Issue issue) {
                 String str;
@@ -68,7 +65,7 @@ class Print implements Command {
                 }
                 return new Text(str);
             }
-        }));
+        });
     }
 
     private static String toString(WebService webService, Issue issue, String pattern) {

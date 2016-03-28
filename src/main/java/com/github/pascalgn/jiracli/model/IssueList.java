@@ -55,11 +55,11 @@ public class IssueList extends List<Issue> {
 
     @Override
     public TextList toTextList() {
-        return new TextList(IssueList.this.convertingSupplier(new Function<Issue, Text>() {
+        return toTextList(new Function<Issue, Text>() {
             @Override
             public Text apply(Issue issue) {
                 return issue.toText();
             }
-        }));
+        });
     }
 }

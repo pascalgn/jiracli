@@ -59,12 +59,13 @@ abstract class List<E extends Data> extends Data {
         return result;
     }
 
-    public <T> Supplier<T> convertingSupplier(final Function<E, T> function) {
-        return new ListSupplier<E, T>(this) {
+    public TextList toTextList(final Function<E, Text> function) {
+        return new TextList(new Supplier<Text>() {
             @Override
-            protected T convert(E item) {
-                return function.apply(item);
+            public Text get() {
+                E next = next();
+                return (next == null ? null : function.apply(next));
             }
-        };
+        });
     }
 }

@@ -17,32 +17,30 @@ package com.github.pascalgn.jiracli.command;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.List;
+
 import org.json.JSONObject;
 import org.junit.Test;
 
-import com.github.pascalgn.jiracli.context.Context;
-import com.github.pascalgn.jiracli.context.DefaultContext;
-import com.github.pascalgn.jiracli.context.DefaultJavaScriptEngine;
-import com.github.pascalgn.jiracli.context.JavaScriptEngine;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
-import com.github.pascalgn.jiracli.testutil.MockConsole;
-import com.github.pascalgn.jiracli.testutil.MockWebService;
+import com.github.pascalgn.jiracli.model.Text;
+import com.github.pascalgn.jiracli.model.TextList;
+import com.github.pascalgn.jiracli.testutil.MockContext;
 
 public class PrintTest {
     @Test
     public void test1() throws Exception {
-        MockConsole console = new MockConsole();
-        MockWebService webService = new MockWebService();
-        JavaScriptEngine javaScriptEngine = new DefaultJavaScriptEngine(console);
-        Context context = new DefaultContext(console, webService, javaScriptEngine);
+        MockContext context = new MockContext();
 
         Issue issue1 = Issue.valueOf("ISSUE-1");
-        webService.setIssue(issue1.getKey(), new JSONObject("{fields:{author:{name:'Author-Name'}}}"));
+        context.getWebService().setIssue(issue1.getKey(), new JSONObject("{fields:{author:{name:'Author-Name'}}}"));
 
         Print print = new Print("${author.name}");
-        print.execute(context, new IssueList(issue1));
+        TextList textList = print.execute(context, new IssueList(issue1));
 
-        assertEquals("Author-Name", console.getOutput().trim());
+        List<Text> list = textList.remaining();
+        assertEquals(1, list.size());
+        assertEquals("Author-Name", list.get(0).getText());
     }
 }
