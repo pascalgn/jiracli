@@ -25,14 +25,6 @@ TEXT
 	: ~[\n\r\t |a-z]+
 	;
 
-QUOTED_TEXT
-	: '\'' (~('\'' | '\\' | '\r' | '\n') | '\\' ('\'' | '\\'))* '\''
-	;
-
-DOUBLE_QUOTED_TEXT
-	: '"' (~('"' | '\\' | '\r' | '\n') | '\\' ('"' | '\\'))* '"'
-	;
-
 NEWLINE
 	: '\n'
 	| '\r\n'
@@ -45,4 +37,38 @@ SPACE
 
 PIPE
 	: '|'
+	;
+
+QUOTED_TEXT
+	: '\'' QUOTED_TEXT_CONTENT? '\''
+	;
+
+fragment
+QUOTED_TEXT_CONTENT
+	: (~('\'' | '\\' | '\r' | '\n') | '\\' ('\'' | '\\') | ESCAPE_SEQUENCE)+
+	;
+
+DOUBLE_QUOTED_TEXT
+	: '"' DOUBLE_QUOTED_TEXT_CONTENT? '"'
+	;
+
+fragment
+DOUBLE_QUOTED_TEXT_CONTENT
+	: (~('"' | '\\' | '\r' | '\n') | '\\' ('"' | '\\') | ESCAPE_SEQUENCE)+
+	;
+
+fragment
+ESCAPE_SEQUENCE
+	: '\\' [btnfr]
+	| UNICODE_ESCAPE
+	;
+
+fragment
+UNICODE_ESCAPE
+	: '\\' 'u' HEX_DIGIT HEX_DIGIT HEX_DIGIT HEX_DIGIT
+	;
+
+fragment
+HEX_DIGIT
+	: [0-9A-Fa-f]
 	;

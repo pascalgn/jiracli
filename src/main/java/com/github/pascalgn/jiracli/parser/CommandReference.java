@@ -61,11 +61,11 @@ public final class CommandReference {
             public void enterArgument(ArgumentContext ctx) {
                 String arg = ctx.getText();
                 if (arg.startsWith("'") && arg.endsWith("'")) {
-                    arguments.add(arg.substring(1, arg.length() - 1));
+                    arguments.add(unescape(arg.substring(1, arg.length() - 1)));
                 } else if (arg.startsWith("\"") && arg.endsWith("\"")) {
-                    arguments.add(arg.substring(1, arg.length() - 1));
+                    arguments.add(unescape(arg.substring(1, arg.length() - 1)));
                 } else {
-                    arguments.add(arg);
+                    arguments.add(unescape(arg));
                 }
             }
 
@@ -83,6 +83,40 @@ public final class CommandReference {
         }
 
         return commands;
+    }
+
+    private static String unescape(String str) {
+        StringBuilder s = new StringBuilder();
+        boolean escaped = false;
+        for (int p = 0; p < str.length(); p++) {
+            char c = str.charAt(p);
+            if (c == '\\') {
+                if (escaped) {
+                    escaped = false;
+                    s.append(c);
+                } else {
+                    escaped = true;
+                }
+            } else if (escaped) {
+                escaped = false;
+                if (c == 'n') {
+                    s.append('\n');
+                } else if (c == 'r') {
+                    s.append('\r');
+                } else if (c == 't') {
+                    s.append('\t');
+                } else if (c == '\'') {
+                    s.append('\'');
+                } else if (c == '"') {
+                    s.append('"');
+                } else {
+                    throw new IllegalArgumentException("Invalid escape sequence: \\" + c);
+                }
+            } else {
+                s.append(c);
+            }
+        }
+        return s.toString();
     }
 
     private final String name;

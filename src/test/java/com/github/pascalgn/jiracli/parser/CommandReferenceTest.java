@@ -71,6 +71,11 @@ public class CommandReferenceTest {
         parse("cmd1 \"arg1\" \"arg2\"", "cmd:cmd1;arg:arg1;arg:arg2;");
     }
 
+    @Test
+    public void testParse6a() throws Exception {
+        parse("cmd1 \"with\\n\\\"newline\\\"\"", "cmd:cmd1;arg:with\n\"newline\";");
+    }
+
     private void parse(String input, String expected) {
         List<CommandReference> parsed = CommandReference.parseCommandReferences(input);
 

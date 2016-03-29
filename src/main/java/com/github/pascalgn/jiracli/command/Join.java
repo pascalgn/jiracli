@@ -24,7 +24,7 @@ import com.github.pascalgn.jiracli.model.TextList;
 @CommandDescription(names = "join", description = "Join the input texts into a single text")
 class Join implements Command {
     @Argument(parameters = Parameters.ZERO_OR_ONE, variable = "<separator>", description = "the string between the texts")
-    private String separator = "";
+    private String separator = System.lineSeparator();
 
     @Override
     public Data execute(Context context, Data input) {
