@@ -25,7 +25,7 @@ import javax.swing.JRootPane;
 import javax.swing.KeyStroke;
 import javax.swing.WindowConstants;
 
-import com.github.pascalgn.jiracli.Jiracli;
+import com.github.pascalgn.jiracli.Constants;
 
 public class ContextDialog extends JFrame {
     private static final long serialVersionUID = 8255092098159010094L;
@@ -35,7 +35,7 @@ public class ContextDialog extends JFrame {
     private Runnable cancelListener;
 
     public ContextDialog(String givenRootURL, String givenUsername) {
-        super(Jiracli.getTitle());
+        super(Constants.getTitle());
         setIconImages(Images.getIcons());
 
         contextPanel = new ContextPanel(givenRootURL, givenUsername);

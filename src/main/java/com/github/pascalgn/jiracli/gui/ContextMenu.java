@@ -20,6 +20,7 @@ import java.awt.event.ActionListener;
 
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
+import javax.swing.KeyStroke;
 
 class ContextMenu extends JPopupMenu {
     private static final long serialVersionUID = 7288490759713985256L;
@@ -37,6 +38,7 @@ class ContextMenu extends JPopupMenu {
 
     private void initComponents() {
         JMenuItem newWindow = new JMenuItem("New window");
+        newWindow.setAccelerator(KeyStroke.getKeyStroke("control N"));
         newWindow.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {

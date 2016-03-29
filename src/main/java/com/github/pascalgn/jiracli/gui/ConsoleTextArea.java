@@ -18,9 +18,12 @@ package com.github.pascalgn.jiracli.gui;
 import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseWheelEvent;
 import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.prefs.Preferences;
 
 import javax.swing.AbstractAction;
 import javax.swing.JComponent;
@@ -38,13 +41,21 @@ import javax.swing.text.DocumentFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.pascalgn.jiracli.Constants;
+
 class ConsoleTextArea extends JTextArea {
     private static final long serialVersionUID = -8193770562227282747L;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ConsoleTextArea.class);
 
+    private static final String FONT_SIZE = "fontSize";
+    private static final int MIN_FONT_SIZE = 6;
+    private static final int MAX_FONT_SIZE = 72;
+
     private final BlockingQueue<String> input;
     private final ContextMenu contextMenu;
+
+    private final Preferences preferences;
 
     private transient Integer editStart;
 
@@ -58,8 +69,12 @@ class ConsoleTextArea extends JTextArea {
 
         contextMenu = new ContextMenu();
 
+        preferences = Constants.getPreferences();
+
+        int size = normalize(preferences.getInt(FONT_SIZE, getFont().getSize()));
+
         setCaret(new BlockCaret());
-        setFont(new Font(Font.MONOSPACED, 0, getFont().getSize()));
+        setFont(new Font(Font.MONOSPACED, 0, size));
         setLineWrap(true);
 
         setEditable(false);
@@ -73,10 +88,21 @@ class ConsoleTextArea extends JTextArea {
         getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke("ESCAPE"), escapeActionKey);
         getActionMap().put(escapeActionKey, new EscapeAction());
 
+        addMouseWheelListener(new ZoomListener());
+
         Document doc = getDocument();
         if (doc instanceof AbstractDocument) {
             ((AbstractDocument) doc).setDocumentFilter(new DocFilter());
         }
+    }
+
+    private static int normalize(int size) {
+        if (size < MIN_FONT_SIZE) {
+            return MIN_FONT_SIZE;
+        } else if (size > MAX_FONT_SIZE) {
+            return MAX_FONT_SIZE;
+        }
+        return size;
     }
 
     public void appendText(final String str) {
@@ -209,6 +235,22 @@ class ConsoleTextArea extends JTextArea {
                 throws BadLocationException {
             if (editStart == null || offset >= editStart) {
                 super.replace(fb, offset, length, text, attrs);
+            }
+        }
+    }
+
+    private class ZoomListener extends MouseAdapter {
+        @Override
+        public void mouseWheelMoved(MouseWheelEvent evt) {
+            if (evt.isControlDown() && !evt.isShiftDown() && !evt.isAltDown() && !evt.isAltGraphDown()
+                    && !evt.isMetaDown()) {
+                Font font = getFont();
+                int newSize = font.getSize() + (evt.getWheelRotation() < 0 ? 3 : -3);
+                newSize = normalize(newSize);
+                setFont(font.deriveFont((float) newSize));
+                preferences.putInt(FONT_SIZE, newSize);
+            } else {
+                evt.getComponent().getParent().dispatchEvent(evt);
             }
         }
     }

@@ -16,6 +16,7 @@
 package com.github.pascalgn.jiracli;
 
 import java.awt.GraphicsEnvironment;
+import java.awt.Window;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
@@ -47,10 +48,6 @@ import com.github.pascalgn.jiracli.util.Supplier;
  * Main class
  */
 public class Jiracli {
-    public static String getTitle() {
-        return "Jiracli 1.1.2-SNAPSHOT";
-    }
-
     private static final String ROOT_URL = "rootURL";
     private static final String USERNAME = "username";
 
@@ -76,7 +73,7 @@ public class Jiracli {
             System.out.println("  <root-url>      the root URL of the JIRA service");
             System.out.println("  <username>      the username to use for authentication");
         } else if (options.get(Option.VERSION) == Boolean.TRUE) {
-            System.out.println(getTitle().toLowerCase());
+            System.out.println(Constants.getTitle().toLowerCase());
         } else {
             final boolean gui;
             if (options.get(Option.CONSOLE) == Boolean.TRUE) {
@@ -164,7 +161,7 @@ public class Jiracli {
     }
 
     private static void startGUI(String givenRootURL, String givenUsername) {
-        final Preferences preferences = Preferences.userNodeForPackage(Jiracli.class);
+        final Preferences preferences = Constants.getPreferences();
         String storedRootURL = preferences.get(ROOT_URL, givenRootURL);
         String storedUsername = preferences.get(USERNAME, givenUsername);
 
@@ -212,12 +209,21 @@ public class Jiracli {
     }
 
     private static void openNewWindow(final WebServiceFactory webServiceFactory) {
+        openNewWindow(webServiceFactory, null);
+    }
+
+    private static void openNewWindow(final WebServiceFactory webServiceFactory, Window oldWindow) {
         final MainWindow window = new MainWindow();
+
+        if (oldWindow != null) {
+            int offset = (int) (window.getWidth() * 0.1);
+            window.setLocation(oldWindow.getX() + offset, oldWindow.getY() + offset);
+        }
 
         window.setNewWindowListener(new Runnable() {
             @Override
             public void run() {
-                openNewWindow(webServiceFactory);
+                openNewWindow(webServiceFactory, window);
             }
         });
 
