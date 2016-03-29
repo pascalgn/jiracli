@@ -36,7 +36,12 @@ public class CommandFactoryTest {
 
     @Test
     public void testPrint() throws Exception {
-        checkUsage("usage: print [-n] [-h] [--] [<format>]", "p");
+        checkUsage("usage: print [-h] [--] [<format>]", "p");
+    }
+
+    @Test
+    public void testBrowse() throws Exception {
+        checkUsage("usage: browse [-n] [-h]", "browse");
     }
 
     private void checkUsage(String usage, String command) {
@@ -64,9 +69,9 @@ public class CommandFactoryTest {
     }
 
     @Test
-    public void testParsePrint() throws Exception {
-        Command print = parse("print", "-n");
-        assertEquals(true, getFieldValue(print, "noNewline"));
+    public void testParseBrowse() throws Exception {
+        Command browse = parse("browse", "-n");
+        assertEquals(true, getFieldValue(browse, "dryRun"));
     }
 
     private Command parse(String name, String... args) {

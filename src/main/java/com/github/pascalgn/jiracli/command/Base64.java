@@ -15,6 +15,7 @@
  */
 package com.github.pascalgn.jiracli.command;
 
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 import javax.xml.bind.DatatypeConverter;
@@ -27,6 +28,8 @@ import com.github.pascalgn.jiracli.util.Function;
 
 @CommandDescription(names = { "base64", "b64" }, description = "Print text from standard input as Base64 encoded")
 class Base64 implements Command {
+    private static final Charset CHARSET = StandardCharsets.UTF_8;
+
     @Argument(names = { "-d", "--decode" }, description = "decode base64 text")
     private boolean decode = false;
 
@@ -37,10 +40,10 @@ class Base64 implements Command {
             @Override
             public Text apply(Text text) {
                 if (decode) {
-                    String plain = new String(DatatypeConverter.parseBase64Binary(text.getText()), StandardCharsets.UTF_8);
+                    String plain = new String(DatatypeConverter.parseBase64Binary(text.getText()), CHARSET);
                     return new Text(plain);
                 } else {
-                    String base64 = DatatypeConverter.printBase64Binary(text.getText().getBytes(StandardCharsets.UTF_8));
+                    String base64 = DatatypeConverter.printBase64Binary(text.getText().getBytes(CHARSET));
                     return new Text(base64);
                 }
             }

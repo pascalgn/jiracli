@@ -13,19 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.pascalgn.jiracli.context;
+package com.github.pascalgn.jiracli.model;
 
-import java.util.List;
+public interface Value {
+    Object getValue();
 
-import com.github.pascalgn.jiracli.model.Issue;
+    void setValue(Object object);
 
-public interface WebService extends AutoCloseable {
-    Issue getIssue(String key);
-
-    List<Issue> getEpicIssues(Issue epic);
-
-    List<Issue> searchIssues(String jql);
-
-    @Override
-    void close();
+    boolean isModified();
 }

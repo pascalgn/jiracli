@@ -59,10 +59,30 @@ abstract class List<E extends Data> extends Data {
         return result;
     }
 
+    public IssueList toIssueList(final Function<E, Issue> function) {
+        return new IssueList(new Supplier<Issue>() {
+            @Override
+            public Issue get() {
+                E next = next();
+                return (next == null ? null : function.apply(next));
+            }
+        });
+    }
+
     public TextList toTextList(final Function<E, Text> function) {
         return new TextList(new Supplier<Text>() {
             @Override
             public Text get() {
+                E next = next();
+                return (next == null ? null : function.apply(next));
+            }
+        });
+    }
+
+    public FieldList toFieldList(final Function<E, Field> function) {
+        return new FieldList(new Supplier<Field>() {
+            @Override
+            public Field get() {
                 E next = next();
                 return (next == null ? null : function.apply(next));
             }

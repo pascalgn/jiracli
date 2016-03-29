@@ -15,10 +15,7 @@
  */
 package com.github.pascalgn.jiracli.command;
 
-import java.util.ArrayList;
 import java.util.List;
-
-import org.json.JSONObject;
 
 import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
@@ -60,11 +57,7 @@ class Search implements Command {
         @Override
         public synchronized Issue get() {
             if (issues == null) {
-                List<JSONObject> json = context.getWebService().searchIssues(jql);
-                issues = new ArrayList<Issue>(json.size());
-                for (JSONObject obj : json) {
-                    issues.add(Issue.valueOf(obj.getString("key")));
-                }
+                issues = context.getWebService().searchIssues(jql);
                 issuesIndex = 0;
             }
             return (issuesIndex < issues.size() ? issues.get(issuesIndex++) : null);

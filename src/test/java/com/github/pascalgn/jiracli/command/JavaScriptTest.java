@@ -20,31 +20,22 @@ import static org.junit.Assert.assertEquals;
 import org.json.JSONObject;
 import org.junit.Test;
 
-import com.github.pascalgn.jiracli.context.Context;
-import com.github.pascalgn.jiracli.context.DefaultContext;
-import com.github.pascalgn.jiracli.context.DefaultJavaScriptEngine;
-import com.github.pascalgn.jiracli.context.JavaScriptEngine;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
-import com.github.pascalgn.jiracli.testutil.MockConsole;
-import com.github.pascalgn.jiracli.testutil.MockWebService;
+import com.github.pascalgn.jiracli.testutil.IssueFactory;
+import com.github.pascalgn.jiracli.testutil.MockContext;
 
 public class JavaScriptTest {
     @Test
     public void test1() throws Exception {
-        MockConsole console = new MockConsole();
-        MockWebService webService = new MockWebService();
-        JavaScriptEngine javaScriptEngine = new DefaultJavaScriptEngine(console);
-        Context context = new DefaultContext(console, webService, javaScriptEngine);
+        MockContext context = new MockContext();
 
-        Issue issue1 = Issue.valueOf("ISSUE-1");
-
-        webService.setIssue(issue1.getKey(), new JSONObject("{key:'ISSUE-1',fields:{author:{name:'Author-Name'}}}"));
+        Issue issue1 = IssueFactory.create("ISSUE-1", "author", new JSONObject("{name:'Author-Name'}"));
 
         JavaScript javaScript = new JavaScript("forEach.call(input, function(issue) { print(issue.key"
                 + " + ': ' + issue.fields.author.name); });");
         javaScript.execute(context, new IssueList(issue1));
 
-        assertEquals("ISSUE-1: Author-Name", console.getOutput().trim());
+        assertEquals("ISSUE-1: Author-Name", context.getConsole().getOutput().trim());
     }
 }

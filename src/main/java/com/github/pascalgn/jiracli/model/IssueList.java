@@ -39,18 +39,8 @@ public class IssueList extends List<Issue> {
     }
 
     @Override
-    public Issue toIssue() {
-        return null;
-    }
-
-    @Override
     public IssueList toIssueList() {
         return this;
-    }
-
-    @Override
-    public Text toText() {
-        return null;
     }
 
     @Override
@@ -59,6 +49,16 @@ public class IssueList extends List<Issue> {
             @Override
             public Text apply(Issue issue) {
                 return issue.toText();
+            }
+        });
+    }
+
+    @Override
+    public FieldList toFieldList() {
+        return toFieldList(new Function<Issue, Field>() {
+            @Override
+            public Field apply(Issue issue) {
+                return null;
             }
         });
     }

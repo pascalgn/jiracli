@@ -51,21 +51,19 @@ class ReadExcel implements Command {
 
     @Override
     public IssueList execute(Context context, Data input) {
-        return new IssueList(getSupplier(context));
-    }
-
-    private Supplier<Issue> getSupplier(Context context) {
-        return new ExcelReader(filename, column);
+        return new IssueList(new ExcelReader(context, filename, column));
     }
 
     private static class ExcelReader implements Supplier<Issue> {
+        private final Context context;
         private final String filename;
         private final String column;
 
         private transient List<Issue> issues;
         private transient int index;
 
-        public ExcelReader(String filename, String column) {
+        public ExcelReader(Context context, String filename, String column) {
+            this.context = context;
             this.filename = filename;
             this.column = column;
         }
@@ -93,7 +91,9 @@ class ReadExcel implements Command {
                                     return;
                                 }
                             }
-                            issues.addAll(Issue.findAll(value));
+                            for (String key : CommandUtils.findIssues(value)) {
+                                issues.add(context.getWebService().getIssue(key));
+                            }
                         }
                     });
                 } catch (IOException e) {

@@ -13,19 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.pascalgn.jiracli.context;
+package com.github.pascalgn.jiracli.command;
 
-import java.util.List;
+import com.github.pascalgn.jiracli.context.Context;
+import com.github.pascalgn.jiracli.model.Data;
+import com.github.pascalgn.jiracli.model.FieldList;
 
-import com.github.pascalgn.jiracli.model.Issue;
-
-public interface WebService extends AutoCloseable {
-    Issue getIssue(String key);
-
-    List<Issue> getEpicIssues(Issue epic);
-
-    List<Issue> searchIssues(String jql);
-
+@CommandDescription(names = "fields", description = "Return the fields of the given issues")
+class Fields implements Command {
     @Override
-    void close();
+    public FieldList execute(Context context, Data input) {
+        return input.toIssueListOrFail().toFieldList();
+    }
 }

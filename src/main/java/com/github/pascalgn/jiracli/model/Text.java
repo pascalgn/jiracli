@@ -29,16 +29,6 @@ public class Text extends Data {
     }
 
     @Override
-    public Issue toIssue() {
-        return null;
-    }
-
-    @Override
-    public IssueList toIssueList() {
-        return null;
-    }
-
-    @Override
     public Text toText() {
         return this;
     }

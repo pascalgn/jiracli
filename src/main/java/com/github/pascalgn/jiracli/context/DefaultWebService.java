@@ -53,6 +53,7 @@ import org.json.JSONTokener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.util.Function;
 
 public class DefaultWebService implements WebService {
@@ -113,12 +114,15 @@ public class DefaultWebService implements WebService {
     }
 
     @Override
-    public URI getURI(String issue) {
-        return URI.create(rootURL + "/browse/" + issue);
+    public Issue getIssue(String key) {
+        URI uri = URI.create(rootURL + "/browse/" + key);
+        LoadableFieldMap fieldMap = new LoadableFieldMap(this);
+        Issue issue = new Issue(key, uri, fieldMap);
+        fieldMap.setIssue(issue);
+        return issue;
     }
 
-    @Override
-    public synchronized JSONObject getIssue(String issue) {
+    synchronized JSONObject getJson(String issue) {
         JSONObject result;
         if (issueCache == null) {
             issueCache = new HashMap<String, JSONObject>();
@@ -134,13 +138,15 @@ public class DefaultWebService implements WebService {
     }
 
     @Override
-    public List<JSONObject> getEpicIssues(String epic) {
-        return getIssueList("/rest/agile/latest/epic/" + epic + "/issue");
+    public List<Issue> getEpicIssues(Issue epic) {
+        getIssueList("/rest/agile/latest/epic/" + epic + "/issue");
+        return null;
     }
 
     @Override
-    public List<JSONObject> searchIssues(String jql) {
-        return getIssueList("/rest/api/latest/search?jql=" + encode(jql.trim()));
+    public List<Issue> searchIssues(String jql) {
+        getIssueList("/rest/api/latest/search?jql=" + encode(jql.trim()));
+        return null;
     }
 
     private static String encode(String str) {
@@ -187,8 +193,7 @@ public class DefaultWebService implements WebService {
         return result;
     }
 
-    @Override
-    public synchronized Map<String, String> getFieldMapping() {
+    synchronized Map<String, String> getFieldMapping() {
         if (fieldMapping == null) {
             fieldMapping = new HashMap<String, String>();
             JSONArray array = call("/rest/api/latest/field", TO_ARRAY);
@@ -196,10 +201,7 @@ public class DefaultWebService implements WebService {
                 JSONObject field = (JSONObject) obj;
                 String id = field.getString("id");
                 String name = field.getString("name");
-                boolean custom = field.getBoolean("custom");
-                if (custom) {
-                    fieldMapping.put(name, id);
-                }
+                fieldMapping.put(id, name);
             }
         }
         return fieldMapping;

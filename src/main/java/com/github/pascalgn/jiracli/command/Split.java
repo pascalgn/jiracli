@@ -31,7 +31,8 @@ import com.github.pascalgn.jiracli.util.Supplier;
 
 @CommandDescription(names = "split", description = "Split the input texts into multiple texts")
 class Split implements Command {
-    @Argument(parameters = Parameters.ZERO_OR_ONE, variable = "<delimiter>", description = "the delimiter to use for splitting")
+    @Argument(parameters = Parameters.ZERO_OR_ONE, variable = "<delimiter>",
+            description = "the delimiter to use for splitting")
     private String delimiter = null;
 
     @Override

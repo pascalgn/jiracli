@@ -38,8 +38,8 @@ public class SimpleExcelHelperTest {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             try (Workbook wb = new XSSFWorkbook()) {
                 Sheet sheet1 = wb.createSheet("Sheet1");
-                for (int row = 0; row < 100; row++) {
-                    for (int column = 0; column < 100; column++) {
+                for (int row = 0; row < 10; row++) {
+                    for (int column = 0; column < 10; column++) {
                         String cell = row + "/" + column;
                         ExcelUtils.writeCell(sheet1, row, column, cell);
                     }
@@ -61,9 +61,9 @@ public class SimpleExcelHelperTest {
             });
         }
 
-        assertEquals(10000, cellValues.size());
-        assertEquals("12/34", cellValues.get(1234));
-        assertEquals("43/21", cellValues.get(4321));
-        assertEquals("99/99", cellValues.get(9999));
+        assertEquals(100, cellValues.size());
+        assertEquals("1/2", cellValues.get(12));
+        assertEquals("4/3", cellValues.get(43));
+        assertEquals("9/9", cellValues.get(99));
     }
 }

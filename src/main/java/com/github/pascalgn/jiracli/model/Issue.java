@@ -15,61 +15,45 @@
  */
 package com.github.pascalgn.jiracli.model;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.net.URI;
 
 public class Issue extends Data {
-    private static final Pattern KEY_PATTERN = Pattern.compile("[A-Z]+-[0-9]+");
-
-    public static Pattern getKeyPattern() {
-        return KEY_PATTERN;
-    }
-
-    public static boolean isKey(String str) {
-        return KEY_PATTERN.matcher(str).matches();
-    }
-
-    public static Issue valueOf(String key) {
-        if (!isKey(key)) {
-            throw new IllegalArgumentException("Invalid issue key: " + key);
-        }
-        return new Issue(key);
-    }
-
-    public static Issue valueOfOrNull(String str) {
-        if (isKey(str)) {
-            return new Issue(str);
-        } else {
-            return null;
-        }
-    }
-
-    public static List<Issue> findAll(String str) {
-        List<Issue> result = null;
-        Matcher m = KEY_PATTERN.matcher(str);
-        if (m.find()) {
-            result = new ArrayList<Issue>();
-            result.add(new Issue(m.group()));
-        } else {
-            return Collections.emptyList();
-        }
-        while (m.find()) {
-            result.add(new Issue(m.group()));
-        }
-        return result;
-    }
-
     private final String key;
+    private final URI uri;
+    private final FieldMap fieldMap;
 
-    private Issue(String key) {
+    public Issue(String key, URI uri, FieldMap fieldMap) {
         this.key = key;
+        this.uri = uri;
+        this.fieldMap = fieldMap;
     }
 
+    /**
+     * @return The issue key, for example <code>ISSUE-123</code>
+     */
     public String getKey() {
         return key;
+    }
+
+    /**
+     * @return The URI of this issue, for example <code>https://jira.example.com/browse/ISSUE-123</code>
+     */
+    public URI getUri() {
+        return uri;
+    }
+
+    /**
+     * @return The fields of this issue, never null
+     */
+    public FieldMap getFieldMap() {
+        return fieldMap;
+    }
+
+    /**
+     * @return The JSON representation of this issue, never null
+     */
+    public String toJson() {
+        return IssueHelper.toJson(this);
     }
 
     @Override

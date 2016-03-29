@@ -27,22 +27,17 @@ public class None extends Data {
     }
 
     @Override
-    public Issue toIssue() {
-        return null;
-    }
-
-    @Override
     public IssueList toIssueList() {
         return new IssueList();
     }
 
     @Override
-    public Text toText() {
-        return null;
+    public TextList toTextList() {
+        return new TextList();
     }
 
     @Override
-    public TextList toTextList() {
-        return new TextList();
+    public FieldList toFieldList() {
+        return new FieldList();
     }
 }

@@ -18,7 +18,6 @@ package com.github.pascalgn.jiracli.command;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,8 +68,6 @@ class Print implements Command {
     }
 
     private static String toString(WebService webService, Issue issue, String pattern) {
-        JSONObject json = webService.getIssue(issue.getKey());
-
         StringBuilder str = new StringBuilder();
         Matcher m = PATTERN.matcher(pattern);
         int end = 0;
@@ -79,7 +76,7 @@ class Print implements Command {
             end = m.end();
 
             String name = m.group(1);
-            str.append(CommandUtils.getFieldValue(webService, json, name));
+            str.append(CommandUtils.getFieldValue(issue, name));
         }
 
         str.append(pattern.substring(end));

@@ -15,30 +15,20 @@
  */
 package com.github.pascalgn.jiracli.command;
 
-import java.util.List;
-
-import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.util.Supplier;
 
-@CommandDescription(names = "get", description = "Return the given issues")
-class Get implements Command {
-    @Argument(parameters = Parameters.ONE_OR_MORE, variable = "<issue>", description = "the issues")
-    private List<String> issues;
-
+@CommandDescription(names = "edit", description = "Edit the given issues in a text editor")
+class Edit implements Command {
     @Override
-    public IssueList execute(final Context context, Data input) {
+    public IssueList execute(Context context, Data input) {
         return new IssueList(new Supplier<Issue>() {
             @Override
             public Issue get() {
-                if (issues.isEmpty()) {
-                    return null;
-                } else {
-                    return context.getWebService().getIssue(issues.remove(0));
-                }
+                return null;
             }
         });
     }

@@ -13,19 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.pascalgn.jiracli.context;
+package com.github.pascalgn.jiracli.model;
 
-import java.util.List;
+import java.util.Collection;
 
-import com.github.pascalgn.jiracli.model.Issue;
+public interface FieldMap {
+    /**
+     * @return All fields, never null
+     */
+    Collection<Field> getFields();
 
-public interface WebService extends AutoCloseable {
-    Issue getIssue(String key);
+    /**
+     * @return The field with the given ID or <code>null</code>
+     */
+    Field getFieldById(String id);
 
-    List<Issue> getEpicIssues(Issue epic);
-
-    List<Issue> searchIssues(String jql);
-
-    @Override
-    void close();
+    /**
+     * @return The field with the given name or <code>null</code>
+     */
+    Field getFieldByName(String name);
 }

@@ -17,9 +17,6 @@ package com.github.pascalgn.jiracli.command;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.List;
-
-import org.json.JSONObject;
 
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
@@ -52,10 +49,7 @@ class EpicIssues implements Command {
             if (issues.isEmpty()) {
                 Issue next = input.next();
                 if (next != null) {
-                    List<JSONObject> json = context.getWebService().getEpicIssues(next.getKey());
-                    for (JSONObject obj : json) {
-                        issues.addLast(Issue.valueOf(obj.getString("key")));
-                    }
+                    issues.addAll(context.getWebService().getEpicIssues(next));
                 }
             }
             return (issues.isEmpty() ? null : issues.removeFirst());

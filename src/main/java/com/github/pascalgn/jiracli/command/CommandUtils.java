@@ -17,13 +17,20 @@ package com.github.pascalgn.jiracli.command;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.json.JSONObject;
 
-import com.github.pascalgn.jiracli.context.WebService;
+import com.github.pascalgn.jiracli.model.Field;
+import com.github.pascalgn.jiracli.model.Issue;
 
 class CommandUtils {
+    private static final Pattern ISSUE_KEY_PATTERN = Pattern.compile("[A-Z]+-[0-9]+");
+
     public static void closeUnchecked(Closeable closeable) {
         try {
             closeable.close();
@@ -33,9 +40,13 @@ class CommandUtils {
     }
 
     public static String join(List<String> list, String sep) {
+        return join(list, 0, list.size(), sep);
+    }
+
+    public static String join(List<String> list, int offset, int len, String sep) {
         StringBuilder result = new StringBuilder();
-        for (int i = 0; i < list.size(); i++) {
-            if (i > 0) {
+        for (int i = offset; i < len; i++) {
+            if (i > offset) {
                 result.append(sep);
             }
             result.append(list.get(i));
@@ -51,10 +62,48 @@ class CommandUtils {
         return result.toString();
     }
 
-    public static Object getFieldValue(WebService webService, JSONObject json, String name) {
+    public static Object getFieldValue(Issue issue, String name) {
+        if (name.equalsIgnoreCase("key")) {
+            return issue.getKey();
+        } else if (name.equalsIgnoreCase("uri")) {
+            return issue.getUri();
+        }
+
+        String fieldNameOrId;
+        String subname;
+        if (name.contains(".")) {
+            String[] names = name.split("\\.", 2);
+            fieldNameOrId = names[0];
+            subname = names[1];
+        } else {
+            fieldNameOrId = name;
+            subname = "";
+        }
+
+        Field field = issue.getFieldMap().getFieldByName(fieldNameOrId);
+        if (field == null) {
+            field = issue.getFieldMap().getFieldById(fieldNameOrId);
+        }
+        if (field == null) {
+            throw new IllegalStateException("No such field: " + fieldNameOrId + ": " + issue);
+        }
+
+        Object value = field.getValue().getValue();
+        if (subname.isEmpty()) {
+            return value;
+        } else {
+            if (value instanceof JSONObject) {
+                return getFieldValue((JSONObject) value, subname);
+            } else {
+                throw new IllegalStateException("Not a Json object: " + issue + "/" + fieldNameOrId + ": " + value);
+            }
+        }
+    }
+
+    private static Object getFieldValue(JSONObject json, String name) {
         if (name.contains(".")) {
             String[] names = name.split("\\.");
-            Object obj = getFieldValue(webService, json, names[0]);
+            Object obj = getFieldValue(json, names[0]);
             for (int i = 1; i < names.length; i++) {
                 obj = ((JSONObject) obj).get(names[i]);
             }
@@ -63,23 +112,33 @@ class CommandUtils {
             if (json.has(name)) {
                 return json.get(name);
             } else {
-                JSONObject fields = json.getJSONObject("fields");
-                if (fields.has(name)) {
-                    return fields.get(name);
-                }
-
-                // Try custom field names:
-                String fieldId = webService.getFieldMapping().get(name);
-                if (fieldId != null) {
-                    if (json.has(fieldId)) {
-                        return json.get(fieldId);
-                    } else if (fields.has(fieldId)) {
-                        return fields.get(fieldId);
-                    }
-                }
-
                 throw new IllegalStateException("Name '" + name + "' not found: " + json.toString(2));
             }
         }
+    }
+
+    public static boolean isIssue(String str) {
+        return ISSUE_KEY_PATTERN.matcher(str).matches();
+    }
+
+    public static void checkIssue(String str) {
+        if (!isIssue(str)) {
+            throw new IllegalArgumentException("Invalid issue key: " + str);
+        }
+    }
+
+    public static List<String> findIssues(String str) {
+        List<String> result = null;
+        Matcher m = ISSUE_KEY_PATTERN.matcher(str);
+        if (m.find()) {
+            result = new ArrayList<>();
+            result.add(m.group());
+        } else {
+            return Collections.emptyList();
+        }
+        while (m.find()) {
+            result.add(m.group());
+        }
+        return result;
     }
 }

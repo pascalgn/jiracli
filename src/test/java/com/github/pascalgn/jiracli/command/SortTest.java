@@ -30,6 +30,7 @@ import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
+import com.github.pascalgn.jiracli.testutil.IssueFactory;
 import com.github.pascalgn.jiracli.testutil.MockContext;
 
 public class SortTest {
@@ -80,15 +81,8 @@ public class SortTest {
 
     @Test
     public void test2() throws Exception {
-        MockContext context = new MockContext();
-
-        Issue issue1 = Issue.valueOf("ISSUE-1");
-        Issue issue2 = Issue.valueOf("ISSUE-2");
-        context.getWebService().setIssue(issue1.getKey(), new JSONObject("{fields:{author:{name:'Test1'}}}"));
-        context.getWebService().setIssue(issue2.getKey(), new JSONObject("{fields:{author:{name:'Test2'}}}"));
-
+        Issue issue1 = IssueFactory.create("ISSUE-1", "author", new JSONObject("{name:'Test1'}"));
         Filter filter = new Filter("author.name", "Test1");
-
-        assertTrue(filter.matches(context, issue1));
+        assertTrue(filter.matches(new MockContext(), issue1));
     }
 }

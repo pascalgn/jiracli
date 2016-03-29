@@ -26,6 +26,7 @@ import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
+import com.github.pascalgn.jiracli.testutil.IssueFactory;
 import com.github.pascalgn.jiracli.testutil.MockContext;
 
 public class PrintTest {
@@ -33,8 +34,7 @@ public class PrintTest {
     public void test1() throws Exception {
         MockContext context = new MockContext();
 
-        Issue issue1 = Issue.valueOf("ISSUE-1");
-        context.getWebService().setIssue(issue1.getKey(), new JSONObject("{fields:{author:{name:'Author-Name'}}}"));
+        Issue issue1 = IssueFactory.create("ISSUE-1", "author", new JSONObject("{name:'Author-Name'}"));
 
         Print print = new Print("${author.name}");
         TextList textList = print.execute(context, new IssueList(issue1));

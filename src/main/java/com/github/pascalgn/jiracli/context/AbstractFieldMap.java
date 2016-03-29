@@ -15,17 +15,28 @@
  */
 package com.github.pascalgn.jiracli.context;
 
-import java.util.List;
+import com.github.pascalgn.jiracli.model.Field;
+import com.github.pascalgn.jiracli.model.FieldMap;
 
-import com.github.pascalgn.jiracli.model.Issue;
-
-public interface WebService extends AutoCloseable {
-    Issue getIssue(String key);
-
-    List<Issue> getEpicIssues(Issue epic);
-
-    List<Issue> searchIssues(String jql);
+abstract class AbstractFieldMap implements FieldMap {
+    @Override
+    public Field getFieldById(String id) {
+        for (Field field : getFields()) {
+            if (field.getId().equals(id)) {
+                return field;
+            }
+        }
+        return null;
+    }
 
     @Override
-    void close();
+    public Field getFieldByName(String name) {
+        String lower = name.toLowerCase();
+        for (Field field : getFields()) {
+            if (field.getName().toLowerCase().equals(lower)) {
+                return field;
+            }
+        }
+        return null;
+    }
 }

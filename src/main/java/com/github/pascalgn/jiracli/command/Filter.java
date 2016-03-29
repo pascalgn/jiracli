@@ -18,11 +18,8 @@ package com.github.pascalgn.jiracli.command;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
-import org.json.JSONObject;
-
 import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
-import com.github.pascalgn.jiracli.context.WebService;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
@@ -63,9 +60,7 @@ class Filter implements Command {
     }
 
     boolean matches(Context context, Issue issue) {
-        WebService webService = context.getWebService();
-        JSONObject json = webService.getIssue(issue.getKey());
-        Object obj = CommandUtils.getFieldValue(webService, json, field);
+        Object obj = CommandUtils.getFieldValue(issue, field);
         String fieldValue = Objects.toString(obj, "");
         return pattern.matcher(fieldValue).find();
     }

@@ -20,6 +20,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayDeque;
+import java.util.Deque;
 
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
@@ -54,20 +56,28 @@ class Read implements Command {
         private final Context context;
         private final String filename;
 
+        private final Deque<Issue> issues;
+
         private transient Supplier<String> stringSupplier;
 
         public TextReader(Context context, String filename) {
             this.context = context;
             this.filename = filename;
+            this.issues = new ArrayDeque<Issue>();
         }
 
         @Override
         public Issue get() {
-            String line = getStringSupplier().get();
-            if (line == null) {
-                return null;
+            if (issues.isEmpty()) {
+                String line = getStringSupplier().get();
+                if (line == null) {
+                    return null;
+                }
+                for (String key : CommandUtils.findIssues(line)) {
+                    issues.add(context.getWebService().getIssue(key));
+                }
             }
-            return Issue.valueOfOrNull(line.trim());
+            return (issues.isEmpty() ? null : issues.removeFirst());
         }
 
         private synchronized Supplier<String> getStringSupplier() {

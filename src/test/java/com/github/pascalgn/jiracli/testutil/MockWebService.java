@@ -15,60 +15,26 @@
  */
 package com.github.pascalgn.jiracli.testutil;
 
-import java.net.URI;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
-import org.json.JSONObject;
 
 import com.github.pascalgn.jiracli.context.WebService;
+import com.github.pascalgn.jiracli.model.Issue;
 
 public class MockWebService implements WebService {
-    private final Map<String, JSONObject> issues;
-    private Map<String, String> fieldMapping;
-
-    public MockWebService() {
-        issues = new HashMap<String, JSONObject>();
-        fieldMapping = Collections.emptyMap();
+    @Override
+    public Issue getIssue(String key) {
+        return IssueFactory.create(key);
     }
 
     @Override
-    public URI getURI(String issue) {
-        return URI.create("issue://" + issue);
-    }
-
-    @Override
-    public JSONObject getIssue(String issue) {
-        return issues.get(issue);
-    }
-
-    public void clearIssues() {
-        issues.clear();
-    }
-
-    public void setIssue(String key, JSONObject issue) {
-        issues.put(key, issue);
-    }
-
-    @Override
-    public List<JSONObject> getEpicIssues(String epic) {
+    public List<Issue> getEpicIssues(Issue epic) {
         return Collections.emptyList();
     }
 
     @Override
-    public List<JSONObject> searchIssues(String jql) {
+    public List<Issue> searchIssues(String jql) {
         return Collections.emptyList();
-    }
-
-    @Override
-    public Map<String, String> getFieldMapping() {
-        return fieldMapping;
-    }
-
-    public void setFieldMapping(Map<String, String> fieldMapping) {
-        this.fieldMapping = fieldMapping;
     }
 
     @Override

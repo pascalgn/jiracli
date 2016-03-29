@@ -15,17 +15,19 @@
  */
 package com.github.pascalgn.jiracli.context;
 
-import java.util.List;
+import java.util.Collection;
 
-import com.github.pascalgn.jiracli.model.Issue;
+import com.github.pascalgn.jiracli.model.Field;
 
-public interface WebService extends AutoCloseable {
-    Issue getIssue(String key);
+public class DefaultFieldMap extends AbstractFieldMap {
+    private final Collection<Field> fields;
 
-    List<Issue> getEpicIssues(Issue epic);
-
-    List<Issue> searchIssues(String jql);
+    public DefaultFieldMap(Collection<Field> fields) {
+        this.fields = fields;
+    }
 
     @Override
-    void close();
+    public Collection<Field> getFields() {
+        return fields;
+    }
 }

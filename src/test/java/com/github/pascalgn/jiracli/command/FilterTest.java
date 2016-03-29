@@ -22,25 +22,17 @@ import org.json.JSONObject;
 import org.junit.Test;
 
 import com.github.pascalgn.jiracli.context.Context;
-import com.github.pascalgn.jiracli.context.DefaultContext;
-import com.github.pascalgn.jiracli.context.DefaultJavaScriptEngine;
-import com.github.pascalgn.jiracli.context.JavaScriptEngine;
 import com.github.pascalgn.jiracli.model.Issue;
-import com.github.pascalgn.jiracli.testutil.MockConsole;
-import com.github.pascalgn.jiracli.testutil.MockWebService;
+import com.github.pascalgn.jiracli.testutil.IssueFactory;
+import com.github.pascalgn.jiracli.testutil.MockContext;
 
 public class FilterTest {
     @Test
     public void test1() throws Exception {
-        MockConsole console = new MockConsole();
-        MockWebService webService = new MockWebService();
-        JavaScriptEngine javaScriptEngine = new DefaultJavaScriptEngine(console);
-        Context context = new DefaultContext(console, webService, javaScriptEngine);
+        Context context = new MockContext();
 
-        Issue issue1 = Issue.valueOf("ISSUE-1");
-        Issue issue2 = Issue.valueOf("ISSUE-2");
-        webService.setIssue(issue1.getKey(), new JSONObject("{fields:{author:{name:'Test1'}}}"));
-        webService.setIssue(issue2.getKey(), new JSONObject("{fields:{author:{name:'Test2'}}}"));
+        Issue issue1 = IssueFactory.create("ISSUE-1", "author", new JSONObject("{name:'Test1'}"));
+        Issue issue2 = IssueFactory.create("ISSUE-2", "author", new JSONObject("{name:'Test2'}"));
 
         Filter filter = new Filter("author.name", "Test1");
 

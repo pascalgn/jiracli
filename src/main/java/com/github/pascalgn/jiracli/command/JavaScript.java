@@ -18,8 +18,6 @@ package com.github.pascalgn.jiracli.command;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.json.JSONObject;
-
 import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
@@ -48,8 +46,7 @@ class JavaScript implements Command {
 
         Issue issue;
         while ((issue = issueList.next()) != null) {
-            JSONObject json = context.getWebService().getIssue(issue.getKey());
-            Object obj = context.getJavaScriptEngine().evaluate("JSON.parse(input)", json.toString());
+            Object obj = context.getJavaScriptEngine().evaluate("JSON.parse(input)", issue.toJson());
             issues.add(obj);
         }
 

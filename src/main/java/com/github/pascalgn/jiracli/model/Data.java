@@ -16,28 +16,52 @@
 package com.github.pascalgn.jiracli.model;
 
 public abstract class Data {
-    public abstract Issue toIssue();
+    public Issue toIssue() {
+        return null;
+    }
 
     public final Issue toIssueOrFail() {
         return convertOrFail(toIssue(), Issue.class);
     }
 
-    public abstract IssueList toIssueList();
+    public IssueList toIssueList() {
+        return null;
+    }
 
     public final IssueList toIssueListOrFail() {
         return convertOrFail(toIssueList(), IssueList.class);
     }
 
-    public abstract Text toText();
+    public Text toText() {
+        return null;
+    }
 
     public final Text toTextOrFail() {
         return convertOrFail(toText(), Text.class);
     }
 
-    public abstract TextList toTextList();
+    public TextList toTextList() {
+        return null;
+    }
 
     public final TextList toTextListOrFail() {
         return convertOrFail(toTextList(), TextList.class);
+    }
+
+    public Field toField() {
+        return null;
+    }
+
+    public final Field toFieldOrFail() {
+        return convertOrFail(toField(), Field.class);
+    }
+
+    public FieldList toFieldList() {
+        return null;
+    }
+
+    public final FieldList toFieldListOrFail() {
+        return convertOrFail(toFieldList(), FieldList.class);
     }
 
     private <T> T convertOrFail(T instance, Class<T> type) {

@@ -18,27 +18,48 @@ package com.github.pascalgn.jiracli.model;
 import java.util.Arrays;
 import java.util.Iterator;
 
+import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.Supplier;
 
-public class TextList extends List<Text> {
-    public TextList() {
+public class FieldList extends List<Field> {
+    public FieldList() {
         super();
     }
 
-    public TextList(Text... texts) {
-        super(Arrays.asList(texts).iterator());
+    public FieldList(Field... fields) {
+        super(Arrays.asList(fields).iterator());
     }
 
-    public TextList(Iterator<Text> iterator) {
+    public FieldList(Iterator<Field> iterator) {
         super(iterator);
     }
 
-    public TextList(Supplier<Text> supplier) {
+    public FieldList(Supplier<Field> supplier) {
         super(supplier);
     }
 
     @Override
+    public IssueList toIssueList() {
+        return toIssueList(new Function<Field, Issue>() {
+            @Override
+            public Issue apply(Field field) {
+                return field.toIssue();
+            }
+        });
+    }
+
+    @Override
     public TextList toTextList() {
+        return toTextList(new Function<Field, Text>() {
+            @Override
+            public Text apply(Field field) {
+                return field.toText();
+            }
+        });
+    }
+
+    @Override
+    public FieldList toFieldList() {
         return this;
     }
 }

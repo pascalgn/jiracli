@@ -38,7 +38,7 @@ class Browse implements Command {
             return issueList.toTextList(new Function<Issue, Text>() {
                 @Override
                 public Text apply(Issue issue) {
-                    URI uri = context.getWebService().getURI(issue.getKey());
+                    URI uri = issue.getUri();
                     return new Text(uri.toString());
                 }
             });
@@ -47,7 +47,7 @@ class Browse implements Command {
 
             Issue issue;
             while ((issue = issueList.next()) != null) {
-                URI uri = context.getWebService().getURI(issue.getKey());
+                URI uri = issue.getUri();
                 try {
                     desktop.browse(uri);
                 } catch (IOException e) {
