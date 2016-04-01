@@ -18,10 +18,11 @@ package com.github.pascalgn.jiracli.testutil;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
-import com.github.pascalgn.jiracli.context.DefaultFieldMap;
 import com.github.pascalgn.jiracli.model.Field;
+import com.github.pascalgn.jiracli.model.FieldMap;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.Value;
 
@@ -68,6 +69,40 @@ public class IssueFactory {
         @Override
         public boolean isModified() {
             return false;
+        }
+    }
+
+    private static class DefaultFieldMap implements FieldMap {
+        private final Collection<Field> fields;
+
+        public DefaultFieldMap(Collection<Field> fields) {
+            this.fields = fields;
+        }
+
+        @Override
+        public Collection<Field> getFields() {
+            return fields;
+        }
+
+        @Override
+        public Field getFieldById(String id) {
+            for (Field field : getFields()) {
+                if (field.getId().equals(id)) {
+                    return field;
+                }
+            }
+            return null;
+        }
+
+        @Override
+        public Field getFieldByName(String name) {
+            String lower = name.toLowerCase();
+            for (Field field : getFields()) {
+                if (field.getName().toLowerCase().equals(lower)) {
+                    return field;
+                }
+            }
+            return null;
         }
     }
 }

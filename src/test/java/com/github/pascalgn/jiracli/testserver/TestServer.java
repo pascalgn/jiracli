@@ -67,7 +67,7 @@ public class TestServer {
         public HttpServer(int port) throws IOException {
             super(port);
             start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
-            LOGGER.info("HTTP server running on localhost:{}", DEFAULT_PORT);
+            LOGGER.info("HTTP server running on localhost:{}", port);
         }
 
         @Override

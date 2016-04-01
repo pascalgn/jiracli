@@ -55,15 +55,20 @@ class LoadableFieldMap implements FieldMap {
         if (json != null) {
             for (String id : json.keySet()) {
                 JSONObject data = fieldData.get().get(id);
+                String name;
+                JSONObject schema;
                 if (data == null) {
                     LOGGER.info("Unknown field: {} (issue {})", id, issue);
-                    continue;
-                }
-                String name = data.optString("name");
-                if (name == null || name.isEmpty()) {
                     name = id;
+                    schema = null;
+                } else {
+                    name = data.optString("name");
+                    if (name == null || name.isEmpty()) {
+                        name = id;
+                    }
+                    schema = data.optJSONObject("schema");
                 }
-                Value value = new DefaultValue(json.get(id));
+                Value value = ValueFactory.createValue(json.get(id), schema);
                 fields.put(id, new Field(issue, id, name, value));
             }
         }

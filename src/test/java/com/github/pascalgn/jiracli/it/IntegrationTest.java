@@ -33,7 +33,7 @@ import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.testutil.MockConsole;
 
-public class SearchIssuesTest {
+public class IntegrationTest {
     @Rule
     public TestServerRule testServerRule = new TestServerRule();
 
@@ -50,6 +50,24 @@ public class SearchIssuesTest {
         try (Context context = createContext()) {
             Data data = ShellHelper.execute(context, "search 'key=JRA-123' | print ${issuetype.name}");
             assertEquals("Change request", toString(data.toTextListOrFail()));
+        }
+    }
+
+    @Test
+    public void testJavaScript1() throws Exception {
+        try (Context context = createContext()) {
+            ShellHelper.execute(context, "get JRA-123 | "
+                    + "js \"forEach.call(input, function(issue) { println(issue.fields.issuetype.name); })\"");
+            MockConsole console = (MockConsole) context.getConsole();
+            assertEquals("Change request", console.getOutput().trim());
+        }
+    }
+
+    @Test
+    public void testBrowse1() throws Exception {
+        try (Context context = createContext()) {
+            Data data = ShellHelper.execute(context, "get JRA-123 | browse -n");
+            assertEquals(testServerRule.getRootUrl() + "/browse/JRA-123", toString(data.toTextListOrFail()));
         }
     }
 

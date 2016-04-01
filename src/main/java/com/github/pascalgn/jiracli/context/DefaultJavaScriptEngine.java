@@ -34,7 +34,8 @@ import com.github.pascalgn.jiracli.util.Supplier;
 public class DefaultJavaScriptEngine implements JavaScriptEngine {
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultJavaScriptEngine.class);
 
-    private static final String INIT_JS = "if (typeof forEach !== 'function') { forEach = Array.prototype.forEach; }";
+    private static final String INIT_JS = "if (typeof forEach !== 'function') { forEach = Array.prototype.forEach; } "
+            + "if (typeof println !== 'function') { println = function(obj) { print(obj); print('\\n'); }; }";
 
     private final ScriptEngine engine;
     private final ScriptCtx scriptContext;
