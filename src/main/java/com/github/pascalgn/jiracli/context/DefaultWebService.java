@@ -33,15 +33,20 @@ import java.util.Map;
 import javax.net.ssl.SSLContext;
 
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
+import org.apache.http.auth.AuthScheme;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.AuthCache;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
+import org.apache.http.impl.auth.BasicScheme;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
@@ -54,10 +59,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.pascalgn.jiracli.model.Issue;
+import com.github.pascalgn.jiracli.util.Cache;
 import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.util.MemoizingSupplier;
+import com.github.pascalgn.jiracli.util.Supplier;
 
 public class DefaultWebService implements WebService {
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultWebService.class);
+
+    private static final String INITIAL_FIELDS = "summary";
 
     private static final SSLConnectionSocketFactory SSL_SOCKET_FACTORY;
 
@@ -87,26 +97,73 @@ public class DefaultWebService implements WebService {
 
     private final String rootURL;
     private final CloseableHttpClient httpClient;
+    private final HttpClientContext httpClientContext;
 
-    private transient Map<String, JSONObject> issueCache;
-    private transient Map<String, List<JSONObject>> issueListCache;
-    private transient Map<String, String> fieldMapping;
+    private final Supplier<Map<String, JSONObject>> fieldData;
+    private final Cache<String, IssueData> issueCache;
+    private final Cache<String, JSONObject> searchCache;
 
     public DefaultWebService(String rootURL, String username, char[] password) {
         this.rootURL = stripEnd(rootURL, "/");
-        this.httpClient = createHttpClient(username, password);
+        this.httpClient = createHttpClient();
+        this.httpClientContext = createHttpClientContext(username, password);
+        this.fieldData = new MemoizingSupplier<>(new Supplier<Map<String, JSONObject>>() {
+            @Override
+            public Map<String, JSONObject> get() {
+                return loadFields();
+            }
+        });
+        this.issueCache = new Cache<>(new Function<String, IssueData>() {
+            @Override
+            public IssueData apply(String key) {
+                return new IssueData(key);
+            }
+        });
+        this.searchCache = new Cache<>(new Function<String, JSONObject>() {
+            @Override
+            public JSONObject apply(String jql) {
+                return loadIssueList(jql);
+            }
+        });
     }
 
-    private static CloseableHttpClient createHttpClient(String username, char[] password) {
+    private static CloseableHttpClient createHttpClient() {
         HttpClientBuilder httpClientBuilder = HttpClients.custom();
         httpClientBuilder.setSSLSocketFactory(SSL_SOCKET_FACTORY);
+        return httpClientBuilder.build();
+    }
+
+    private static HttpClientContext createHttpClientContext(String username, char[] password) {
+        HttpClientContext context = HttpClientContext.create();
         if (username != null && password != null) {
             CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-            UsernamePasswordCredentials credentials = new UsernamePasswordCredentials(username, new String(password));
-            credentialsProvider.setCredentials(AuthScope.ANY, credentials);
-            httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+            credentialsProvider.setCredentials(AuthScope.ANY,
+                    new UsernamePasswordCredentials(username, new String(password)));
+
+            final AuthScheme authScheme = new BasicScheme();
+            AuthCache authCache = new AuthCache() {
+                @Override
+                public void remove(HttpHost host) {
+                }
+
+                @Override
+                public void put(HttpHost host, AuthScheme authScheme) {
+                }
+
+                @Override
+                public AuthScheme get(HttpHost host) {
+                    return authScheme;
+                }
+
+                @Override
+                public void clear() {
+                }
+            };
+
+            context.setCredentialsProvider(credentialsProvider);
+            context.setAuthCache(authCache);
         }
-        return httpClientBuilder.build();
+        return context;
     }
 
     private static String stripEnd(String str, String end) {
@@ -116,37 +173,66 @@ public class DefaultWebService implements WebService {
     @Override
     public Issue getIssue(String key) {
         URI uri = URI.create(rootURL + "/browse/" + key);
-        LoadableFieldMap fieldMap = new LoadableFieldMap(this);
+        IssueData issueData = issueCache.get(key);
+        LoadableFieldMap fieldMap = new LoadableFieldMap(issueData, fieldData);
         Issue issue = new Issue(key, uri, fieldMap);
         fieldMap.setIssue(issue);
         return issue;
     }
 
-    synchronized JSONObject getJson(String issue) {
-        JSONObject result;
-        if (issueCache == null) {
-            issueCache = new HashMap<String, JSONObject>();
-            result = null;
-        } else {
-            result = issueCache.get(issue);
-        }
-        if (result == null) {
-            result = call("/rest/api/latest/issue/" + issue, TO_OBJECT);
-            issueCache.put(issue, result);
-        }
-        return result;
-    }
-
     @Override
     public List<Issue> getEpicIssues(Issue epic) {
-        getIssueList("/rest/agile/latest/epic/" + epic + "/issue");
-        return null;
+        return searchIssues("'Epic Link' = " + epic.getKey() + " ORDER BY Rank");
     }
 
     @Override
     public List<Issue> searchIssues(String jql) {
-        getIssueList("/rest/api/latest/search?jql=" + encode(jql.trim()));
-        return null;
+        JSONObject response = searchCache.get(jql.trim());
+        JSONArray issueList = response.getJSONArray("issues");
+        List<Issue> issues = new ArrayList<Issue>();
+        for (Object obj : issueList) {
+            JSONObject issue = (JSONObject) obj;
+            issues.add(getIssue(issue.getString("key")));
+        }
+        return issues;
+    }
+
+    Map<String, JSONObject> getFields() {
+        return fieldData.get();
+    }
+
+    private Map<String, JSONObject> loadFields() {
+        Map<String, JSONObject> map = new HashMap<String, JSONObject>();
+        JSONArray array = call("/rest/api/latest/field", TO_ARRAY);
+        for (Object obj : array) {
+            JSONObject field = (JSONObject) obj;
+            String id = field.getString("id");
+            map.put(id, field);
+        }
+        return map;
+    }
+
+    private JSONObject loadAllFields(String issue) {
+        JSONObject response = call("/rest/api/latest/issue/" + issue, TO_OBJECT);
+        return response.getJSONObject("fields");
+    }
+
+    private JSONObject loadEditMeta(String issue) {
+        return call("/rest/api/latest/issue/" + issue + "/editmeta", TO_OBJECT);
+    }
+
+    private JSONObject loadIssueList(String jql) {
+        String path = "/rest/api/latest/search?jql=" + encode(jql) + "&fields=" + INITIAL_FIELDS;
+        JSONObject response = call(path, TO_OBJECT);
+        JSONArray issueList = response.getJSONArray("issues");
+        for (Object issue : issueList) {
+            JSONObject obj = (JSONObject) issue;
+            String key = obj.getString("key");
+            JSONObject fields = obj.getJSONObject("fields");
+            IssueData issueData = new IssueData(key, fields);
+            issueCache.putIfAbsent(key, issueData);
+        }
+        return response;
     }
 
     private static String encode(String str) {
@@ -155,56 +241,6 @@ public class DefaultWebService implements WebService {
         } catch (UnsupportedEncodingException e) {
             throw new IllegalStateException("Unsupported encoding!", e);
         }
-    }
-
-    private synchronized List<JSONObject> getIssueList(String path) {
-        List<JSONObject> result;
-        if (issueListCache == null) {
-            issueListCache = new HashMap<String, List<JSONObject>>();
-            result = null;
-        } else {
-            result = issueListCache.get(path);
-        }
-        if (result == null) {
-            JSONObject response = call(path, TO_OBJECT);
-            JSONArray issues = response.getJSONArray("issues");
-
-            if (issueCache == null) {
-                issueCache = new HashMap<String, JSONObject>();
-            }
-
-            result = new ArrayList<JSONObject>();
-            for (Object issue : issues) {
-                JSONObject obj = (JSONObject) issue;
-                String key = obj.getString("key");
-                JSONObject cached = issueCache.get(key);
-                if (cached == null) {
-                    issueCache.put(key, obj);
-                    result.add(obj);
-                } else {
-                    result.add(cached);
-                }
-            }
-
-            issueListCache.put(path, result);
-        } else {
-            result = new ArrayList<JSONObject>(result);
-        }
-        return result;
-    }
-
-    synchronized Map<String, String> getFieldMapping() {
-        if (fieldMapping == null) {
-            fieldMapping = new HashMap<String, String>();
-            JSONArray array = call("/rest/api/latest/field", TO_ARRAY);
-            for (Object obj : array) {
-                JSONObject field = (JSONObject) obj;
-                String id = field.getString("id");
-                String name = field.getString("name");
-                fieldMapping.put(id, name);
-            }
-        }
-        return fieldMapping;
     }
 
     private <T> T call(String path, Function<Reader, T> function) {
@@ -217,7 +253,7 @@ public class DefaultWebService implements WebService {
 
         HttpResponse response;
         try {
-            response = httpClient.execute(request);
+            response = httpClient.execute(request, httpClientContext);
         } catch (IOException e) {
             throw new IllegalStateException("Could not fetch URL: " + request.getURI());
         }
@@ -232,8 +268,10 @@ public class DefaultWebService implements WebService {
                 try (Reader reader = new InputStreamReader(input, getEncoding(entity))) {
                     return function.apply(reader);
                 }
+            } catch (RuntimeException e) {
+                throw new IllegalStateException("Could not read response for URL: " + request.getURI(), e);
             } catch (IOException e) {
-                throw new IllegalStateException("Could not read response for URL: " + request.getURI());
+                throw new IllegalStateException("Could not read response for URL: " + request.getURI(), e);
             }
         }
     }
@@ -255,12 +293,55 @@ public class DefaultWebService implements WebService {
 
     @Override
     public void close() {
-        issueCache = null;
-        fieldMapping = null;
+        issueCache.clear();
+        searchCache.clear();
         try {
             httpClient.close();
         } catch (IOException e) {
             throw new IllegalStateException("Failed to close HTTP client!", e);
+        }
+    }
+
+    class IssueData {
+        private final String issue;
+        private final JSONObject initialFields;
+
+        private JSONObject allFields;
+        private JSONObject editMeta;
+
+        public IssueData(String issue) {
+            this(issue, null);
+        }
+
+        public IssueData(String issue, JSONObject initialFields) {
+            this.issue = issue;
+            this.initialFields = initialFields;
+        }
+
+        public JSONObject getInitialFields() {
+            return initialFields;
+        }
+
+        public JSONObject getAllFields() {
+            return getAllFields(false);
+        }
+
+        public synchronized JSONObject getAllFields(boolean load) {
+            if (allFields == null && load) {
+                allFields = loadAllFields(issue);
+            }
+            return allFields;
+        }
+
+        public JSONObject getEditMeta() {
+            return getEditMeta(false);
+        }
+
+        public synchronized JSONObject getEditMeta(boolean load) {
+            if (editMeta == null && load) {
+                editMeta = loadEditMeta(issue);
+            }
+            return editMeta;
         }
     }
 }

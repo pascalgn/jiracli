@@ -78,6 +78,6 @@ public class Field extends Data {
 
     @Override
     public String toString() {
-        return issue + "[" + name + " = " + value + "]";
+        return "Field[" + name + " = " + value + "]";
     }
 }

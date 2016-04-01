@@ -15,66 +15,101 @@
  */
 package com.github.pascalgn.jiracli.context;
 
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import com.github.pascalgn.jiracli.context.DefaultWebService.IssueData;
 import com.github.pascalgn.jiracli.model.Field;
+import com.github.pascalgn.jiracli.model.FieldMap;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.Value;
+import com.github.pascalgn.jiracli.util.Supplier;
 
-class LoadableFieldMap extends AbstractFieldMap {
-    private final DefaultWebService webService;
+class LoadableFieldMap implements FieldMap {
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoadableFieldMap.class);
+
+    private final IssueData issueData;
+    private final Supplier<Map<String, JSONObject>> fieldData;
     private Issue issue;
 
-    private transient Collection<Field> fields;
+    private final Map<String, Field> fields;
+    private boolean loaded;
 
-    public LoadableFieldMap(DefaultWebService webService) {
-        this.webService = webService;
+    public LoadableFieldMap(IssueData issueData, Supplier<Map<String, JSONObject>> fieldData) {
+        this.issueData = issueData;
+        this.fieldData = fieldData;
+        this.fields = new HashMap<>();
     }
 
-    public void setIssue(Issue issue) {
+    void setIssue(Issue issue) {
         this.issue = issue;
+        createFields(issueData.getInitialFields());
+    }
+
+    private void createFields(JSONObject json) {
+        if (json != null) {
+            for (String id : json.keySet()) {
+                JSONObject data = fieldData.get().get(id);
+                if (data == null) {
+                    LOGGER.info("Unknown field: {} (issue {})", id, issue);
+                    continue;
+                }
+                String name = data.optString("name");
+                if (name == null || name.isEmpty()) {
+                    name = id;
+                }
+                Value value = new DefaultValue(json.get(id));
+                fields.put(id, new Field(issue, id, name, value));
+            }
+        }
+    }
+
+    @Override
+    public synchronized Field getFieldById(String id) {
+        Field field = fields.get(id);
+        if (field == null) {
+            loadFields();
+            field = fields.get(id);
+        }
+        return field;
+    }
+
+    @Override
+    public synchronized Field getFieldByName(String name) {
+        Field field = getFieldByName(fields.values(), name);
+        if (field == null) {
+            loadFields();
+            field = getFieldByName(fields.values(), name);
+        }
+        return field;
+    }
+
+    private static Field getFieldByName(Collection<Field> fields, String name) {
+        String lower = name.toLowerCase();
+        for (Field field : fields) {
+            if (field.getName().toLowerCase().equals(lower)) {
+                return field;
+            }
+        }
+        return null;
     }
 
     @Override
     public synchronized Collection<Field> getFields() {
-        if (fields == null) {
-            fields = new ArrayList<Field>();
-            Map<String, String> fieldMapping = webService.getFieldMapping();
-            JSONObject json = webService.getJson(issue.getKey());
-            JSONObject jsonFields = json.getJSONObject("fields");
-            for (String id : jsonFields.keySet()) {
-                String name = fieldMapping.get(id);
-                Value value = new ValueImpl(jsonFields.get(id));
-                fields.add(new Field(issue, id, name, value));
-            }
-        }
-        return fields;
+        loadFields();
+        return fields.values();
     }
 
-    private static class ValueImpl implements Value {
-        private final Object value;
-
-        public ValueImpl(Object value) {
-            this.value = value;
-        }
-
-        @Override
-        public Object getValue() {
-            return value;
-        }
-
-        @Override
-        public void setValue(Object object) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean isModified() {
-            return false;
+    private void loadFields() {
+        if (!loaded) {
+            JSONObject allFields = issueData.getAllFields(true);
+            createFields(allFields);
+            loaded = true;
         }
     }
 }
