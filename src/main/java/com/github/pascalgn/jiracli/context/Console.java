@@ -15,6 +15,8 @@
  */
 package com.github.pascalgn.jiracli.context;
 
+import java.io.File;
+
 public interface Console {
     void print(String str);
 
@@ -23,4 +25,6 @@ public interface Console {
     String readLine();
 
     char[] readPassword();
+
+    boolean editFile(File file);
 }

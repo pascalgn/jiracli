@@ -38,15 +38,15 @@ class Shell {
     private static final List<String> EXIT = Arrays.asList("exit", "quit", "q");
 
     private final Context context;
+    private final CommandFactory commandFactory;
 
     public Shell(Context context) {
         this.context = context;
+        this.commandFactory = CommandFactory.getInstance();
     }
 
     public void start() {
         Console console = context.getConsole();
-        ConsoleTextSupplier consoleTextSupplier = new ConsoleTextSupplier(console);
-        CommandFactory commandFactory = CommandFactory.getInstance();
         while (true) {
             console.print(PROMPT);
 
@@ -63,35 +63,47 @@ class Shell {
                 continue;
             }
 
-            try {
-                Pipeline.Builder pipelineBuilder = new Pipeline.Builder();
+            Data result = execute(line);
 
-                List<CommandReference> commands = CommandReference.parseCommandReferences(line);
-                for (CommandReference ref : commands) {
-                    pipelineBuilder.add(commandFactory.parseCommand(ref.getName(), ref.getArguments()));
-                }
+            if (result == null) {
+                continue;
+            }
 
-                Pipeline pipeline = pipelineBuilder.build();
-
-                TextList input = new TextList(consoleTextSupplier);
-
-                Data result = pipeline.execute(context, input);
-                TextList textList = result.toTextList();
-                if (textList != null) {
-                    Text text;
-                    while ((text = textList.next()) != null) {
-                        console.println(text.getText());
-                    }
-                }
-            } catch (RuntimeException e) {
-                if (e.getLocalizedMessage() == null) {
-                    LOGGER.info("Error", e);
-                    console.println("error!");
-                } else {
-                    LOGGER.trace("Error", e);
-                    console.println(e.getLocalizedMessage());
+            TextList textList = result.toTextList();
+            if (textList != null) {
+                Text text;
+                while ((text = textList.next()) != null) {
+                    console.println(text.getText());
                 }
             }
+        }
+    }
+
+    Data execute(String line) {
+        Console console = context.getConsole();
+        try {
+            Pipeline.Builder pipelineBuilder = new Pipeline.Builder();
+
+            List<CommandReference> commands = CommandReference.parseCommandReferences(line);
+            for (CommandReference ref : commands) {
+                pipelineBuilder.add(commandFactory.parseCommand(ref.getName(), ref.getArguments()));
+            }
+
+            Pipeline pipeline = pipelineBuilder.build();
+
+            TextList input = new TextList(new ConsoleTextSupplier(console));
+
+            return pipeline.execute(context, input);
+        } catch (RuntimeException e) {
+            if (e.getLocalizedMessage() == null) {
+                LOGGER.info("Error", e);
+                console.println("error!");
+            } else {
+                LOGGER.trace("Error", e);
+                console.println(e.getLocalizedMessage());
+            }
+
+            return null;
         }
     }
 

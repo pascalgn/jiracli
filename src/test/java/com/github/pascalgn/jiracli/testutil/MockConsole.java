@@ -15,6 +15,7 @@
  */
 package com.github.pascalgn.jiracli.testutil;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 
@@ -55,5 +56,10 @@ public class MockConsole implements Console {
     public char[] readPassword() {
         String str = readLine();
         return (str == null ? null : str.toCharArray());
+    }
+
+    @Override
+    public boolean editFile(File file) {
+        return false;
     }
 }

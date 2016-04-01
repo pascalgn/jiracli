@@ -16,6 +16,7 @@
 package com.github.pascalgn.jiracli.context;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
@@ -55,5 +56,10 @@ public class DefaultConsole implements Console {
         } else {
             return console.readPassword();
         }
+    }
+
+    @Override
+    public boolean editFile(File file) {
+        return false;
     }
 }

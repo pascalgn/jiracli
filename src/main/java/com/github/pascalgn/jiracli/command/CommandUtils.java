@@ -39,17 +39,16 @@ class CommandUtils {
         }
     }
 
-    public static String join(List<String> list, String sep) {
-        return join(list, 0, list.size(), sep);
-    }
-
-    public static String join(List<String> list, int offset, int len, String sep) {
+    public static String join(Iterable<?> items, String sep) {
         StringBuilder result = new StringBuilder();
-        for (int i = offset; i < len; i++) {
-            if (i > offset) {
+        boolean first = true;
+        for (Object obj : items) {
+            if (first) {
+                first = false;
+            } else {
                 result.append(sep);
             }
-            result.append(list.get(i));
+            result.append(obj);
         }
         return result.toString();
     }
