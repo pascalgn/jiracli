@@ -1,0 +1,61 @@
+{
+    "expand": "renderedFields,names,schema,operations,editmeta,changelog,versionedRepresentations",
+    "id": "10123",
+    "self": "http://localhost/rest/api/latest/issue/10123",
+    "key": "JRA-123",
+    "fields": {
+        "issuetype": {
+            "self": "http://localhost/rest/api/latest/issuetype/22",
+            "id": "22",
+            "description": "",
+            "name": "Change request",
+            "subtask": false
+        },
+        "sprint": null,
+        "summary": "A simple Jira issue",
+        "description": "Title\r\n# List item 1\r\n#List item 2",
+        "customfield_20010020": 8,
+        "priority": {
+            "self": "http://localhost/rest/api/latest/priority/2",
+            "name": "Priority 2",
+            "id": "2"
+        },
+        "customfield_20010010": "JRA-12",
+        "labels": ["change request", "label1", "label2"],
+        "environment": null,
+        "duedate": "2014-10-27",
+        "comment": {
+            "startAt": 0,
+            "maxResults": 1,
+            "total": 1,
+            "comments": [{
+                "self": "http://localhost/rest/api/latest/issue/10123/comment/200100301",
+                "id": "200100301",
+                "author": {
+                    "self": "http://localhost/rest/api/latest/user?username=U100123",
+                    "name": "U100123",
+                    "emailAddress": "user.100123@localhost",
+                    "displayName": "User 100 123",
+                    "active": true
+                },
+                "body": "This is a simple comment on issue JRA-123.",
+                "updateAuthor": {
+                    "self": "http://localhost/rest/api/latest/user?username=U100123",
+                    "name": "U100123",
+                    "emailAddress": "user.100123@localhost",
+                    "displayName": "User 100 123",
+                    "active": true
+                },
+                "created": "2016-01-01T12:23:45.000+0100",
+                "updated": "2016-01-01T12:23:45.000+0100"
+            }]
+        },
+        "assignee": {
+            "self": "http://localhost/rest/api/latest/user?username=U100123",
+            "name": "U100123",
+            "emailAddress": "user.100123@localhost",
+            "displayName": "User 100 123",
+            "active": true
+        }
+    }
+}

@@ -29,17 +29,30 @@ import fi.iki.elonen.NanoHTTPD.Response.Status;
 public class TestServer {
     private static final Logger LOGGER = LoggerFactory.getLogger(TestServer.class);
 
-    private final Resources resources;
+    private static final int DEFAULT_PORT = 8080;
 
-    public TestServer() throws IOException {
-        resources = new Resources();
-        new HttpServer();
+    private final int port;
+    private final Resources resources;
+    private final HttpServer httpServer;
+
+    public TestServer(int port) throws IOException {
+        this.port = port;
+        this.resources = new Resources();
+        this.httpServer = new HttpServer(port);
+    }
+
+    public int getPort() {
+        return port;
+    }
+
+    public void stop() {
+        httpServer.stop();
     }
 
     private Response serve(IHTTPSession session) {
         String path = session.getUri();
         Map<String, String> parameters = session.getParms();
-        LOGGER.info("Request received: {} {}", path, parameters);
+        LOGGER.debug("Request received: {} {}", path, parameters);
         String resource = resources.getResource(path, parameters);
         if (resource == null) {
             resource = resources.getResource("404");
@@ -51,21 +64,25 @@ public class TestServer {
     }
 
     private class HttpServer extends NanoHTTPD {
-        private static final int HTTP_PORT = 8080;
-
-        public HttpServer() throws IOException {
-            super(HTTP_PORT);
+        public HttpServer(int port) throws IOException {
+            super(port);
             start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
-            LOGGER.info("HTTP server running on localhost:{}", HTTP_PORT);
+            LOGGER.info("HTTP server running on localhost:{}", DEFAULT_PORT);
         }
 
         @Override
         public Response serve(IHTTPSession session) {
             return TestServer.this.serve(session);
         }
+
+        @Override
+        public void stop() {
+            super.stop();
+            LOGGER.info("HTTP server stopped");
+        }
     }
 
     public static void main(String[] args) throws IOException {
-        new TestServer();
+        new TestServer(DEFAULT_PORT);
     }
 }

@@ -1,0 +1,152 @@
+[{
+    "id": "issuetype",
+    "name": "Issue type",
+    "custom": false,
+    "orderable": true,
+    "navigable": true,
+    "searchable": true,
+    "clauseNames": ["issuetype", "type"],
+    "schema": {
+        "type": "issuetype",
+        "system": "issuetype"
+    }
+}, {
+    "id": "customfield_20010025",
+    "name": "Sprint",
+    "custom": true,
+    "orderable": true,
+    "navigable": true,
+    "searchable": true,
+    "clauseNames": ["cf[20010025]", "Sprint"],
+    "schema": {
+        "type": "array",
+        "items": "string",
+        "custom": "com.pyxis.greenhopper.jira:gh-sprint",
+        "customId": 20010025
+    }
+}, {
+    "id": "customfield_20010020",
+    "name": "Story points",
+    "custom": true,
+    "orderable": true,
+    "navigable": true,
+    "searchable": true,
+    "clauseNames": ["cf[20010020]", "Story points"],
+    "schema": {
+        "type": "number",
+        "custom": "com.atlassian.jira.plugin.system.customfieldtypes:float",
+        "customId": 20010020
+    }
+}, {
+    "id": "summary",
+    "name": "Summary",
+    "custom": false,
+    "orderable": true,
+    "navigable": true,
+    "searchable": true,
+    "clauseNames": ["summary"],
+    "schema": {
+        "type": "string",
+        "system": "summary"
+    }
+}, {
+    "id": "description",
+    "name": "Description",
+    "custom": false,
+    "orderable": true,
+    "navigable": true,
+    "searchable": true,
+    "clauseNames": ["description"],
+    "schema": {
+        "type": "string",
+        "system": "description"
+    }
+}, {
+    "id": "priority",
+    "name": "Priority",
+    "custom": false,
+    "orderable": true,
+    "navigable": true,
+    "searchable": true,
+    "clauseNames": ["priority"],
+    "schema": {
+        "type": "priority",
+        "system": "priority"
+    }
+}, {
+    "id": "customfield_20010010",
+    "name": "Epic link",
+    "custom": true,
+    "orderable": true,
+    "navigable": true,
+    "searchable": true,
+    "clauseNames": ["cf[20010010]", "Epic link"],
+    "schema": {
+        "type": "array",
+        "items": "string",
+        "custom": "com.pyxis.greenhopper.jira:gh-epic-link",
+        "customId": 20010010
+    }
+}, {
+    "id": "labels",
+    "name": "Labels",
+    "custom": false,
+    "orderable": true,
+    "navigable": true,
+    "searchable": true,
+    "clauseNames": ["labels"],
+    "schema": {
+        "type": "array",
+        "items": "string",
+        "system": "labels"
+    }
+}, {
+    "id": "environment",
+    "name": "Environment",
+    "custom": false,
+    "orderable": true,
+    "navigable": true,
+    "searchable": true,
+    "clauseNames": ["environment"],
+    "schema": {
+        "type": "string",
+        "system": "environment"
+    }
+}, {
+    "id": "duedate",
+    "name": "Due date",
+    "custom": false,
+    "orderable": true,
+    "navigable": true,
+    "searchable": true,
+    "clauseNames": ["due", "Due date"],
+    "schema": {
+        "type": "date",
+        "system": "duedate"
+    }
+}, {
+    "id": "comment",
+    "name": "Comment",
+    "custom": false,
+    "orderable": true,
+    "navigable": false,
+    "searchable": true,
+    "clauseNames": ["comment"],
+    "schema": {
+        "type": "array",
+        "items": "comment",
+        "system": "comment"
+    }
+}, {
+    "id": "assignee",
+    "name": "Assignee",
+    "custom": false,
+    "orderable": true,
+    "navigable": true,
+    "searchable": true,
+    "clauseNames": ["assignee"],
+    "schema": {
+        "type": "user",
+        "system": "assignee"
+    }
+}]

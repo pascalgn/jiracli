@@ -1,0 +1,151 @@
+{
+    "fields": {
+        "issuetype": {
+            "required": true,
+            "schema": {
+                "type": "issuetype",
+                "system": "issuetype"
+            },
+            "name": "Issue type",
+            "operations": [],
+            "allowedValues": [{
+                "self": "http://localhost/rest/api/latest/issuetype/21",
+                "id": "21",
+                "description": "",
+                "name": "Bug",
+                "subtask": false
+            }, {
+                "self": "http://localhost/rest/api/latest/issuetype/20021",
+                "id": "20021",
+                "description": "",
+                "name": "Epic",
+                "subtask": false
+            }, {
+                "self": "http://localhost/rest/api/latest/issuetype/22",
+                "id": "22",
+                "description": "",
+                "name": "Change request",
+                "subtask": false
+            }]
+        },
+        "customfield_20010025": {
+            "required": false,
+            "schema": {
+                "type": "array",
+                "items": "string",
+                "custom": "com.pyxis.greenhopper.jira:gh-sprint",
+                "customId": 20010025
+            },
+            "name": "Sprint",
+            "operations": ["set"]
+        },
+        "summary": {
+            "required": true,
+            "schema": {
+                "type": "string",
+                "system": "summary"
+            },
+            "name": "Summary",
+            "operations": ["set"]
+        },
+        "description": {
+            "required": false,
+            "schema": {
+                "type": "string",
+                "system": "description"
+            },
+            "name": "Description",
+            "operations": ["set"]
+        },
+        "customfield_20010020": {
+            "required": false,
+            "schema": {
+                "type": "number",
+                "custom": "com.atlassian.jira.plugin.system.customfieldtypes:float",
+                "customId": 20010020
+            },
+            "name": "Story points",
+            "operations": ["set"]
+        },
+        "priority": {
+            "required": false,
+            "schema": {
+                "type": "priority",
+                "system": "priority"
+            },
+            "name": "Priority",
+            "operations": ["set"],
+            "allowedValues": [{
+                "self": "http://localhost/rest/api/latest/priority/1",
+                "name": "Priority 1",
+                "id": "1"
+            }, {
+                "self": "http://localhost/rest/api/latest/priority/2",
+                "name": "Priority 2",
+                "id": "2"
+            }, {
+                "self": "http://localhost/rest/api/latest/priority/3",
+                "name": "Priority 3",
+                "id": "3"
+            }]
+        },
+        "customfield_20010010": {
+            "required": false,
+            "schema": {
+                "type": "array",
+                "items": "string",
+                "custom": "com.pyxis.greenhopper.jira:gh-epic-link",
+                "customId": 20010010
+            },
+            "name": "Epic link",
+            "operations": ["set"]
+        },
+        "labels": {
+            "required": false,
+            "schema": {
+                "type": "array",
+                "items": "string",
+                "system": "labels"
+            },
+            "name": "Labels",
+            "operations": ["add", "set", "remove"]
+        },
+        "environment": {
+            "required": false,
+            "schema": {
+                "type": "string",
+                "system": "environment"
+            },
+            "name": "Environment",
+            "operations": ["set"]
+        },
+        "duedate": {
+            "required": false,
+            "schema": {
+                "type": "date",
+                "system": "duedate"
+            },
+            "name": "Due date",
+            "operations": ["set"]
+        },
+        "comment": {
+            "required": false,
+            "schema": {
+                "type": "array",
+                "items": "comment",
+                "system": "comment"
+            },
+            "name": "Comment",
+            "operations": ["add", "edit", "remove"]
+        },
+        "assignee": {
+            "required": false,
+            "schema": {
+                "type": "user",
+                "system": "assignee"
+            },
+            "name": "Assignee",
+            "operations": ["set"]
+        }
+    }
+}

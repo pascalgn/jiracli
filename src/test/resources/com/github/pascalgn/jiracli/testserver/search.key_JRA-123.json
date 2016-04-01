@@ -1,0 +1,15 @@
+{
+    "expand": "names,schema",
+    "startAt": 0,
+    "maxResults": 50,
+    "total": 1,
+    "issues": [{
+        "expand": "operations,editmeta,changelog,transitions,renderedFields",
+        "id": "10123",
+        "self": "http://localhost/rest/api/latest/issue/10123",
+        "key": "JRA-123",
+        "fields": {
+            "summary": "A simple Jira issue"
+        }
+    }]
+}

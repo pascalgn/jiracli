@@ -13,30 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.pascalgn.jiracli.model;
+package com.github.pascalgn.jiracli;
 
-public class DefaultValue {
-    private final Object originalValue;
+import com.github.pascalgn.jiracli.context.Context;
+import com.github.pascalgn.jiracli.model.Data;
 
-    private String newValue;
-
-    public DefaultValue(Object originalValue) {
-        this.originalValue = originalValue;
-    }
-
-    public Object getOriginalValue() {
-        return originalValue;
-    }
-
-    public String getNewValue() {
-        return newValue;
-    }
-
-    public void setNewValue(String newValue) {
-        this.newValue = newValue;
-    }
-
-    public boolean isNewValueSet() {
-        return newValue != null;
+public class ShellHelper {
+    public static Data execute(Context context, String line) {
+        return new Shell(context).execute(line);
     }
 }
