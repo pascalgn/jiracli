@@ -20,6 +20,8 @@ import java.util.List;
 import com.github.pascalgn.jiracli.model.Issue;
 
 public interface WebService extends AutoCloseable {
+    String execute(String path);
+
     Issue getIssue(String key);
 
     List<Issue> getEpicIssues(Issue epic);

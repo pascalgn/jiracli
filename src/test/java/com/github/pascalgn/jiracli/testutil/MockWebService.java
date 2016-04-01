@@ -23,6 +23,11 @@ import com.github.pascalgn.jiracli.model.Issue;
 
 public class MockWebService implements WebService {
     @Override
+    public String execute(String path) {
+        return "";
+    }
+
+    @Override
     public Issue getIssue(String key) {
         return IssueFactory.create(key);
     }

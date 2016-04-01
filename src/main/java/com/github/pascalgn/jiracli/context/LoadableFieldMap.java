@@ -59,7 +59,7 @@ class LoadableFieldMap implements FieldMap {
                 String name;
                 JSONObject schema;
                 if (data == null) {
-                    LOGGER.info("Unknown field: {} (issue {})", id, issue);
+                    LOGGER.debug("Unknown field: {} (issue {})", id, issue);
                     name = id;
                     schema = null;
                 } else {

@@ -81,6 +81,23 @@ public class DefaultWebService implements WebService {
         SSL_SOCKET_FACTORY = new SSLConnectionSocketFactory(sslcontext, NoopHostnameVerifier.INSTANCE);
     }
 
+    private static final Function<Reader, String> TO_STRING = new Function<Reader, String>() {
+        @Override
+        public String apply(Reader reader) {
+            StringBuilder str = new StringBuilder();
+            char[] buf = new char[2048];
+            int len;
+            try {
+                while ((len = reader.read(buf)) != -1) {
+                    str.append(buf, 0, len);
+                }
+            } catch (IOException e) {
+                throw new IllegalStateException(e);
+            }
+            return str.toString();
+        }
+    };
+
     private static final Function<Reader, JSONObject> TO_OBJECT = new Function<Reader, JSONObject>() {
         @Override
         public JSONObject apply(Reader reader) {
@@ -168,6 +185,11 @@ public class DefaultWebService implements WebService {
 
     private static String stripEnd(String str, String end) {
         return (str.endsWith(end) ? str.substring(0, str.length() - end.length()) : str);
+    }
+
+    @Override
+    public String execute(String path) {
+        return call(path, TO_STRING);
     }
 
     @Override
