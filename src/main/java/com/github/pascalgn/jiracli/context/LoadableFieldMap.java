@@ -16,6 +16,7 @@
 package com.github.pascalgn.jiracli.context;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -116,5 +117,10 @@ class LoadableFieldMap implements FieldMap {
             createFields(allFields);
             loaded = true;
         }
+    }
+
+    @Override
+    public Collection<Field> getEditableFields() {
+        return Collections.emptyList();
     }
 }

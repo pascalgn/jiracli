@@ -62,7 +62,7 @@ public class ValueFactoryTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void test4() throws Exception {
-        ValueFactory.createValue(1, new JSONObject("{type: 'string'}"));
+        ValueFactory.doCreateValue(1, new JSONObject("{type: 'string'}"));
     }
 
     @Test

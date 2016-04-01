@@ -13,28 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.pascalgn.jiracli.model;
+package com.github.pascalgn.jiracli.context;
 
-import java.util.Collection;
+import java.io.File;
 
-public interface FieldMap {
-    /**
-     * @return All fields, never null
-     */
-    Collection<Field> getFields();
-
-    /**
-     * @return The field with the given ID or <code>null</code>
-     */
-    Field getFieldById(String id);
-
-    /**
-     * @return The field with the given name or <code>null</code>
-     */
-    Field getFieldByName(String name);
-
-    /**
-     * @return All fields that may be edited by the user, never null
-     */
-    Collection<Field> getEditableFields();
+interface Editor {
+    boolean editFile(File file);
 }

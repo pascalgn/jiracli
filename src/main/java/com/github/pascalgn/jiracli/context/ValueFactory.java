@@ -28,6 +28,24 @@ class ValueFactory {
     private static final Logger LOGGER = LoggerFactory.getLogger(ValueFactory.class);
 
     public static Value createValue(Object value, JSONObject schema) {
+        String valueType = value == null ? null : value.getClass().getName();
+
+        Value result;
+        try {
+            result = doCreateValue(value, schema);
+        } catch (RuntimeException e) {
+            LOGGER.info("Error creating value: {} (type: {}, schema: {})", value, valueType, schema, e);
+            return new UnknownValue(value);
+        }
+
+        if (result instanceof UnknownValue) {
+            LOGGER.debug("Unknown value: {} (type: {}, schema: {})", value, valueType, schema);
+        }
+
+        return result;
+    }
+
+    static Value doCreateValue(Object value, JSONObject schema) {
         Object val = (value == JSONObject.NULL ? null : value);
         if (schema != null) {
             String type = schema.optString("type");
@@ -36,18 +54,36 @@ class ValueFactory {
                 return new NumberValue(val);
 
             case "string":
+            case "option":
+            case "date":
+            case "datetime":
                 return new StringValue(val);
 
+            case "any":
+                if (val instanceof JSONObject) {
+                    return new ObjectValue(val);
+                } else if (val instanceof JSONArray) {
+                    return new ArrayValue(val);
+                } else {
+                    return new StringValue(val);
+                }
+
             case "array":
-                if (schema.optString("system").equals("comment")) {
+                if (val instanceof JSONObject) {
                     return new ObjectValue(val);
                 } else {
-                    return new ArrayValue(val);
+                    String system = schema.optString("system");
+                    if (system.equals("comment") || system.equals("worklog")) {
+                        return new ObjectValue(val);
+                    } else {
+                        return new ArrayValue(val);
+                    }
                 }
 
             case "priority":
             case "user":
             case "issuetype":
+            case "version":
                 return new ObjectValue(val);
             }
         }
@@ -60,8 +96,6 @@ class ValueFactory {
         } else if (val instanceof JSONObject) {
             return new ObjectValue(val);
         }
-        LOGGER.info("Unknown value: {} (type: {}, schema: {})", val,
-                (value == null ? null : value.getClass().getName()), schema);
         return new UnknownValue(val);
     }
 

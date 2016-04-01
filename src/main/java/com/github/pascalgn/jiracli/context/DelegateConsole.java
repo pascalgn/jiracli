@@ -16,7 +16,6 @@
 package com.github.pascalgn.jiracli.context;
 
 import java.io.File;
-import java.io.IOException;
 
 import com.github.pascalgn.jiracli.util.Consumer;
 import com.github.pascalgn.jiracli.util.Supplier;
@@ -53,18 +52,6 @@ public class DelegateConsole implements Console {
 
     @Override
     public boolean editFile(File file) {
-        Process process;
-        try {
-            process = new ProcessBuilder("C:/Windows/System32/notepad.exe", file.getAbsolutePath()).start();
-        } catch (IOException e) {
-            return false;
-        }
-        try {
-            process.waitFor();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return false;
-        }
-        return true;
+        return EditorProvider.getEditor(true).editFile(file);
     }
 }

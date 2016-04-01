@@ -95,11 +95,10 @@ class Shell {
 
             return pipeline.execute(context, input);
         } catch (RuntimeException e) {
+            LOGGER.debug("Error", e);
             if (e.getLocalizedMessage() == null) {
-                LOGGER.info("Error", e);
                 console.println("error!");
             } else {
-                LOGGER.trace("Error", e);
                 console.println(e.getLocalizedMessage());
             }
 

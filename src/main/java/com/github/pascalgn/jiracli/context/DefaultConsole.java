@@ -60,6 +60,6 @@ public class DefaultConsole implements Console {
 
     @Override
     public boolean editFile(File file) {
-        return false;
+        return EditorProvider.getEditor(false).editFile(file);
     }
 }

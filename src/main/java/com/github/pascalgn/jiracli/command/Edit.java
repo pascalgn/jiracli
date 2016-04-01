@@ -22,6 +22,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
+import java.util.Collection;
+import java.util.Objects;
 
 import org.json.JSONObject;
 
@@ -41,7 +43,7 @@ class Edit implements Command {
     public IssueList execute(Context context, Data input) {
         IssueList issueList = input.toIssueListOrFail();
         try {
-            File tempFile = File.createTempFile("edit-issues", "");
+            File tempFile = File.createTempFile("edit-issues", ".txt");
             try (BufferedWriter writer = createBufferedWriter(tempFile)) {
                 Issue issue;
                 while ((issue = issueList.next()) != null) {
@@ -70,14 +72,26 @@ class Edit implements Command {
         writer.write(issue.getKey());
         writer.write(" ==");
         writer.newLine();
-        writer.newLine();
-        for (Field field : issue.getFieldMap().getFields()) {
+
+        Collection<Field> editableFields = issue.getFieldMap().getEditableFields();
+        if (editableFields.isEmpty()) {
+            writer.write("# no editable fields for this issue!");
+            writer.newLine();
+            writer.newLine();
+        } else {
+            writer.newLine();
+            writeFields(writer, editableFields);
+        }
+    }
+
+    private static void writeFields(BufferedWriter writer, Collection<Field> fields) throws IOException {
+        for (Field field : fields) {
             Object val = field.getValue().getValue();
             if (val == JSONObject.NULL) {
                 continue;
             }
 
-            String str = val.toString();
+            String str = Objects.toString(val, "");
             if (str.isEmpty()) {
                 continue;
             }
@@ -87,6 +101,7 @@ class Edit implements Command {
                 writer.write("::");
                 writer.newLine();
                 writer.write(str);
+                writer.newLine();
                 writer.write(".");
                 writer.newLine();
             } else {
@@ -94,6 +109,7 @@ class Edit implements Command {
                 writer.write(str);
                 writer.newLine();
             }
+            writer.newLine();
             writer.newLine();
         }
     }

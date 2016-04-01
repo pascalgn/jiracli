@@ -61,7 +61,7 @@ public class Jiracli {
         Map<Option, Object> options = parse(args);
         if (options.get(Option.HELP) == Boolean.TRUE
                 || (options.get(Option.CONSOLE) == Boolean.TRUE && options.get(Option.GUI) == Boolean.TRUE)) {
-            System.out.println("usage: " + Jiracli.class.getName() + " [-h] [-g|-c] [<root-url>] [<username>]");
+            System.out.println("usage: " + Jiracli.class.getSimpleName() + " [-h] [-g|-c] [<root-url>] [<username>]");
             System.out.println();
             System.out.println("JIRA Command Line Interface");
             System.out.println();
@@ -85,9 +85,9 @@ public class Jiracli {
             }
 
             if (gui) {
-                startGUI((String) options.get(Option.USERNAME), (String) options.get(Option.USERNAME));
+                startGUI((String) options.get(Option.ROOT_URL), (String) options.get(Option.USERNAME));
             } else {
-                startConsole((String) options.get(Option.USERNAME), (String) options.get(Option.USERNAME));
+                startConsole((String) options.get(Option.ROOT_URL), (String) options.get(Option.USERNAME));
             }
         }
     }

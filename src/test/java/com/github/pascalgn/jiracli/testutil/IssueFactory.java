@@ -28,7 +28,7 @@ import com.github.pascalgn.jiracli.model.Value;
 
 public class IssueFactory {
     public static Issue create(String key, Field... fields) {
-        return new Issue(key, createURI(key), new DefaultFieldMap(Arrays.asList(fields)));
+        return new Issue(key, createURI(key), new FieldMapImpl(Arrays.asList(fields)));
     }
 
     public static Issue create(String key, Object... fields) {
@@ -36,7 +36,7 @@ public class IssueFactory {
             throw new IllegalArgumentException("Invalid key/value pairs: " + Arrays.toString(fields));
         }
         List<Field> fieldList = new ArrayList<Field>();
-        Issue issue = new Issue(key, createURI(key), new DefaultFieldMap(fieldList));
+        Issue issue = new Issue(key, createURI(key), new FieldMapImpl(fieldList));
         for (int i = 0; i < fields.length; i += 2) {
             String id = (String) fields[i];
             Object value = fields[i + 1];
@@ -72,10 +72,10 @@ public class IssueFactory {
         }
     }
 
-    private static class DefaultFieldMap implements FieldMap {
+    private static class FieldMapImpl implements FieldMap {
         private final Collection<Field> fields;
 
-        public DefaultFieldMap(Collection<Field> fields) {
+        public FieldMapImpl(Collection<Field> fields) {
             this.fields = fields;
         }
 
@@ -103,6 +103,11 @@ public class IssueFactory {
                 }
             }
             return null;
+        }
+
+        @Override
+        public Collection<Field> getEditableFields() {
+            return getFields();
         }
     }
 }
