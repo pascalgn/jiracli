@@ -43,6 +43,10 @@ public class MockWebService implements WebService {
     }
 
     @Override
+    public void updateIssue(Issue issue) {
+    }
+
+    @Override
     public void close() {
     }
 }

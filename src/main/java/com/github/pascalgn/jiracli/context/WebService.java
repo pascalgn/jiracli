@@ -28,6 +28,8 @@ public interface WebService extends AutoCloseable {
 
     List<Issue> searchIssues(String jql);
 
+    void updateIssue(Issue issue);
+
     @Override
     void close();
 }

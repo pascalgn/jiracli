@@ -26,9 +26,11 @@ import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import javax.net.ssl.SSLContext;
 
@@ -41,11 +43,14 @@ import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.AuthCache;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.auth.BasicScheme;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -58,7 +63,9 @@ import org.json.JSONTokener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.pascalgn.jiracli.model.Field;
 import com.github.pascalgn.jiracli.model.Issue;
+import com.github.pascalgn.jiracli.model.Value;
 import com.github.pascalgn.jiracli.util.Cache;
 import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.IOUtils;
@@ -180,7 +187,7 @@ public class DefaultWebService implements WebService {
 
     @Override
     public String execute(String path) {
-        return call(path, TO_STRING);
+        return get(path, TO_STRING);
     }
 
     @Override
@@ -210,13 +217,37 @@ public class DefaultWebService implements WebService {
         return issues;
     }
 
-    Map<String, JSONObject> getFields() {
-        return fieldData.get();
+    @Override
+    public void updateIssue(Issue issue) {
+        JSONObject update = new JSONObject();
+        Collection<Field> fields = issue.getFieldMap().getEditableFields();
+        for (Field field : fields) {
+            Value value = field.getValue();
+            if (value.isModified()) {
+                Object val = value.getValue();
+
+                Object set;
+                if (val instanceof JSONArray || val instanceof JSONObject || val instanceof String) {
+                    set = val;
+                } else if (val == null || val == JSONObject.NULL) {
+                    set = JSONObject.NULL;
+                } else {
+                    set = Objects.toString(value.getValue(), "");
+                }
+
+                update.put(field.getId(), new JSONArray().put(new JSONObject().put("set", set)));
+            }
+        }
+        if (!update.keySet().isEmpty()) {
+            JSONObject request = new JSONObject();
+            request.put("update", update);
+            put("/rest/api/latest/issue/" + issue.getKey(), request.toString());
+        }
     }
 
     private Map<String, JSONObject> loadFields() {
         Map<String, JSONObject> map = new HashMap<String, JSONObject>();
-        JSONArray array = call("/rest/api/latest/field", TO_ARRAY);
+        JSONArray array = get("/rest/api/latest/field", TO_ARRAY);
         for (Object obj : array) {
             JSONObject field = (JSONObject) obj;
             String id = field.getString("id");
@@ -226,18 +257,18 @@ public class DefaultWebService implements WebService {
     }
 
     private JSONObject loadAllFields(String issue) {
-        JSONObject response = call("/rest/api/latest/issue/" + issue, TO_OBJECT);
+        JSONObject response = get("/rest/api/latest/issue/" + issue, TO_OBJECT);
         return response.getJSONObject("fields");
     }
 
     private JSONObject loadEditMeta(String issue) {
-        JSONObject response = call("/rest/api/latest/issue/" + issue + "/editmeta", TO_OBJECT);
+        JSONObject response = get("/rest/api/latest/issue/" + issue + "/editmeta", TO_OBJECT);
         return response.getJSONObject("fields");
     }
 
     private JSONObject loadIssueList(String jql) {
-        String path = "/rest/api/latest/search?jql=" + encode(jql) + "&fields=" + INITIAL_FIELDS;
-        JSONObject response = call(path, TO_OBJECT);
+        String path = "/rest/api/latest/search?jql=" + urlEncode(jql) + "&fields=" + INITIAL_FIELDS;
+        JSONObject response = get(path, TO_OBJECT);
         JSONArray issueList = response.getJSONArray("issues");
         for (Object issue : issueList) {
             JSONObject obj = (JSONObject) issue;
@@ -249,7 +280,7 @@ public class DefaultWebService implements WebService {
         return response;
     }
 
-    private static String encode(String str) {
+    private static String urlEncode(String str) {
         try {
             return URLEncoder.encode(str, "UTF-8");
         } catch (UnsupportedEncodingException e) {
@@ -257,36 +288,75 @@ public class DefaultWebService implements WebService {
         }
     }
 
-    private <T> T call(String path, Function<Reader, T> function) {
+    private <T> T get(String path, Function<Reader, T> function) {
+        return execute(new HttpGet(getUrl(path)), function);
+    }
+
+    private void put(String path, String body) {
+        HttpPut request = new HttpPut(getUrl(path));
+        request.setEntity(new StringEntity(body, ContentType.APPLICATION_JSON));
+        String response = execute(request, TO_STRING);
+        if (response != null) {
+            LOGGER.warn("Unexpected response received: {}", response);
+        }
+    }
+
+    private String getUrl(String path) {
         if (!path.startsWith("/")) {
             throw new IllegalArgumentException("Invalid path: " + path);
         }
+        return rootURL + path;
+    }
 
-        HttpUriRequest request = new HttpGet(rootURL + path);
-        LOGGER.debug("Fetching URL: {}", request.getURI());
+    private <T> T execute(HttpUriRequest request, Function<Reader, T> function) {
+        LOGGER.debug("Calling URL: {} [{}]", request.getURI(), request.getMethod());
 
         HttpResponse response;
         try {
             response = httpClient.execute(request, httpClientContext);
         } catch (IOException e) {
-            throw new IllegalStateException("Could not fetch URL: " + request.getURI());
+            throw new IllegalStateException("Could not call URL: " + request.getURI());
         }
 
-        HttpEntity entity = response.getEntity();
-        LOGGER.debug("Response received ({} bytes)", entity.getContentLength());
+        LOGGER.debug("Response received ({})", response.getStatusLine().toString().trim());
 
-        if (response.getStatusLine().getStatusCode() == HttpURLConnection.HTTP_UNAUTHORIZED) {
-            throw new IllegalStateException("Unauthorized!");
-        } else {
-            try (InputStream input = entity.getContent()) {
-                try (Reader reader = new InputStreamReader(input, getEncoding(entity))) {
-                    return function.apply(reader);
-                }
-            } catch (RuntimeException e) {
-                throw new IllegalStateException("Could not read response for URL: " + request.getURI(), e);
-            } catch (IOException e) {
-                throw new IllegalStateException("Could not read response for URL: " + request.getURI(), e);
+        HttpEntity entity = response.getEntity();
+
+        int statusCode = response.getStatusLine().getStatusCode();
+        if (isSuccess(statusCode)) {
+            if (entity == null) {
+                return null;
+            } else {
+                return readResponse(request, entity, function);
             }
+        } else {
+            if (statusCode == HttpURLConnection.HTTP_UNAUTHORIZED) {
+                throw new IllegalStateException("Unauthorized!");
+            } else {
+                String status = response.getStatusLine().toString().trim();
+                if (entity == null) {
+                    throw new IllegalStateException(status);
+                } else {
+                    String error = readResponse(request, entity, TO_STRING);
+                    throw new IllegalStateException(status + ": " + error);
+                }
+            }
+        }
+    }
+
+    private static boolean isSuccess(int statusCode) {
+        return statusCode >= 200 && statusCode <= 299;
+    }
+
+    private static <T> T readResponse(HttpUriRequest request, HttpEntity entity, Function<Reader, T> function) {
+        try (InputStream input = entity.getContent()) {
+            try (Reader reader = new InputStreamReader(input, getEncoding(entity))) {
+                return function.apply(reader);
+            }
+        } catch (RuntimeException e) {
+            throw new IllegalStateException("Could not read response for URL: " + request.getURI(), e);
+        } catch (IOException e) {
+            throw new IllegalStateException("Could not read response for URL: " + request.getURI(), e);
         }
     }
 

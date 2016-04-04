@@ -84,6 +84,7 @@ class ValueFactory {
             case "user":
             case "issuetype":
             case "version":
+            case "resolution":
                 return new ObjectValue(val);
             }
         }
@@ -191,7 +192,15 @@ class ValueFactory {
         private Object value;
 
         public AbstractValue(Object originalValue) {
-            this.originalValue = (originalValue == null ? null : checkValue(originalValue));
+            this.originalValue = (originalValue == null ? null : doCheckValue(originalValue));
+        }
+
+        private Object doCheckValue(Object val) {
+            try {
+                return checkValue(val);
+            } catch (RuntimeException e) {
+                throw new IllegalArgumentException("Invalid value: " + val, e);
+            }
         }
 
         protected Object checkValue(Object val) {
@@ -210,7 +219,7 @@ class ValueFactory {
 
         @Override
         public final void setValue(Object val) {
-            this.value = (val == null ? null : checkValue(val));
+            this.value = (val == null ? null : doCheckValue(val));
             this.modified = true;
         }
 

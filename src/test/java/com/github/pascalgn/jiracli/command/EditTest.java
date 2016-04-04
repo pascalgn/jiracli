@@ -84,12 +84,12 @@ public class EditTest {
         assertEquals(1, result.size());
         Issue issue = result.get(0);
         assertSame(originalIssue, issue);
-        assertEquals("Summary\nwith\nnewline", getFieldValue(issue, "summary"));
+        assertEquals("Summary\r\nwith\r\nnewline", getFieldValue(issue, "summary"));
         assertEquals("test", getFieldValue(issue, "environment"));
-        assertEquals("Some description\n; not a comment", getFieldValue(issue, "description"));
+        assertEquals("Some description\r\n; not a comment", getFieldValue(issue, "description"));
         assertEquals("", getFieldValue(issue, "custom_123"));
         assertEquals("", getFieldValue(issue, "custom_456"));
-        assertEquals("\n", getFieldValue(issue, "custom_789"));
+        assertEquals("\r\n", getFieldValue(issue, "custom_789"));
     }
 
     private static Object getFieldValue(Issue issue, String id) {

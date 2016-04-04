@@ -38,5 +38,8 @@ import java.lang.annotation.Target;
      */
     String variable() default "<%s>";
 
+    /**
+     * Argument order, starting with 1
+     */
     int order() default -1;
 }

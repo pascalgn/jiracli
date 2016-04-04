@@ -19,6 +19,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -35,11 +36,17 @@ import com.github.pascalgn.jiracli.model.Field;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.Text;
+import com.github.pascalgn.jiracli.model.Value;
 import com.github.pascalgn.jiracli.util.IOUtils;
 
 @CommandDescription(names = "edit", description = "Edit the given issues in a text editor")
 class Edit implements Command {
     private static final Logger LOGGER = LoggerFactory.getLogger(Edit.class);
+
+    private static final String CUSTOMFIELD_PREFIX = "customfield_";
+
+    private static final String COMMENT = ";";
+    private static final String NEWLINE = "\r\n";
 
     private static final Pattern ISSUE_TITLE = Pattern.compile("==\\s*([A-Z][A-Z0-9]*-[0-9]+)\\s*==\\s*");
     private static final Pattern FIELD_MULTILINE = Pattern.compile("([a-z][a-zA-Z0-9_]*)::\\s*");
@@ -98,7 +105,7 @@ class Edit implements Command {
 
         Collection<Field> editableFields = issue.getFieldMap().getEditableFields();
         if (editableFields.isEmpty()) {
-            writer.write("; no editable fields for this issue!");
+            writer.write(COMMENT + " no editable fields for this issue!");
             writer.newLine();
             writer.newLine();
         } else {
@@ -109,22 +116,31 @@ class Edit implements Command {
 
     private static void writeFields(BufferedWriter writer, Collection<Field> fields) throws IOException {
         for (Field field : fields) {
+            String id = field.getId();
+
+            if (id.startsWith(CUSTOMFIELD_PREFIX)) {
+                writer.write(COMMENT + " " + field.getName());
+                writer.newLine();
+            }
+
+            writer.write(id);
+
             Object val = field.getValue().getValue();
             if (val == JSONObject.NULL) {
-                continue;
+                val = null;
             }
 
             String str = Objects.toString(val, "");
-            if (str.isEmpty()) {
-                continue;
-            }
-
-            writer.write(field.getId());
-            if (str.contains("\n")) {
+            if (str.contains("\r") || str.contains("\n")) {
                 writer.write("::");
                 writer.newLine();
-                writer.write(str);
-                writer.newLine();
+                try (BufferedReader reader = new BufferedReader(new StringReader(str))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        writer.write(line);
+                        writer.newLine();
+                    }
+                }
                 writer.write(".");
                 writer.newLine();
             } else {
@@ -178,7 +194,7 @@ class Edit implements Command {
                         String id = mv.group(1);
                         String value = mv.group(2);
                         Field f = getField(issue, id);
-                        f.getValue().setValue(value);
+                        setFieldValue(f, value);
                         continue;
                     }
                 }
@@ -186,7 +202,7 @@ class Edit implements Command {
 
             case EXPECT_FIELD_CONTENT_MULTILINE:
                 if (line.equals(".")) {
-                    field.getValue().setValue(content == null ? "" : content.toString());
+                    setFieldValue(field, content == null ? "" : content.toString());
                     field = null;
                     content = null;
                     s = ReadState.EXPECT_FIELD_ID;
@@ -195,7 +211,7 @@ class Edit implements Command {
                     if (content == null) {
                         content = new StringBuilder(str);
                     } else {
-                        content.append("\n");
+                        content.append(NEWLINE);
                         content.append(str);
                     }
                 }
@@ -211,6 +227,19 @@ class Edit implements Command {
         return originalIssues;
     }
 
+    private static Issue findIssue(List<Issue> issues, String key) {
+        for (Issue issue : issues) {
+            if (issue.getKey().equals(key)) {
+                return issue;
+            }
+        }
+        throw new IllegalStateException("No such issue: " + key);
+    }
+
+    private static boolean commentOrEmpty(String line) {
+        return line.startsWith(COMMENT) || line.trim().isEmpty();
+    }
+
     private static Field getField(Issue issue, String id) {
         Field field = issue.getFieldMap().getFieldById(id);
         if (field == null) {
@@ -219,16 +248,11 @@ class Edit implements Command {
         return field;
     }
 
-    private static boolean commentOrEmpty(String line) {
-        return line.startsWith(";") || line.trim().isEmpty();
-    }
-
-    private static Issue findIssue(List<Issue> issues, String key) {
-        for (Issue issue : issues) {
-            if (issue.getKey().equals(key)) {
-                return issue;
-            }
+    private static void setFieldValue(Field field, String str) {
+        Value value = field.getValue();
+        String original = Objects.toString(value.getValue(), "");
+        if (!str.equals(original)) {
+            value.setValue(str);
         }
-        throw new IllegalStateException("No such issue: " + key);
     }
 }

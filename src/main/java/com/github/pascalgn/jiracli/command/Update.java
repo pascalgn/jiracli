@@ -15,21 +15,22 @@
  */
 package com.github.pascalgn.jiracli.command;
 
+import java.util.List;
+
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
-import com.github.pascalgn.jiracli.util.Supplier;
 
 @CommandDescription(names = "update", description = "Update the given issues on the server")
 class Update implements Command {
     @Override
     public IssueList execute(Context context, Data input) {
-        return new IssueList(new Supplier<Issue>() {
-            @Override
-            public Issue get() {
-                return null;
-            }
-        });
+        IssueList issueList = input.toIssueListOrFail();
+        List<Issue> issues = issueList.remaining();
+        for (Issue issue : issues) {
+            context.getWebService().updateIssue(issue);
+        }
+        return new IssueList(issues.iterator());
     }
 }
