@@ -235,6 +235,8 @@ public class DefaultWebService implements WebService {
                     set = Objects.toString(value.getValue(), "");
                 }
 
+                LOGGER.debug("Updating field: {}/{}: New value: {}", issue, field.getId(), set);
+
                 update.put(field.getId(), new JSONArray().put(new JSONObject().put("set", set)));
             }
         }

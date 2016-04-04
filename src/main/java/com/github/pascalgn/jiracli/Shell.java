@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.pascalgn.jiracli.command.CommandFactory;
+import com.github.pascalgn.jiracli.command.CommandFactory.UsageException;
 import com.github.pascalgn.jiracli.context.Console;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
@@ -69,12 +70,16 @@ class Shell {
                 continue;
             }
 
-            TextList textList = result.toTextList();
-            if (textList != null) {
-                Text text;
-                while ((text = textList.next()) != null) {
-                    console.println(text.getText());
+            try {
+                TextList textList = result.toTextList();
+                if (textList != null) {
+                    Text text;
+                    while ((text = textList.next()) != null) {
+                        console.println(text.getText());
+                    }
                 }
+            } catch (RuntimeException e) {
+                logException(console, e);
             }
         }
     }
@@ -94,15 +99,21 @@ class Shell {
             TextList input = new TextList(new ConsoleTextSupplier(console));
 
             return pipeline.execute(context, input);
-        } catch (RuntimeException e) {
-            LOGGER.debug("Error", e);
-            if (e.getLocalizedMessage() == null) {
-                console.println("error!");
-            } else {
-                console.println(e.getLocalizedMessage());
-            }
-
+        } catch (UsageException e) {
+            console.println(e.getLocalizedMessage());
             return null;
+        } catch (RuntimeException e) {
+            logException(console, e);
+            return null;
+        }
+    }
+
+    private static void logException(Console console, Exception e) {
+        LOGGER.debug("Error", e);
+        if (e.getLocalizedMessage() == null) {
+            console.println("error!");
+        } else {
+            console.println(e.getLocalizedMessage());
         }
     }
 

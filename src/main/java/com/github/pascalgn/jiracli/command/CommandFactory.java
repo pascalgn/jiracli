@@ -36,6 +36,14 @@ public class CommandFactory {
         return INSTANCE;
     }
 
+    public static class UsageException extends IllegalArgumentException {
+        private static final long serialVersionUID = 2327985516601818756L;
+
+        public UsageException(String message) {
+            super(message);
+        }
+    }
+
     private final List<CommandDescriptor> commandDescriptors;
 
     private CommandFactory() {
@@ -87,7 +95,7 @@ public class CommandFactory {
         }
 
         if (args.contains("-h") || args.contains("--help")) {
-            throw new IllegalArgumentException(getUsage(commandDescriptor, true));
+            throw new UsageException(getUsage(commandDescriptor, true));
         }
 
         boolean parseArguments = true;
@@ -102,11 +110,11 @@ public class CommandFactory {
                     if (parseArguments) {
                         ArgumentDescriptor argument = commandDescriptor.getArgument(arg);
                         if (argument == null) {
-                            throw new IllegalArgumentException(getUsage(commandDescriptor, false));
+                            throw new UsageException(getUsage(commandDescriptor, false));
                         } else {
                             List<String> params = getParameters(argument, args, i);
                             if (params == null) {
-                                throw new IllegalArgumentException(commandName + ": " + arg + ": missing parameter!");
+                                throw new UsageException(commandName + ": " + arg + ": missing parameter!");
                             }
                             argument.setParameter(command, params);
                             i += params.size();
@@ -128,17 +136,22 @@ public class CommandFactory {
         int mainIndex = 0;
         for (ArgumentDescriptor argument : unnamedArguments) {
             List<String> params = getParameters(argument, mainArgs, mainIndex - 1);
-            if (params == null) {
-                throw new IllegalArgumentException(commandName + ": missing " + argument.getVariable());
-            }
-            if (!params.isEmpty()) {
+            if (params != null && !params.isEmpty()) {
                 argument.setParameter(command, params);
                 mainIndex += params.size();
             }
         }
 
+        for (ArgumentDescriptor argument : commandDescriptor.getArguments()) {
+            if (argument.getParameters() == Parameters.ONE || argument.getParameters() == Parameters.ONE_OR_MORE) {
+                if (argument.isNull(command)) {
+                    throw new UsageException(commandName + ": missing " + argument.getVariable());
+                }
+            }
+        }
+
         if (mainIndex != mainArgs.size()) {
-            throw new IllegalArgumentException(commandName + ": exceeding arguments!");
+            throw new UsageException(commandName + ": exceeding arguments!");
         }
 
         return command;
@@ -433,6 +446,15 @@ public class CommandFactory {
 
         public String getDescription() {
             return description;
+        }
+
+        public boolean isNull(Command command) {
+            field.setAccessible(true);
+            try {
+                return field.get(command) == null;
+            } catch (ReflectiveOperationException e) {
+                throw new IllegalStateException("Cannot get field value!", e);
+            }
         }
 
         public void setParameter(Command command, List<String> params) {
