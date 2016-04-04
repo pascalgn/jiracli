@@ -15,35 +15,45 @@
  */
 package com.github.pascalgn.jiracli.model;
 
-import java.util.Arrays;
-import java.util.Iterator;
-
-import com.github.pascalgn.jiracli.util.Supplier;
-
-public class TextList extends List<Text> {
-    public TextList() {
-        super();
+public class Board extends Data {
+    public enum Type {
+        SCRUM, KANBAN, UNKNOWN;
     }
 
-    public TextList(Text... texts) {
-        super(Arrays.asList(texts).iterator());
+    private final int id;
+    private final String name;
+    private final Type type;
+
+    public Board(int id, String name, Type type) {
+        this.id = id;
+        this.name = name;
+        this.type = type;
     }
 
-    public TextList(Iterator<Text> iterator) {
-        super(iterator);
+    public int getId() {
+        return id;
     }
 
-    public TextList(Supplier<Text> supplier) {
-        super(supplier);
+    public String getName() {
+        return name;
+    }
+
+    public Type getType() {
+        return type;
+    }
+
+    @Override
+    public Text toText() {
+        return new Text(toString());
     }
 
     @Override
     public TextList toTextList() {
-        return this;
+        return new TextList(toText());
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName();
+        return "Board[id=" + id + ", name=" + name + ", type=" + type + "]";
     }
 }

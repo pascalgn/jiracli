@@ -18,32 +18,38 @@ package com.github.pascalgn.jiracli.model;
 import java.util.Arrays;
 import java.util.Iterator;
 
+import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.Supplier;
 
-public class TextList extends List<Text> {
-    public TextList() {
+public class BoardList extends List<Board> {
+    public BoardList() {
         super();
     }
 
-    public TextList(Text... texts) {
-        super(Arrays.asList(texts).iterator());
+    public BoardList(Board... boards) {
+        super(Arrays.asList(boards).iterator());
     }
 
-    public TextList(Iterator<Text> iterator) {
+    public BoardList(Iterator<Board> iterator) {
         super(iterator);
     }
 
-    public TextList(Supplier<Text> supplier) {
+    public BoardList(Supplier<Board> supplier) {
         super(supplier);
     }
 
     @Override
     public TextList toTextList() {
-        return this;
+        return toTextList(new Function<Board, Text>() {
+            @Override
+            public Text apply(Board board) {
+                return board.toText();
+            }
+        });
     }
 
     @Override
-    public String toString() {
-        return getClass().getSimpleName();
+    public BoardList toBoardList() {
+        return this;
     }
 }

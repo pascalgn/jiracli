@@ -63,8 +63,11 @@ import org.json.JSONTokener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.pascalgn.jiracli.model.Board;
+import com.github.pascalgn.jiracli.model.Board.Type;
 import com.github.pascalgn.jiracli.model.Field;
 import com.github.pascalgn.jiracli.model.Issue;
+import com.github.pascalgn.jiracli.model.Sprint;
 import com.github.pascalgn.jiracli.model.Value;
 import com.github.pascalgn.jiracli.util.Cache;
 import com.github.pascalgn.jiracli.util.Function;
@@ -114,18 +117,21 @@ public class DefaultWebService implements WebService {
     private final CloseableHttpClient httpClient;
     private final HttpClientContext httpClientContext;
 
-    private final Supplier<Map<String, JSONObject>> fieldData;
+    private final Supplier<Map<String, JSONObject>> fieldDataCache;
     private final Cache<String, IssueData> issueCache;
     private final Cache<String, JSONObject> searchCache;
+    private final Supplier<List<JSONObject>> boardCache;
+    private final Cache<Integer, List<JSONObject>> sprintCache;
+    private final Cache<Integer, JSONArray> sprintIssuesCache;
 
     public DefaultWebService(String rootURL, String username, char[] password) {
         this.rootURL = stripEnd(rootURL, "/");
         this.httpClient = createHttpClient();
         this.httpClientContext = createHttpClientContext(username, password);
-        this.fieldData = new MemoizingSupplier<>(new Supplier<Map<String, JSONObject>>() {
+        this.fieldDataCache = new MemoizingSupplier<>(new Supplier<Map<String, JSONObject>>() {
             @Override
             public Map<String, JSONObject> get() {
-                return loadFields();
+                return loadFieldData();
             }
         });
         this.issueCache = new Cache<>(new Function<String, IssueData>() {
@@ -138,6 +144,24 @@ public class DefaultWebService implements WebService {
             @Override
             public JSONObject apply(String jql) {
                 return loadIssueList(jql);
+            }
+        });
+        this.boardCache = new MemoizingSupplier<>(new Supplier<List<JSONObject>>() {
+            @Override
+            public List<JSONObject> get() {
+                return loadBoards();
+            }
+        });
+        this.sprintCache = new Cache<>(new Function<Integer, List<JSONObject>>() {
+            @Override
+            public List<JSONObject> apply(Integer board) {
+                return loadSprints(board);
+            }
+        });
+        this.sprintIssuesCache = new Cache<>(new Function<Integer, JSONArray>() {
+            @Override
+            public JSONArray apply(Integer sprint) {
+                return loadSprintIssues(sprint);
             }
         });
     }
@@ -194,7 +218,7 @@ public class DefaultWebService implements WebService {
     public Issue getIssue(String key) {
         URI uri = URI.create(rootURL + "/browse/" + key);
         IssueData issueData = issueCache.get(key);
-        LoadableFieldMap fieldMap = new LoadableFieldMap(issueData, fieldData);
+        LoadableFieldMap fieldMap = new LoadableFieldMap(issueData, fieldDataCache);
         Issue issue = new Issue(key, uri, fieldMap);
         fieldMap.setIssue(issue);
         return issue;
@@ -247,7 +271,57 @@ public class DefaultWebService implements WebService {
         }
     }
 
-    private Map<String, JSONObject> loadFields() {
+    @Override
+    public List<Board> getBoards() {
+        List<JSONObject> jsonList = boardCache.get();
+        List<Board> boards = new ArrayList<Board>();
+        for (JSONObject json : jsonList) {
+            int id = json.getInt("id");
+            String name = json.getString("name");
+            Type type = toType(json.optString("type"));
+            boards.add(new Board(id, name, type));
+        }
+        return boards;
+    }
+
+    private static Type toType(String str) {
+        String s = Objects.toString(str, "").trim().toLowerCase();
+        switch (s) {
+        case "scrum":
+            return Type.SCRUM;
+
+        case "kanban":
+            return Type.KANBAN;
+
+        default:
+            return Type.UNKNOWN;
+        }
+    }
+
+    @Override
+    public List<Sprint> getSprints(Board board) {
+        List<JSONObject> jsonList = sprintCache.get(board.getId());
+        List<Sprint> sprints = new ArrayList<Sprint>();
+        for (JSONObject json : jsonList) {
+            int id = json.getInt("id");
+            String name = json.getString("name");
+            sprints.add(new Sprint(board, id, name));
+        }
+        return sprints;
+    }
+
+    @Override
+    public List<Issue> getIssues(Sprint sprint) {
+        JSONArray array = sprintIssuesCache.get(sprint.getId());
+        List<Issue> result = new ArrayList<Issue>();
+        for (Object obj : array) {
+            JSONObject issue = (JSONObject) obj;
+            result.add(getIssue(issue.getString("key")));
+        }
+        return result;
+    }
+
+    private Map<String, JSONObject> loadFieldData() {
         Map<String, JSONObject> map = new HashMap<String, JSONObject>();
         JSONArray array = get("/rest/api/latest/field", TO_ARRAY);
         for (Object obj : array) {
@@ -288,6 +362,32 @@ public class DefaultWebService implements WebService {
         } catch (UnsupportedEncodingException e) {
             throw new IllegalStateException("Unsupported encoding!", e);
         }
+    }
+
+    private List<JSONObject> loadBoards() {
+        JSONObject response = get("/rest/agile/latest/board", TO_OBJECT);
+        JSONArray boardArray = response.getJSONArray("values");
+        List<JSONObject> result = new ArrayList<JSONObject>();
+        for (Object obj : boardArray) {
+            result.add((JSONObject) obj);
+        }
+        return result;
+    }
+
+    private List<JSONObject> loadSprints(Integer board) {
+        JSONObject response = get("/rest/agile/latest/board/" + board + "/sprint", TO_OBJECT);
+        JSONArray array = response.getJSONArray("values");
+        List<JSONObject> result = new ArrayList<JSONObject>();
+        for (Object obj : array) {
+            result.add((JSONObject) obj);
+        }
+        return result;
+    }
+
+    private JSONArray loadSprintIssues(Integer sprint) {
+        String path = "/rest/agile/latest/sprint/" + sprint + "/issue?fields=" + INITIAL_FIELDS;
+        JSONObject response = get(path, TO_OBJECT);
+        return response.getJSONArray("issues");
     }
 
     private <T> T get(String path, Function<Reader, T> function) {

@@ -19,7 +19,9 @@ import java.util.Collections;
 import java.util.List;
 
 import com.github.pascalgn.jiracli.context.WebService;
+import com.github.pascalgn.jiracli.model.Board;
 import com.github.pascalgn.jiracli.model.Issue;
+import com.github.pascalgn.jiracli.model.Sprint;
 
 public class MockWebService implements WebService {
     @Override
@@ -44,6 +46,21 @@ public class MockWebService implements WebService {
 
     @Override
     public void updateIssue(Issue issue) {
+    }
+
+    @Override
+    public List<Board> getBoards() {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public List<Sprint> getSprints(Board board) {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public List<Issue> getIssues(Sprint sprint) {
+        return Collections.emptyList();
     }
 
     @Override

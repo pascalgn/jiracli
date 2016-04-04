@@ -142,7 +142,7 @@ public class CommandFactory {
             }
         }
 
-        for (ArgumentDescriptor argument : commandDescriptor.getArguments()) {
+        for (ArgumentDescriptor argument : unnamedArguments) {
             if (argument.getParameters() == Parameters.ONE || argument.getParameters() == Parameters.ONE_OR_MORE) {
                 if (argument.isNull(command)) {
                     throw new UsageException(commandName + ": missing " + argument.getVariable());

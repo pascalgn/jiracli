@@ -18,32 +18,38 @@ package com.github.pascalgn.jiracli.model;
 import java.util.Arrays;
 import java.util.Iterator;
 
+import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.Supplier;
 
-public class TextList extends List<Text> {
-    public TextList() {
+public class SprintList extends List<Sprint> {
+    public SprintList() {
         super();
     }
 
-    public TextList(Text... texts) {
-        super(Arrays.asList(texts).iterator());
+    public SprintList(Sprint... sprints) {
+        super(Arrays.asList(sprints).iterator());
     }
 
-    public TextList(Iterator<Text> iterator) {
+    public SprintList(Iterator<Sprint> iterator) {
         super(iterator);
     }
 
-    public TextList(Supplier<Text> supplier) {
+    public SprintList(Supplier<Sprint> supplier) {
         super(supplier);
     }
 
     @Override
     public TextList toTextList() {
-        return this;
+        return toTextList(new Function<Sprint, Text>() {
+            @Override
+            public Text apply(Sprint sprint) {
+                return sprint.toText();
+            }
+        });
     }
 
     @Override
-    public String toString() {
-        return getClass().getSimpleName();
+    public SprintList toSprintList() {
+        return this;
     }
 }

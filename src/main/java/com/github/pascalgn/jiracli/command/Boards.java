@@ -13,31 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.pascalgn.jiracli.context;
+package com.github.pascalgn.jiracli.command;
 
 import java.util.List;
 
+import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Board;
-import com.github.pascalgn.jiracli.model.Issue;
-import com.github.pascalgn.jiracli.model.Sprint;
+import com.github.pascalgn.jiracli.model.BoardList;
+import com.github.pascalgn.jiracli.model.Data;
 
-public interface WebService extends AutoCloseable {
-    String execute(String path);
-
-    Issue getIssue(String key);
-
-    List<Issue> getEpicIssues(Issue epic);
-
-    List<Issue> searchIssues(String jql);
-
-    void updateIssue(Issue issue);
-
-    List<Board> getBoards();
-
-    List<Sprint> getSprints(Board board);
-
-    List<Issue> getIssues(Sprint sprint);
-
+@CommandDescription(names = "boards", description = "Show the existing boards")
+class Boards implements Command {
     @Override
-    void close();
+    public BoardList execute(Context context, Data input) {
+        List<Board> boards = context.getWebService().getBoards();
+        return new BoardList(boards.iterator());
+    }
 }

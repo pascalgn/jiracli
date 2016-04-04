@@ -15,35 +15,42 @@
  */
 package com.github.pascalgn.jiracli.model;
 
-import java.util.Arrays;
-import java.util.Iterator;
+public class Sprint extends Data {
+    private final Board board;
 
-import com.github.pascalgn.jiracli.util.Supplier;
+    private final int id;
+    private final String name;
 
-public class TextList extends List<Text> {
-    public TextList() {
-        super();
+    public Sprint(Board board, int id, String name) {
+        this.board = board;
+        this.id = id;
+        this.name = name;
     }
 
-    public TextList(Text... texts) {
-        super(Arrays.asList(texts).iterator());
+    public Board getBoard() {
+        return board;
     }
 
-    public TextList(Iterator<Text> iterator) {
-        super(iterator);
+    public int getId() {
+        return id;
     }
 
-    public TextList(Supplier<Text> supplier) {
-        super(supplier);
+    public String getName() {
+        return name;
+    }
+
+    @Override
+    public Text toText() {
+        return new Text(toString());
     }
 
     @Override
     public TextList toTextList() {
-        return this;
+        return new TextList(toText());
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName();
+        return "Sprint[id=" + id + ", name=" + name + "]";
     }
 }

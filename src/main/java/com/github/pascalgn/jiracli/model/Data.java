@@ -64,6 +64,22 @@ public abstract class Data {
         return convertOrFail(toFieldList(), FieldList.class);
     }
 
+    public BoardList toBoardList() {
+        return null;
+    }
+
+    public final BoardList toBoardListOrFail() {
+        return convertOrFail(toBoardList(), BoardList.class);
+    }
+
+    public SprintList toSprintList() {
+        return null;
+    }
+
+    public final SprintList toSprintListOrFail() {
+        return convertOrFail(toSprintList(), SprintList.class);
+    }
+
     private <T> T convertOrFail(T instance, Class<T> type) {
         if (instance == null) {
             throw new IllegalStateException("Could not convert to " + type.getSimpleName() + ": " + this);
