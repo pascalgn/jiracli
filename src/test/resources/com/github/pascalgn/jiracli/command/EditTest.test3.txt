@@ -1,0 +1,26 @@
+== ISSUE-123 ==
+
+summary::
+Summary
+.with
+newline
+.
+
+; A comment
+environment: test
+description::
+Some description
+; not a comment
+.
+
+custom_123::
+.
+
+custom_456::
+
+.
+
+custom_789::
+
+
+.

@@ -29,7 +29,7 @@ import com.github.pascalgn.jiracli.model.Field;
 import com.github.pascalgn.jiracli.model.Issue;
 
 class CommandUtils {
-    private static final Pattern ISSUE_KEY_PATTERN = Pattern.compile("[A-Z]+-[0-9]+");
+    private static final Pattern ISSUE_KEY_PATTERN = Pattern.compile("[A-Z][A-Z0-9]*-[0-9]+");
 
     public static void closeUnchecked(Closeable closeable) {
         try {

@@ -31,6 +31,10 @@ public class IssueFactory {
         return new Issue(key, createURI(key), new FieldMapImpl(Arrays.asList(fields)));
     }
 
+    /**
+     * @param key The issue key, for example <code>ISSUE-1234</code>
+     * @param fields Key/value pairs, for example <code>summary, A title, description, A description</code>
+     */
     public static Issue create(String key, Object... fields) {
         if (fields.length % 2 != 0) {
             throw new IllegalArgumentException("Invalid key/value pairs: " + Arrays.toString(fields));
@@ -50,25 +54,26 @@ public class IssueFactory {
     }
 
     private static class ValueImpl implements Value {
-        private final Object value;
+        private final Object originalValue;
+        private Object newValue;
 
         public ValueImpl(Object value) {
-            this.value = value;
+            this.originalValue = value;
         }
 
         @Override
         public Object getValue() {
-            return value;
+            return (newValue == null ? originalValue : newValue);
         }
 
         @Override
-        public void setValue(Object object) {
-            throw new UnsupportedOperationException();
+        public void setValue(Object value) {
+            this.newValue = value;
         }
 
         @Override
         public boolean isModified() {
-            return false;
+            return (newValue != null);
         }
     }
 

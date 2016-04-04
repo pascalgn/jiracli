@@ -15,59 +15,82 @@
  */
 package com.github.pascalgn.jiracli.command;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.nio.charset.StandardCharsets;
 import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Field;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
-import com.github.pascalgn.jiracli.util.Supplier;
+import com.github.pascalgn.jiracli.model.Text;
+import com.github.pascalgn.jiracli.util.IOUtils;
 
 @CommandDescription(names = "edit", description = "Edit the given issues in a text editor")
 class Edit implements Command {
+    private static final Logger LOGGER = LoggerFactory.getLogger(Edit.class);
+
+    private static final Pattern ISSUE_TITLE = Pattern.compile("==\\s*([A-Z][A-Z0-9]*-[0-9]+)\\s*==\\s*");
+    private static final Pattern FIELD_MULTILINE = Pattern.compile("([a-z][a-zA-Z0-9_]*)::\\s*");
+    private static final Pattern FIELD_VALUE = Pattern.compile("([a-z][a-zA-Z0-9_]*):\\s+(.*)");
+
+    private enum ReadState {
+        EXPECT_ISSUE_TITLE, EXPECT_FIELD_ID, EXPECT_FIELD_CONTENT_MULTILINE;
+    }
+
     @Argument(names = { "-p", "--print" }, description = "Print the text content instead of opening the editor")
     private boolean print;
 
     @Override
-    public IssueList execute(Context context, Data input) {
+    public Data execute(Context context, Data input) {
         IssueList issueList = input.toIssueListOrFail();
+        List<Issue> issues = issueList.remaining();
+
         try {
             File tempFile = File.createTempFile("edit-issues", ".txt");
-            try (BufferedWriter writer = createBufferedWriter(tempFile)) {
-                Issue issue;
-                while ((issue = issueList.next()) != null) {
-                    write(writer, issue);
+            try {
+                try (BufferedWriter writer = IOUtils.createBufferedWriter(tempFile)) {
+                    for (Issue issue : issues) {
+                        write(writer, issue);
+                    }
+                }
+
+                if (print) {
+                    return new Text(IOUtils.toString(tempFile));
+                } else {
+                    boolean success = context.getConsole().editFile(tempFile);
+                    if (success) {
+                        List<Issue> result;
+                        try (BufferedReader reader = IOUtils.createBufferedReader(tempFile)) {
+                            result = read(issues, reader);
+                        }
+                        return new IssueList(result.iterator());
+                    } else {
+                        return new IssueList(issues.iterator());
+                    }
+                }
+            } finally {
+                if (!tempFile.delete() && tempFile.exists()) {
+                    LOGGER.warn("Could not delete temporary file: {}", tempFile);
                 }
             }
-            context.getConsole().editFile(tempFile);
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
-
-        return new IssueList(new Supplier<Issue>() {
-            @Override
-            public Issue get() {
-                return null;
-            }
-        });
     }
 
-    private static BufferedWriter createBufferedWriter(File file) throws FileNotFoundException {
-        return new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8));
-    }
-
-    private void write(BufferedWriter writer, Issue issue) throws IOException {
+    static void write(BufferedWriter writer, Issue issue) throws IOException {
         writer.write("== ");
         writer.write(issue.getKey());
         writer.write(" ==");
@@ -75,7 +98,7 @@ class Edit implements Command {
 
         Collection<Field> editableFields = issue.getFieldMap().getEditableFields();
         if (editableFields.isEmpty()) {
-            writer.write("# no editable fields for this issue!");
+            writer.write("; no editable fields for this issue!");
             writer.newLine();
             writer.newLine();
         } else {
@@ -96,8 +119,8 @@ class Edit implements Command {
                 continue;
             }
 
-            writer.write(field.getName());
-            if (str.contains("\n") || field.getName().contains(":")) {
+            writer.write(field.getId());
+            if (str.contains("\n")) {
                 writer.write("::");
                 writer.newLine();
                 writer.write(str);
@@ -112,5 +135,100 @@ class Edit implements Command {
             writer.newLine();
             writer.newLine();
         }
+    }
+
+    static List<Issue> read(List<Issue> originalIssues, BufferedReader reader) throws IOException {
+        ReadState s = ReadState.EXPECT_ISSUE_TITLE;
+
+        Issue issue = null;
+        Field field = null;
+        StringBuilder content = null;
+
+        String line;
+        while ((line = reader.readLine()) != null) {
+            switch (s) {
+            case EXPECT_ISSUE_TITLE:
+                if (commentOrEmpty(line)) {
+                    continue;
+                } else {
+                    Matcher m = ISSUE_TITLE.matcher(line);
+                    if (m.matches()) {
+                        String key = m.group(1);
+                        issue = findIssue(originalIssues, key);
+                        s = ReadState.EXPECT_FIELD_ID;
+                        continue;
+                    }
+                }
+                break;
+
+            case EXPECT_FIELD_ID:
+                if (commentOrEmpty(line)) {
+                    continue;
+                } else {
+                    Matcher mm = FIELD_MULTILINE.matcher(line);
+                    if (mm.matches()) {
+                        String id = mm.group(1);
+                        field = getField(issue, id);
+                        s = ReadState.EXPECT_FIELD_CONTENT_MULTILINE;
+                        continue;
+                    }
+
+                    Matcher mv = FIELD_VALUE.matcher(line);
+                    if (mv.matches()) {
+                        String id = mv.group(1);
+                        String value = mv.group(2);
+                        Field f = getField(issue, id);
+                        f.getValue().setValue(value);
+                        continue;
+                    }
+                }
+                break;
+
+            case EXPECT_FIELD_CONTENT_MULTILINE:
+                if (line.equals(".")) {
+                    field.getValue().setValue(content == null ? "" : content.toString());
+                    field = null;
+                    content = null;
+                    s = ReadState.EXPECT_FIELD_ID;
+                } else {
+                    String str = (line.startsWith(".") ? line.substring(1) : line);
+                    if (content == null) {
+                        content = new StringBuilder(str);
+                    } else {
+                        content.append("\n");
+                        content.append(str);
+                    }
+                }
+                continue;
+
+            default:
+                break;
+            }
+
+            throw new IllegalStateException("Unexpected line: " + line);
+        }
+
+        return originalIssues;
+    }
+
+    private static Field getField(Issue issue, String id) {
+        Field field = issue.getFieldMap().getFieldById(id);
+        if (field == null) {
+            throw new IllegalStateException("No such field for issue " + issue + ": " + id);
+        }
+        return field;
+    }
+
+    private static boolean commentOrEmpty(String line) {
+        return line.startsWith(";") || line.trim().isEmpty();
+    }
+
+    private static Issue findIssue(List<Issue> issues, String key) {
+        for (Issue issue : issues) {
+            if (issue.getKey().equals(key)) {
+                return issue;
+            }
+        }
+        throw new IllegalStateException("No such issue: " + key);
     }
 }

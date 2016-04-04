@@ -15,9 +15,12 @@
  */
 package com.github.pascalgn.jiracli.context;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.json.JSONObject;
@@ -39,7 +42,9 @@ class LoadableFieldMap implements FieldMap {
     private Issue issue;
 
     private final Map<String, Field> fields;
-    private boolean loaded;
+    private boolean allFieldsLoaded;
+
+    private List<Field> editableFields;
 
     public LoadableFieldMap(IssueData issueData, Supplier<Map<String, JSONObject>> fieldData) {
         this.issueData = issueData;
@@ -53,25 +58,31 @@ class LoadableFieldMap implements FieldMap {
     }
 
     private void createFields(JSONObject json) {
-        if (json != null) {
-            for (String id : json.keySet()) {
-                JSONObject data = fieldData.get().get(id);
-                String name;
-                JSONObject schema;
-                if (data == null) {
-                    LOGGER.debug("Unknown field: {} (issue {})", id, issue);
-                    name = id;
-                    schema = null;
-                } else {
-                    name = data.optString("name");
-                    if (name == null || name.isEmpty()) {
-                        name = id;
-                    }
-                    schema = data.optJSONObject("schema");
-                }
-                Value value = ValueFactory.createValue(json.get(id), schema);
-                fields.put(id, new Field(issue, id, name, value));
+        if (json == null) {
+            return;
+        }
+
+        for (String id : json.keySet()) {
+            if (fields.containsKey(id)) {
+                continue;
             }
+
+            JSONObject data = fieldData.get().get(id);
+            String name;
+            JSONObject schema;
+            if (data == null) {
+                LOGGER.debug("Unknown field: {} (issue {})", id, issue);
+                name = id;
+                schema = null;
+            } else {
+                name = data.optString("name");
+                if (name == null || name.isEmpty()) {
+                    name = id;
+                }
+                schema = data.optJSONObject("schema");
+            }
+            Value value = ValueFactory.createValue(json.get(id), schema);
+            fields.put(id, new Field(issue, id, name, value));
         }
     }
 
@@ -79,7 +90,7 @@ class LoadableFieldMap implements FieldMap {
     public synchronized Field getFieldById(String id) {
         Field field = fields.get(id);
         if (field == null) {
-            loadFields();
+            loadAllFields();
             field = fields.get(id);
         }
         return field;
@@ -89,7 +100,7 @@ class LoadableFieldMap implements FieldMap {
     public synchronized Field getFieldByName(String name) {
         Field field = getFieldByName(fields.values(), name);
         if (field == null) {
-            loadFields();
+            loadAllFields();
             field = getFieldByName(fields.values(), name);
         }
         return field;
@@ -107,20 +118,43 @@ class LoadableFieldMap implements FieldMap {
 
     @Override
     public synchronized Collection<Field> getFields() {
-        loadFields();
+        loadAllFields();
         return fields.values();
     }
 
-    private void loadFields() {
-        if (!loaded) {
-            JSONObject allFields = issueData.getAllFields(true);
+    @Override
+    public synchronized Collection<Field> getEditableFields() {
+        if (editableFields == null) {
+            loadAllFields();
+            editableFields = new ArrayList<>();
+            JSONObject json = issueData.getEditMeta();
+            for (String id : json.keySet()) {
+                Field field = fields.get(id);
+                if (field == null) {
+                    LOGGER.debug("Unknown field in editmeta: {} (issue {})", id, issue);
+                } else {
+                    if (!editableFields.contains(field)) {
+                        editableFields.add(field);
+                    }
+                }
+            }
+            Collections.sort(editableFields, new FieldComparator());
+        }
+        return editableFields;
+    }
+
+    private void loadAllFields() {
+        if (!allFieldsLoaded) {
+            JSONObject allFields = issueData.getAllFields();
             createFields(allFields);
-            loaded = true;
+            allFieldsLoaded = true;
         }
     }
 
-    @Override
-    public Collection<Field> getEditableFields() {
-        return Collections.emptyList();
+    private static class FieldComparator implements Comparator<Field> {
+        @Override
+        public int compare(Field f1, Field f2) {
+            return f1.getId().compareTo(f2.getId());
+        }
     }
 }

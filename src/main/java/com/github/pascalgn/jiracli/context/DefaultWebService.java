@@ -61,6 +61,7 @@ import org.slf4j.LoggerFactory;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.util.Cache;
 import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.util.IOUtils;
 import com.github.pascalgn.jiracli.util.MemoizingSupplier;
 import com.github.pascalgn.jiracli.util.Supplier;
 
@@ -84,17 +85,7 @@ public class DefaultWebService implements WebService {
     private static final Function<Reader, String> TO_STRING = new Function<Reader, String>() {
         @Override
         public String apply(Reader reader) {
-            StringBuilder str = new StringBuilder();
-            char[] buf = new char[2048];
-            int len;
-            try {
-                while ((len = reader.read(buf)) != -1) {
-                    str.append(buf, 0, len);
-                }
-            } catch (IOException e) {
-                throw new IllegalStateException(e);
-            }
-            return str.toString();
+            return IOUtils.toString(reader);
         }
     };
 
@@ -240,7 +231,8 @@ public class DefaultWebService implements WebService {
     }
 
     private JSONObject loadEditMeta(String issue) {
-        return call("/rest/api/latest/issue/" + issue + "/editmeta", TO_OBJECT);
+        JSONObject response = call("/rest/api/latest/issue/" + issue + "/editmeta", TO_OBJECT);
+        return response.getJSONObject("fields");
     }
 
     private JSONObject loadIssueList(String jql) {
@@ -344,23 +336,15 @@ public class DefaultWebService implements WebService {
             return initialFields;
         }
 
-        public JSONObject getAllFields() {
-            return getAllFields(false);
-        }
-
-        public synchronized JSONObject getAllFields(boolean load) {
-            if (allFields == null && load) {
+        public synchronized JSONObject getAllFields() {
+            if (allFields == null) {
                 allFields = loadAllFields(issue);
             }
             return allFields;
         }
 
-        public JSONObject getEditMeta() {
-            return getEditMeta(false);
-        }
-
-        public synchronized JSONObject getEditMeta(boolean load) {
-            if (editMeta == null && load) {
+        public synchronized JSONObject getEditMeta() {
+            if (editMeta == null) {
                 editMeta = loadEditMeta(issue);
             }
             return editMeta;
