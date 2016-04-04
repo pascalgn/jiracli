@@ -52,4 +52,9 @@ public class SprintList extends List<Sprint> {
     public SprintList toSprintList() {
         return this;
     }
+
+    @Override
+    public SprintList filteredList(Filter<Sprint> filter) {
+        return new SprintList(new FilteredSupplier<>(getSupplier(), filter));
+    }
 }

@@ -52,4 +52,9 @@ public class BoardList extends List<Board> {
     public BoardList toBoardList() {
         return this;
     }
+
+    @Override
+    public BoardList filteredList(Filter<Board> filter) {
+        return new BoardList(new FilteredSupplier<>(getSupplier(), filter));
+    }
 }

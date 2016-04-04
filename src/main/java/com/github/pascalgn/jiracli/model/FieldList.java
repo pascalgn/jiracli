@@ -62,4 +62,9 @@ public class FieldList extends List<Field> {
     public FieldList toFieldList() {
         return this;
     }
+
+    @Override
+    public FieldList filteredList(Filter<Field> filter) {
+        return new FieldList(new FilteredSupplier<>(getSupplier(), filter));
+    }
 }

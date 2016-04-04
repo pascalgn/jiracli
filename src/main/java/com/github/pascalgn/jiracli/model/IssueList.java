@@ -62,4 +62,9 @@ public class IssueList extends List<Issue> {
             }
         });
     }
+
+    @Override
+    public IssueList filteredList(Filter<Issue> filter) {
+        return new IssueList(new FilteredSupplier<>(getSupplier(), filter));
+    }
 }

@@ -24,81 +24,93 @@ import java.util.Iterator;
 import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.Supplier;
 
-abstract class List<E extends Data> extends Data {
-    private final Supplier<E> supplier;
+abstract class List<T extends Data> extends Data {
+    private final Supplier<T> supplier;
 
     public List() {
-        this(new Supplier<E>() {
+        this(new Supplier<T>() {
             @Override
-            public E get() {
+            public T get() {
                 return null;
             }
         });
     }
 
-    public List(final Iterator<E> iterator) {
-        this(new Supplier<E>() {
+    public List(final Iterator<T> iterator) {
+        this(new Supplier<T>() {
             @Override
-            public E get() {
+            public T get() {
                 return iterator.hasNext() ? iterator.next() : null;
             }
         });
     }
 
-    public List(Supplier<E> supplier) {
+    public List(Supplier<T> supplier) {
         this.supplier = supplier;
     }
 
-    public E next() {
+    protected Supplier<T> getSupplier() {
+        return supplier;
+    }
+
+    public T next() {
         return supplier.get();
     }
 
-    public java.util.List<E> remaining() {
-        java.util.List<E> result = new ArrayList<E>();
-        E item;
+    public java.util.List<T> remaining() {
+        java.util.List<T> result = new ArrayList<T>();
+        T item;
         while ((item = next()) != null) {
             result.add(item);
         }
         return result;
     }
 
-    public IssueList toIssueList(final Function<E, Issue> function) {
+    @Override
+    @SuppressWarnings("unchecked")
+    public List<Data> toList(Filter<Data> filter) {
+        return (List<Data>) filteredList((Filter<T>) filter);
+    }
+
+    public IssueList toIssueList(final Function<T, Issue> function) {
         return new IssueList(new Supplier<Issue>() {
             @Override
             public Issue get() {
-                E next = next();
+                T next = next();
                 return (next == null ? null : function.apply(next));
             }
         });
     }
 
-    public TextList toTextList(final Function<E, Text> function) {
+    public TextList toTextList(final Function<T, Text> function) {
         return new TextList(new Supplier<Text>() {
             @Override
             public Text get() {
-                E next = next();
+                T next = next();
                 return (next == null ? null : function.apply(next));
             }
         });
     }
 
-    public FieldList toFieldList(final Function<E, Field> function) {
+    public FieldList toFieldList(final Function<T, Field> function) {
         return new FieldList(new Supplier<Field>() {
             @Override
             public Field get() {
-                E next = next();
+                T next = next();
                 return (next == null ? null : function.apply(next));
             }
         });
     }
 
-    public <R> Supplier<R> loadingSupplier(final Function<E, Collection<R>> function) {
+    public abstract List<T> filteredList(Filter<T> filter);
+
+    public <R> Supplier<R> loadingSupplier(final Function<T, Collection<R>> function) {
         final Deque<R> deque = new ArrayDeque<>();
         return new Supplier<R>() {
             @Override
             public R get() {
                 if (deque.isEmpty()) {
-                    E next = next();
+                    T next = next();
                     if (next != null) {
                         Collection<R> collection = function.apply(next);
                         deque.addAll(collection);
@@ -107,5 +119,10 @@ abstract class List<E extends Data> extends Data {
                 return (deque.isEmpty() ? null : deque.removeFirst());
             }
         };
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName();
     }
 }

@@ -16,6 +16,14 @@
 package com.github.pascalgn.jiracli.model;
 
 public abstract class Data {
+    public List<Data> toList(Filter<Data> filter) {
+        return null;
+    }
+
+    public final List<Data> toListOrFail(Filter<Data> filter) {
+        return convertOrFail(toList(filter), List.class);
+    }
+
     public Issue toIssue() {
         return null;
     }
@@ -80,7 +88,7 @@ public abstract class Data {
         return convertOrFail(toSprintList(), SprintList.class);
     }
 
-    private <T> T convertOrFail(T instance, Class<T> type) {
+    private <T> T convertOrFail(T instance, Class<? super T> type) {
         if (instance == null) {
             throw new IllegalStateException("Could not convert to " + type.getSimpleName() + ": " + this);
         }

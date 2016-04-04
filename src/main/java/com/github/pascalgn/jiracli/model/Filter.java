@@ -15,35 +15,8 @@
  */
 package com.github.pascalgn.jiracli.model;
 
-import java.util.Arrays;
-import java.util.Iterator;
-
 import com.github.pascalgn.jiracli.util.Supplier;
 
-public class TextList extends List<Text> {
-    public TextList() {
-        super();
-    }
-
-    public TextList(Text... texts) {
-        super(Arrays.asList(texts).iterator());
-    }
-
-    public TextList(Iterator<Text> iterator) {
-        super(iterator);
-    }
-
-    public TextList(Supplier<Text> supplier) {
-        super(supplier);
-    }
-
-    @Override
-    public TextList toTextList() {
-        return this;
-    }
-
-    @Override
-    public TextList filteredList(Filter<Text> filter) {
-        return new TextList(new FilteredSupplier<>(getSupplier(), filter));
-    }
+public interface Filter<T> {
+    T get(Supplier<T> supplier);
 }
