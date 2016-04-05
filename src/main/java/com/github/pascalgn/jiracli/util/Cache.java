@@ -40,6 +40,7 @@ public final class Cache<K, V> {
             if (value == null) {
                 throw new IllegalStateException("Returned value must not be null!");
             }
+            map.put(key, value);
         }
         return value;
     }

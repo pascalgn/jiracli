@@ -49,6 +49,8 @@ public interface WebService extends AutoCloseable {
 
     List<Board> getBoards();
 
+    List<Issue> getIssues(Board board);
+
     List<Sprint> getSprints(Board board);
 
     List<Issue> getIssues(Sprint sprint);
