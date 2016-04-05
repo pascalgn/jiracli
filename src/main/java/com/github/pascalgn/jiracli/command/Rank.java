@@ -17,26 +17,18 @@ package com.github.pascalgn.jiracli.command;
 
 import java.util.List;
 
-import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
-import com.github.pascalgn.jiracli.model.Board;
-import com.github.pascalgn.jiracli.model.BoardList;
 import com.github.pascalgn.jiracli.model.Data;
+import com.github.pascalgn.jiracli.model.Issue;
+import com.github.pascalgn.jiracli.model.IssueList;
 
-@CommandDescription(names = "boards", description = "Show the existing boards")
-class Boards implements Command {
-    @Argument(names = { "-n", "--name" }, parameters = Parameters.ONE,
-            description = "only show boards matching the given name")
-    private String name;
-
+@CommandDescription(names = "rank", description = "Set the rank of the issues to the given order")
+class Rank implements Command {
     @Override
-    public BoardList execute(Context context, Data input) {
-        List<Board> boards;
-        if (name == null) {
-            boards = context.getWebService().getBoards();
-        } else {
-            boards = context.getWebService().getBoards(name);
-        }
-        return new BoardList(boards.iterator());
+    public Data execute(Context context, Data input) {
+        IssueList issueList = input.toIssueListOrFail();
+        List<Issue> issues = issueList.remaining();
+        context.getWebService().rankIssues(issues);
+        return new IssueList(issues.iterator());
     }
 }

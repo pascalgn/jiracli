@@ -39,8 +39,7 @@ public class TextList extends List<Text> {
 
     @Override
     public Text toText() {
-        String lineSeparator = System.lineSeparator();
-        return toText(lineSeparator);
+        return toText(System.lineSeparator());
     }
 
     public Text toText(String separator) {

@@ -37,17 +37,21 @@ public interface WebService extends AutoCloseable {
 
     Issue getIssue(String key);
 
-    List<Issue> getEpicIssues(Issue epic);
+    List<Issue> getIssues(Issue epic);
 
     List<Issue> searchIssues(String jql);
 
     void updateIssue(Issue issue);
+
+    void rankIssues(List<Issue> issues);
 
     Project getProject(String key);
 
     List<Project> getProjects();
 
     List<Board> getBoards();
+
+    List<Board> getBoards(String name);
 
     List<Issue> getIssues(Board board);
 

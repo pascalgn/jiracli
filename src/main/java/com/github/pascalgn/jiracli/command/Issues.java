@@ -39,7 +39,7 @@ class Issues implements Command {
                 return new IssueList(issueList.loadingSupplier(new Function<Issue, Collection<Issue>>() {
                     @Override
                     public Collection<Issue> apply(Issue epic) {
-                        return context.getWebService().getEpicIssues(epic);
+                        return context.getWebService().getIssues(epic);
                     }
                 }));
             } else {

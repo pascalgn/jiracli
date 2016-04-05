@@ -52,6 +52,8 @@ class EditingUtils {
     private static final Pattern FIELD_MULTILINE = Pattern.compile("([a-z][a-zA-Z0-9_]*)::\\s*");
     private static final Pattern FIELD_VALUE = Pattern.compile("([a-z][a-zA-Z0-9_]*):\\s+(.*)");
 
+    private static final Pattern SORT_ISSUE = Pattern.compile("([A-Z][A-Z0-9]*-[0-9]+)($|\\s+.*)");
+
     private enum ReadState {
         EXPECT_ISSUE_TITLE, EXPECT_FIELD_OR_ISSUE, EXPECT_FIELD_CONTENT_MULTILINE;
     }
@@ -126,6 +128,14 @@ class EditingUtils {
             writer.newLine();
         }
         writer.newLine();
+    }
+
+    public static void writeSort(BufferedWriter writer, Collection<Issue> issues, String format) throws IOException {
+        for (Issue issue : issues) {
+            String s = CommandUtils.toString(issue, format);
+            writer.write(issue.getKey() + (s.isEmpty() ? "" : " " + s));
+            writer.newLine();
+        }
     }
 
     public static List<Issue> readEdit(List<Issue> originalIssues, BufferedReader reader) throws IOException {
@@ -226,6 +236,26 @@ class EditingUtils {
             }
 
             throw new IllegalStateException("Unexpected line: " + line);
+        }
+
+        return issues;
+    }
+
+    public static List<Issue> readSort(List<Issue> originalIssues, BufferedReader reader) throws IOException {
+        List<Issue> issues = new ArrayList<Issue>();
+
+        String line;
+        while ((line = reader.readLine()) != null) {
+            if (commentOrEmpty(line)) {
+                continue;
+            }
+            Matcher m = SORT_ISSUE.matcher(line);
+            if (m.matches()) {
+                String key = m.group(1);
+                issues.add(findIssue(originalIssues, key));
+            } else {
+                throw new IllegalStateException("Unexpected line: " + line);
+            }
         }
 
         return issues;

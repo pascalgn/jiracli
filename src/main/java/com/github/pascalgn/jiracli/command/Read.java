@@ -16,6 +16,7 @@
 package com.github.pascalgn.jiracli.command;
 
 import java.io.BufferedReader;
+import java.io.Closeable;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -99,7 +100,7 @@ class Read implements Command {
                     context.onClose(new Runnable() {
                         @Override
                         public void run() {
-                            CommandUtils.closeUnchecked(bufferedReader);
+                            closeUnchecked(bufferedReader);
                         }
                     });
                     stringSupplier = new Supplier<String>() {
@@ -115,6 +116,14 @@ class Read implements Command {
                 }
             }
             return stringSupplier;
+        }
+    }
+
+    private static void closeUnchecked(Closeable closeable) {
+        try {
+            closeable.close();
+        } catch (IOException e) {
+            throw new IllegalStateException("Exception while trying to close: " + closeable, e);
         }
     }
 }

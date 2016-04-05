@@ -111,7 +111,7 @@ public class DefaultWebService implements WebService {
     }
 
     @Override
-    public List<Issue> getEpicIssues(Issue epic) {
+    public List<Issue> getIssues(Issue epic) {
         return searchIssues("'Epic Link' = " + epic.getKey() + " ORDER BY Rank");
     }
 
@@ -162,6 +162,25 @@ public class DefaultWebService implements WebService {
             if (response != null) {
                 LOGGER.warn("Unexpected response received: {}", response);
             }
+        }
+    }
+
+    @Override
+    public void rankIssues(List<Issue> issues) {
+        if (issues.isEmpty() || issues.size() == 1) {
+            return;
+        }
+        Issue first = issues.get(0);
+        JSONArray issueArr = new JSONArray();
+        for (Issue issue : issues) {
+            issueArr.put(issue.getKey());
+        }
+        JSONObject request = new JSONObject();
+        request.put("issues", issueArr);
+        request.put("rankBeforeIssue", first.getKey());
+        String response = httpClient.put("/rest/agile/latest/issue/rank", request.toString());
+        if (response != null) {
+            LOGGER.warn("Unexpected response received: {}", response);
         }
     }
 
@@ -232,15 +251,24 @@ public class DefaultWebService implements WebService {
 
     @Override
     public List<Board> getBoards() {
-        JSONObject response = httpClient.get("/rest/agile/latest/board", TO_OBJECT);
+        return getBoards(null);
+    }
+
+    @Override
+    public List<Board> getBoards(String name) {
+        String path = "/rest/agile/latest/board";
+        if (name != null) {
+            path += "?name=" + urlEncode(name);
+        }
+        JSONObject response = httpClient.get(path, TO_OBJECT);
         JSONArray boardArray = response.getJSONArray("values");
         List<Board> boards = new ArrayList<Board>();
         for (Object obj : boardArray) {
             JSONObject json = (JSONObject) obj;
             int id = json.getInt("id");
-            String name = json.getString("name");
+            String boardName = json.getString("name");
             Type type = toType(json.optString("type"));
-            boards.add(new Board(id, name, type));
+            boards.add(new Board(id, boardName, type));
         }
         return boards;
     }
@@ -267,7 +295,11 @@ public class DefaultWebService implements WebService {
         List<Issue> result = new ArrayList<Issue>();
         for (Object obj : array) {
             JSONObject issue = (JSONObject) obj;
-            result.add(getIssue(issue.getString("key")));
+            String key = issue.getString("key");
+            JSONObject fields = issue.getJSONObject("fields");
+            IssueData issueData = new IssueData(key, fields);
+            issueCache.putIfAbsent(key, issueData);
+            result.add(getIssue(key));
         }
         return result;
     }
@@ -294,7 +326,11 @@ public class DefaultWebService implements WebService {
         List<Issue> result = new ArrayList<Issue>();
         for (Object obj : array) {
             JSONObject issue = (JSONObject) obj;
-            result.add(getIssue(issue.getString("key")));
+            String key = issue.getString("key");
+            JSONObject fields = issue.getJSONObject("fields");
+            IssueData issueData = new IssueData(key, fields);
+            issueCache.putIfAbsent(key, issueData);
+            result.add(getIssue(key));
         }
         return result;
     }

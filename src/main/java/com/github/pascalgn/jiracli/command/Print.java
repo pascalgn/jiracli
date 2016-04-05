@@ -15,16 +15,11 @@
  */
 package com.github.pascalgn.jiracli.command;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import org.json.JSONArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
-import com.github.pascalgn.jiracli.context.WebService;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
@@ -37,7 +32,6 @@ class Print implements Command {
     private static final Logger LOGGER = LoggerFactory.getLogger(Print.class);
 
     private static final String DEFAULT_PATTERN = "$key - $summary";
-    private static final Pattern PATTERN = Pattern.compile("\\$\\{([^}]+)\\}|\\$([a-zA-Z]+[a-zA-Z0-9]*)");
 
     @Argument(parameters = Parameters.ZERO_OR_ONE, variable = "<format>", description = "the print format")
     private String pattern = DEFAULT_PATTERN;
@@ -58,7 +52,7 @@ class Print implements Command {
             public Text apply(Issue issue) {
                 String str;
                 try {
-                    str = Print.toString(context.getWebService(), issue, pattern);
+                    str = CommandUtils.toString(issue, pattern);
                 } catch (RuntimeException e) {
                     LOGGER.debug("Error while reading issue: {}", issue, e);
                     str = "[Invalid issue: " + e.getLocalizedMessage() + " - " + issue + "]";
@@ -66,27 +60,5 @@ class Print implements Command {
                 return new Text(str);
             }
         });
-    }
-
-    private static String toString(WebService webService, Issue issue, String pattern) {
-        StringBuilder str = new StringBuilder();
-        Matcher m = PATTERN.matcher(pattern);
-        int end = 0;
-        while (m.find()) {
-            str.append(pattern.substring(end, m.start()));
-            end = m.end();
-
-            String name = (m.group(1) == null ? m.group(2) : m.group(1));
-            Object value = CommandUtils.getFieldValue(issue, name);
-            if (value instanceof JSONArray) {
-                return CommandUtils.join((JSONArray) value, ", ");
-            } else {
-                str.append(value);
-            }
-        }
-
-        str.append(pattern.substring(end));
-
-        return str.toString();
     }
 }

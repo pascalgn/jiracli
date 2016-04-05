@@ -15,7 +15,6 @@
  */
 package com.github.pascalgn.jiracli.command;
 
-import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -24,6 +23,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,13 +36,28 @@ class CommandUtils {
     private static final Logger LOGGER = LoggerFactory.getLogger(CommandUtils.class);
 
     private static final Pattern ISSUE_KEY_PATTERN = Pattern.compile("[A-Z][A-Z0-9]*-[0-9]+");
+    private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\$\\{([^}]+)\\}|\\$([a-zA-Z]+[a-zA-Z0-9]*)");
 
-    public static void closeUnchecked(Closeable closeable) {
-        try {
-            closeable.close();
-        } catch (IOException e) {
-            throw new IllegalStateException("Exception while trying to close: " + closeable, e);
+    public static String toString(Issue issue, String pattern) {
+        StringBuilder str = new StringBuilder();
+        Matcher m = VARIABLE_PATTERN.matcher(pattern);
+        int end = 0;
+        while (m.find()) {
+            str.append(pattern.substring(end, m.start()));
+            end = m.end();
+
+            String name = (m.group(1) == null ? m.group(2) : m.group(1));
+            Object value = CommandUtils.getFieldValue(issue, name);
+            if (value instanceof JSONArray) {
+                return CommandUtils.join((JSONArray) value, ", ");
+            } else {
+                str.append(value);
+            }
         }
+
+        str.append(pattern.substring(end));
+
+        return str.toString();
     }
 
     public static String join(Iterable<?> items, String sep) {
