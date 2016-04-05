@@ -16,6 +16,7 @@
 package com.github.pascalgn.jiracli.context;
 
 import java.io.Reader;
+import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -41,8 +42,8 @@ import com.github.pascalgn.jiracli.model.IssueType;
 import com.github.pascalgn.jiracli.model.Project;
 import com.github.pascalgn.jiracli.model.Sprint;
 import com.github.pascalgn.jiracli.model.Value;
-import com.github.pascalgn.jiracli.util.Cache;
 import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.util.LoadingCache;
 import com.github.pascalgn.jiracli.util.LoadingList;
 import com.github.pascalgn.jiracli.util.MemoizingSupplier;
 import com.github.pascalgn.jiracli.util.Supplier;
@@ -68,18 +69,21 @@ public class DefaultWebService implements WebService {
 
     private final HttpClient httpClient;
 
+    private final Map<String, String> cache;
+
     private final Supplier<Map<String, JSONObject>> fieldDataCache;
-    private final Cache<String, IssueData> issueCache;
+    private final LoadingCache<String, IssueData> issueCache;
 
     public DefaultWebService(String baseUrl, String username, char[] password) {
         this.httpClient = new HttpClient(baseUrl, username, password);
+        this.cache = new HashMap<String, String>();
         this.fieldDataCache = new MemoizingSupplier<>(new Supplier<Map<String, JSONObject>>() {
             @Override
             public Map<String, JSONObject> get() {
                 return loadFieldData();
             }
         });
-        this.issueCache = new Cache<>(new Function<String, IssueData>() {
+        this.issueCache = new LoadingCache<>(new Function<String, IssueData>() {
             @Override
             public IssueData apply(String key) {
                 return new IssueData(key);
@@ -90,7 +94,7 @@ public class DefaultWebService implements WebService {
     @Override
     public String execute(Method method, String path, String body) {
         if (method == Method.GET) {
-            return httpClient.get(path, false);
+            return httpClient.get(path);
         } else if (method == Method.POST) {
             return httpClient.post(path, body);
         } else if (method == Method.PUT) {
@@ -118,15 +122,20 @@ public class DefaultWebService implements WebService {
     @Override
     public List<Issue> searchIssues(String jql) {
         String path = "/rest/api/latest/search?jql=" + urlEncode(jql.trim()) + "&fields=" + INITIAL_FIELDS;
-        JSONObject response = httpClient.get(path, TO_OBJECT);
-        JSONArray issueList = response.getJSONArray("issues");
+        JSONObject response = get(path, TO_OBJECT);
+        return getIssues(response.getJSONArray("issues"));
+    }
+
+    private List<Issue> getIssues(JSONArray issueArray) {
         List<Issue> issues = new ArrayList<Issue>();
-        for (Object obj : issueList) {
+        for (Object obj : issueArray) {
             JSONObject issue = (JSONObject) obj;
             String key = issue.getString("key");
-            JSONObject fields = issue.getJSONObject("fields");
-            IssueData issueData = new IssueData(key, fields);
-            issueCache.putIfAbsent(key, issueData);
+            JSONObject fields = issue.optJSONObject("fields");
+            if (fields != null) {
+                IssueData issueData = new IssueData(key, fields);
+                issueCache.putIfAbsent(key, issueData);
+            }
             issues.add(getIssue(key));
         }
         return issues;
@@ -158,7 +167,7 @@ public class DefaultWebService implements WebService {
         if (!update.keySet().isEmpty()) {
             JSONObject request = new JSONObject();
             request.put("update", update);
-            String response = httpClient.put("/rest/api/latest/issue/" + issue.getKey(), request.toString());
+            String response = put("/rest/api/latest/issue/" + issue.getKey(), request.toString());
             if (response != null) {
                 LOGGER.warn("Unexpected response received: {}", response);
             }
@@ -178,7 +187,7 @@ public class DefaultWebService implements WebService {
         JSONObject request = new JSONObject();
         request.put("issues", issueArr);
         request.put("rankBeforeIssue", first.getKey());
-        String response = httpClient.put("/rest/agile/latest/issue/rank", request.toString());
+        String response = put("/rest/agile/latest/issue/rank", request.toString());
         if (response != null) {
             LOGGER.warn("Unexpected response received: {}", response);
         }
@@ -187,7 +196,7 @@ public class DefaultWebService implements WebService {
     @Override
     public Project getProject(String key) {
         try {
-            JSONObject response = httpClient.get("/rest/api/latest/project/" + key, TO_OBJECT);
+            JSONObject response = get("/rest/api/latest/project/" + key, TO_OBJECT);
             return toProject(response);
         } catch (NoSuchElementException e) {
             LOGGER.debug("Project not found: {}", key, e);
@@ -197,7 +206,7 @@ public class DefaultWebService implements WebService {
 
     @Override
     public List<Project> getProjects() {
-        JSONArray response = httpClient.get("/rest/api/latest/project", TO_ARRAY);
+        JSONArray response = get("/rest/api/latest/project", TO_ARRAY);
         List<Project> projects = new ArrayList<Project>();
         for (Object obj : response) {
             JSONObject json = (JSONObject) obj;
@@ -221,7 +230,7 @@ public class DefaultWebService implements WebService {
 
     private List<IssueType> getIssueTypes(int project) {
         String path = "/rest/api/latest/issue/createmeta?expand=projects.issuetypes.fields&projectIds=" + project;
-        JSONObject response = httpClient.get(path, TO_OBJECT);
+        JSONObject response = get(path, TO_OBJECT);
         JSONArray projectArr = response.getJSONArray("projects");
         List<IssueType> issueTypes = new ArrayList<IssueType>();
         for (Object projectObj : projectArr) {
@@ -260,7 +269,7 @@ public class DefaultWebService implements WebService {
         if (name != null) {
             path += "?name=" + urlEncode(name);
         }
-        JSONObject response = httpClient.get(path, TO_OBJECT);
+        JSONObject response = get(path, TO_OBJECT);
         JSONArray boardArray = response.getJSONArray("values");
         List<Board> boards = new ArrayList<Board>();
         for (Object obj : boardArray) {
@@ -290,23 +299,20 @@ public class DefaultWebService implements WebService {
     @Override
     public List<Issue> getIssues(Board board) {
         String path = "/rest/agile/latest/board/" + board.getId() + "/issue?fields=" + INITIAL_FIELDS;
-        JSONObject response = httpClient.get(path, TO_OBJECT);
-        JSONArray array = response.getJSONArray("issues");
-        List<Issue> result = new ArrayList<Issue>();
-        for (Object obj : array) {
-            JSONObject issue = (JSONObject) obj;
-            String key = issue.getString("key");
-            JSONObject fields = issue.getJSONObject("fields");
-            IssueData issueData = new IssueData(key, fields);
-            issueCache.putIfAbsent(key, issueData);
-            result.add(getIssue(key));
-        }
-        return result;
+        JSONObject response = get(path, TO_OBJECT);
+        return getIssues(response.getJSONArray("issues"));
+    }
+
+    @Override
+    public List<Issue> getEpics(Board board) {
+        String path = "/rest/agile/latest/board/" + board.getId() + "/epic";
+        JSONObject response = get(path, TO_OBJECT);
+        return getIssues(response.getJSONArray("values"));
     }
 
     @Override
     public List<Sprint> getSprints(Board board) {
-        JSONObject response = httpClient.get("/rest/agile/latest/board/" + board.getId() + "/sprint", TO_OBJECT);
+        JSONObject response = get("/rest/agile/latest/board/" + board.getId() + "/sprint", TO_OBJECT);
         JSONArray array = response.getJSONArray("values");
         List<Sprint> sprints = new ArrayList<Sprint>();
         for (Object obj : array) {
@@ -321,18 +327,8 @@ public class DefaultWebService implements WebService {
     @Override
     public List<Issue> getIssues(Sprint sprint) {
         String path = "/rest/agile/latest/sprint/" + sprint.getId() + "/issue?fields=" + INITIAL_FIELDS;
-        JSONObject response = httpClient.get(path, TO_OBJECT);
-        JSONArray array = response.getJSONArray("issues");
-        List<Issue> result = new ArrayList<Issue>();
-        for (Object obj : array) {
-            JSONObject issue = (JSONObject) obj;
-            String key = issue.getString("key");
-            JSONObject fields = issue.getJSONObject("fields");
-            IssueData issueData = new IssueData(key, fields);
-            issueCache.putIfAbsent(key, issueData);
-            result.add(getIssue(key));
-        }
-        return result;
+        JSONObject response = get(path, TO_OBJECT);
+        return getIssues(response.getJSONArray("issues"));
     }
 
     @Override
@@ -355,7 +351,7 @@ public class DefaultWebService implements WebService {
         }
 
         String request = new JSONObject().put("issueUpdates", issueUpdates).toString();
-        String response = httpClient.post("/rest/api/latest/issue/bulk", request);
+        String response = post("/rest/api/latest/issue/bulk", request);
 
         JSONObject responseObj = new JSONObject(response);
         JSONArray issueArr = responseObj.getJSONArray("issues");
@@ -370,7 +366,7 @@ public class DefaultWebService implements WebService {
 
     private Map<String, JSONObject> loadFieldData() {
         Map<String, JSONObject> map = new HashMap<String, JSONObject>();
-        JSONArray array = httpClient.get("/rest/api/latest/field", TO_ARRAY);
+        JSONArray array = get("/rest/api/latest/field", TO_ARRAY);
         for (Object obj : array) {
             JSONObject field = (JSONObject) obj;
             String id = field.getString("id");
@@ -385,6 +381,29 @@ public class DefaultWebService implements WebService {
         } catch (UnsupportedEncodingException e) {
             throw new IllegalStateException("Unsupported encoding!", e);
         }
+    }
+
+    private synchronized <T> T get(String path, Function<Reader, T> function) {
+        String response = cache.get(path);
+        if (response == null) {
+            response = httpClient.get(path);
+            cache.put(path, response);
+        }
+        try (StringReader reader = new StringReader(response)) {
+            return function.apply(reader);
+        }
+    }
+
+    private String post(String path, String body) {
+        cache.clear();
+        issueCache.clear();
+        return httpClient.post(path, body);
+    }
+
+    private String put(String path, String body) {
+        cache.clear();
+        issueCache.clear();
+        return httpClient.put(path, body);
     }
 
     @Override
@@ -418,7 +437,7 @@ public class DefaultWebService implements WebService {
 
         public synchronized JSONObject getAllFields() {
             if (allFields == null) {
-                JSONObject response = httpClient.get("/rest/api/latest/issue/" + issue, TO_OBJECT);
+                JSONObject response = get("/rest/api/latest/issue/" + issue, TO_OBJECT);
                 allFields = response.getJSONObject("fields");
             }
             return allFields;
@@ -426,7 +445,7 @@ public class DefaultWebService implements WebService {
 
         public synchronized JSONObject getEditMeta() {
             if (editMeta == null) {
-                JSONObject response = httpClient.get("/rest/api/latest/issue/" + issue + "/editmeta", TO_OBJECT);
+                JSONObject response = get("/rest/api/latest/issue/" + issue + "/editmeta", TO_OBJECT);
                 editMeta = response.getJSONObject("fields");
             }
             return editMeta;

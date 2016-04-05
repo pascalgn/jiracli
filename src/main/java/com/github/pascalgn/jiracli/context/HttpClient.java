@@ -19,7 +19,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.io.StringReader;
 import java.net.HttpURLConnection;
 import java.nio.charset.Charset;
 import java.security.GeneralSecurityException;
@@ -54,7 +53,6 @@ import org.apache.http.ssl.SSLContexts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.pascalgn.jiracli.util.Cache;
 import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.IOUtils;
 
@@ -85,18 +83,10 @@ class HttpClient implements AutoCloseable {
     private final CloseableHttpClient httpClient;
     private final HttpClientContext httpClientContext;
 
-    private final Cache<String, String> cache;
-
     public HttpClient(String baseUrl, String username, char[] password) {
         this.baseUrl = stripEnd(baseUrl, "/");
         this.httpClient = createHttpClient();
         this.httpClientContext = createHttpClientContext(username, password);
-        this.cache = new Cache<String, String>(new Function<String, String>() {
-            @Override
-            public String apply(String path) {
-                return execute(new HttpGet(getUrl(path)), TO_STRING);
-            }
-        });
     }
 
     private static String stripEnd(String str, String end) {
@@ -147,30 +137,11 @@ class HttpClient implements AutoCloseable {
     }
 
     public String get(String path) {
-        return get(path, true);
-    }
-
-    public String get(String path, boolean cached) {
-        if (cached) {
-            return cache.get(path);
-        } else {
-            return get(path, false, TO_STRING);
-        }
+        return get(path, TO_STRING);
     }
 
     public <T> T get(String path, Function<Reader, T> function) {
-        return get(path, true, function);
-    }
-
-    public <T> T get(String path, boolean cached, Function<Reader, T> function) {
-        if (cached) {
-            String str = cache.get(path);
-            try (StringReader reader = new StringReader(str)) {
-                return function.apply(reader);
-            }
-        } else {
-            return execute(new HttpGet(getUrl(path)), function);
-        }
+        return execute(new HttpGet(getUrl(path)), function);
     }
 
     public String post(String path, String body) {
@@ -178,7 +149,6 @@ class HttpClient implements AutoCloseable {
     }
 
     public <T> T post(String path, String body, Function<Reader, T> function) {
-        cache.clear();
         HttpPost request = new HttpPost(getUrl(path));
         request.setEntity(new StringEntity(body, ContentType.APPLICATION_JSON));
         return execute(request, function);
@@ -189,7 +159,6 @@ class HttpClient implements AutoCloseable {
     }
 
     public <T> T put(String path, String body, Function<Reader, T> function) {
-        cache.clear();
         HttpPut request = new HttpPut(getUrl(path));
         request.setEntity(new StringEntity(body, ContentType.APPLICATION_JSON));
         return execute(request, function);

@@ -18,11 +18,11 @@ package com.github.pascalgn.jiracli.util;
 import java.util.HashMap;
 import java.util.Map;
 
-public final class Cache<K, V> {
+public final class LoadingCache<K, V> {
     private final Function<K, V> function;
     private final Map<K, V> map;
 
-    public Cache(Function<K, V> function) {
+    public LoadingCache(Function<K, V> function) {
         this.function = function;
         this.map = new HashMap<>();
     }
