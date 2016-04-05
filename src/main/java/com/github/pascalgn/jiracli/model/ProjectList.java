@@ -18,53 +18,43 @@ package com.github.pascalgn.jiracli.model;
 import java.util.Arrays;
 import java.util.Iterator;
 
+import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.Supplier;
 
-public class TextList extends List<Text> {
-    public TextList() {
+public class ProjectList extends List<Project> {
+    public ProjectList() {
         super();
     }
 
-    public TextList(Text... texts) {
-        super(Arrays.asList(texts).iterator());
+    public ProjectList(Project... sprints) {
+        super(Arrays.asList(sprints).iterator());
     }
 
-    public TextList(Iterator<Text> iterator) {
+    public ProjectList(Iterator<Project> iterator) {
         super(iterator);
     }
 
-    public TextList(Supplier<Text> supplier) {
+    public ProjectList(Supplier<Project> supplier) {
         super(supplier);
     }
 
     @Override
-    public Text toText() {
-        String lineSeparator = System.lineSeparator();
-        return toText(lineSeparator);
-    }
-
-    public Text toText(String separator) {
-        StringBuilder str = new StringBuilder();
-        boolean first = true;
-        Text text;
-        while ((text = next()) != null) {
-            if (first) {
-                first = false;
-            } else {
-                str.append(separator);
+    public TextList toTextList() {
+        return toTextList(new Function<Project, Text>() {
+            @Override
+            public Text apply(Project project) {
+                return project.toText();
             }
-            str.append(text.getText());
-        }
-        return new Text(str.toString());
+        });
     }
 
     @Override
-    public TextList toTextList() {
+    public ProjectList toProjectList() {
         return this;
     }
 
     @Override
-    public TextList filteredList(Filter<Text> filter) {
-        return new TextList(new FilteredSupplier<>(getSupplier(), filter));
+    public ProjectList filteredList(Filter<Project> filter) {
+        return new ProjectList(new FilteredSupplier<>(getSupplier(), filter));
     }
 }

@@ -88,6 +88,14 @@ public abstract class Data {
         return convertOrFail(toSprintList(), SprintList.class);
     }
 
+    public ProjectList toProjectList() {
+        return null;
+    }
+
+    public final ProjectList toProjectListOrFail() {
+        return convertOrFail(toProjectList(), ProjectList.class);
+    }
+
     private <T> T convertOrFail(T instance, Class<? super T> type) {
         if (instance == null) {
             throw new IllegalStateException("Could not convert to " + type.getSimpleName() + ": " + this);

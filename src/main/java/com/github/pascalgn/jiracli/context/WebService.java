@@ -15,14 +15,25 @@
  */
 package com.github.pascalgn.jiracli.context;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import com.github.pascalgn.jiracli.model.Board;
 import com.github.pascalgn.jiracli.model.Issue;
+import com.github.pascalgn.jiracli.model.Project;
 import com.github.pascalgn.jiracli.model.Sprint;
 
 public interface WebService extends AutoCloseable {
-    String execute(String path);
+    enum Method {
+        GET, POST, PUT, DELETE;
+    }
+
+    interface CreateRequest {
+        Map<String, String> getFields();
+    }
+
+    String execute(Method method, String path, String body);
 
     Issue getIssue(String key);
 
@@ -32,11 +43,17 @@ public interface WebService extends AutoCloseable {
 
     void updateIssue(Issue issue);
 
+    Project getProject(String key);
+
+    List<Project> getProjects();
+
     List<Board> getBoards();
 
     List<Sprint> getSprints(Board board);
 
     List<Issue> getIssues(Sprint sprint);
+
+    List<Issue> createIssues(Collection<CreateRequest> createRequests);
 
     @Override
     void close();

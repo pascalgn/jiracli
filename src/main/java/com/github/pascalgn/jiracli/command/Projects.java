@@ -15,20 +15,18 @@
  */
 package com.github.pascalgn.jiracli.command;
 
-import com.github.pascalgn.jiracli.command.Argument.Parameters;
+import java.util.List;
+
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
-import com.github.pascalgn.jiracli.model.TextList;
+import com.github.pascalgn.jiracli.model.Project;
+import com.github.pascalgn.jiracli.model.ProjectList;
 
-@CommandDescription(names = "join", description = "Join the input texts into a single text")
-class Join implements Command {
-    @Argument(parameters = Parameters.ZERO_OR_ONE, variable = "<separator>",
-            description = "the string between the texts")
-    private String separator = System.lineSeparator();
-
+@CommandDescription(names = "projects", description = "List all projects")
+class Projects implements Command {
     @Override
-    public Data execute(Context context, Data input) {
-        TextList textList = input.toTextListOrFail();
-        return textList.toText(separator);
+    public ProjectList execute(Context context, Data input) {
+        List<Project> projects = context.getWebService().getProjects();
+        return new ProjectList(projects.iterator());
     }
 }

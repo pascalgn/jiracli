@@ -30,6 +30,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 
 import javax.net.ssl.SSLContext;
@@ -43,6 +44,7 @@ import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.AuthCache;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.protocol.HttpClientContext;
@@ -67,11 +69,14 @@ import com.github.pascalgn.jiracli.model.Board;
 import com.github.pascalgn.jiracli.model.Board.Type;
 import com.github.pascalgn.jiracli.model.Field;
 import com.github.pascalgn.jiracli.model.Issue;
+import com.github.pascalgn.jiracli.model.IssueType;
+import com.github.pascalgn.jiracli.model.Project;
 import com.github.pascalgn.jiracli.model.Sprint;
 import com.github.pascalgn.jiracli.model.Value;
 import com.github.pascalgn.jiracli.util.Cache;
 import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.IOUtils;
+import com.github.pascalgn.jiracli.util.LoadingList;
 import com.github.pascalgn.jiracli.util.MemoizingSupplier;
 import com.github.pascalgn.jiracli.util.Supplier;
 
@@ -210,8 +215,16 @@ public class DefaultWebService implements WebService {
     }
 
     @Override
-    public String execute(String path) {
-        return get(path, TO_STRING);
+    public String execute(Method method, String path, String body) {
+        if (method == Method.GET) {
+            return get(path, TO_STRING);
+        } else if (method == Method.POST) {
+            return post(path, body);
+        } else if (method == Method.PUT) {
+            return put(path, body);
+        } else {
+            throw new UnsupportedOperationException(Objects.toString(method));
+        }
     }
 
     @Override
@@ -267,8 +280,76 @@ public class DefaultWebService implements WebService {
         if (!update.keySet().isEmpty()) {
             JSONObject request = new JSONObject();
             request.put("update", update);
-            put("/rest/api/latest/issue/" + issue.getKey(), request.toString());
+            String response = put("/rest/api/latest/issue/" + issue.getKey(), request.toString());
+            if (response != null) {
+                LOGGER.warn("Unexpected response received: {}", response);
+            }
         }
+    }
+
+    @Override
+    public Project getProject(String key) {
+        try {
+            JSONObject response = get("/rest/api/latest/project/" + key, TO_OBJECT);
+            return toProject(response);
+        } catch (NoSuchElementException e) {
+            LOGGER.debug("Project not found: {}", key, e);
+            return null;
+        }
+    }
+
+    @Override
+    public List<Project> getProjects() {
+        JSONArray response = get("/rest/api/latest/project", TO_ARRAY);
+        List<Project> projects = new ArrayList<Project>();
+        for (Object obj : response) {
+            JSONObject json = (JSONObject) obj;
+            projects.add(toProject(json));
+        }
+        return projects;
+    }
+
+    private Project toProject(JSONObject json) {
+        final int id = json.getInt("id");
+        String key = json.getString("key");
+        String name = json.getString("name");
+        List<IssueType> issueTypes = new LoadingList<IssueType>() {
+            @Override
+            protected List<IssueType> loadList() {
+                return getIssueTypes(id);
+            }
+        };
+        return new Project(id, key, name, issueTypes);
+    }
+
+    private List<IssueType> getIssueTypes(int project) {
+        String path = "/rest/api/latest/issue/createmeta?expand=projects.issuetypes.fields&projectIds=" + project;
+        JSONObject response = get(path, TO_OBJECT);
+        JSONArray projectArr = response.getJSONArray("projects");
+        List<IssueType> issueTypes = new ArrayList<IssueType>();
+        for (Object projectObj : projectArr) {
+            JSONObject projectJson = (JSONObject) projectObj;
+            int projectId = projectJson.getInt("id");
+            if (projectId != project) {
+                continue;
+            }
+            JSONArray issueTypeArr = projectJson.getJSONArray("issuetypes");
+            for (Object issueTypeObj : issueTypeArr) {
+                JSONObject issueTypeJson = (JSONObject) issueTypeObj;
+                int id = issueTypeJson.getInt("id");
+                String name = issueTypeJson.getString("name");
+                JSONObject fieldObj = issueTypeJson.getJSONObject("fields");
+                List<IssueType.Field> fields = new ArrayList<>();
+                for (String fieldId : fieldObj.keySet()) {
+                    JSONObject fieldJson = fieldObj.getJSONObject(fieldId);
+                    String fieldName = fieldJson.getString("name");
+                    boolean required = fieldJson.getBoolean("required");
+                    fields.add(new IssueType.Field(fieldId, fieldName, required));
+                }
+                issueTypes.add(new IssueType(id, name, fields));
+            }
+        }
+        return issueTypes;
     }
 
     @Override
@@ -319,6 +400,39 @@ public class DefaultWebService implements WebService {
             result.add(getIssue(issue.getString("key")));
         }
         return result;
+    }
+
+    @Override
+    public List<Issue> createIssues(Collection<CreateRequest> createRequests) {
+        JSONArray issueUpdates = new JSONArray();
+        for (CreateRequest createRequest : createRequests) {
+            JSONObject fields = new JSONObject();
+            for (Map.Entry<String, String> entry : createRequest.getFields().entrySet()) {
+                String id = entry.getKey();
+                String value = entry.getValue();
+                if (id.equals("project")) {
+                    fields.put(id, new JSONObject().put("key", value));
+                } else if (id.equals("issuetype")) {
+                    fields.put(id, new JSONObject().put("name", value));
+                } else {
+                    fields.put(id, value);
+                }
+            }
+            issueUpdates.put(new JSONObject().put("fields", fields));
+        }
+
+        String request = new JSONObject().put("issueUpdates", issueUpdates).toString();
+        String response = post("/rest/api/latest/issue/bulk", request);
+
+        JSONObject responseObj = new JSONObject(response);
+        JSONArray issueArr = responseObj.getJSONArray("issues");
+        List<Issue> issues = new ArrayList<Issue>();
+        for (Object issueObj : issueArr) {
+            JSONObject issueJson = (JSONObject) issueObj;
+            String key = issueJson.getString("key");
+            issues.add(getIssue(key));
+        }
+        return issues;
     }
 
     private Map<String, JSONObject> loadFieldData() {
@@ -394,13 +508,16 @@ public class DefaultWebService implements WebService {
         return execute(new HttpGet(getUrl(path)), function);
     }
 
-    private void put(String path, String body) {
+    private String post(String path, String body) {
+        HttpPost request = new HttpPost(getUrl(path));
+        request.setEntity(new StringEntity(body, ContentType.APPLICATION_JSON));
+        return execute(request, TO_STRING);
+    }
+
+    private String put(String path, String body) {
         HttpPut request = new HttpPut(getUrl(path));
         request.setEntity(new StringEntity(body, ContentType.APPLICATION_JSON));
-        String response = execute(request, TO_STRING);
-        if (response != null) {
-            LOGGER.warn("Unexpected response received: {}", response);
-        }
+        return execute(request, TO_STRING);
     }
 
     private String getUrl(String path) {
@@ -435,12 +552,18 @@ public class DefaultWebService implements WebService {
             if (statusCode == HttpURLConnection.HTTP_UNAUTHORIZED) {
                 throw new IllegalStateException("Unauthorized!");
             } else {
+                String message;
                 String status = response.getStatusLine().toString().trim();
                 if (entity == null) {
-                    throw new IllegalStateException(status);
+                    message = status;
                 } else {
                     String error = readResponse(request, entity, TO_STRING);
-                    throw new IllegalStateException(status + ": " + error);
+                    message = status + (error.trim().isEmpty() ? "" : ": " + error);
+                }
+                if (statusCode == HttpURLConnection.HTTP_NOT_FOUND) {
+                    throw new NoSuchElementException(message);
+                } else {
+                    throw new IllegalStateException(message);
                 }
             }
         }

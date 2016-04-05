@@ -15,18 +15,30 @@
  */
 package com.github.pascalgn.jiracli.testutil;
 
+import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+
 import com.github.pascalgn.jiracli.context.AbstractContext;
 import com.github.pascalgn.jiracli.context.DefaultJavaScriptEngine;
 import com.github.pascalgn.jiracli.context.JavaScriptEngine;
+import com.github.pascalgn.jiracli.context.WebService;
+import com.github.pascalgn.jiracli.model.Issue;
 
 public class MockContext extends AbstractContext {
     private MockConsole console;
-    private MockWebService webService;
+    private WebService webService;
     private JavaScriptEngine javaScriptEngine;
 
     public MockContext() {
         console = new MockConsole();
-        webService = new MockWebService();
+        webService = Mockito.mock(WebService.class);
+        Mockito.when(webService.getIssue(Mockito.anyString())).thenAnswer(new Answer<Issue>() {
+            @Override
+            public Issue answer(InvocationOnMock invocation) throws Throwable {
+                return IssueFactory.create(invocation.getArgumentAt(0, String.class));
+            }
+        });
         javaScriptEngine = new DefaultJavaScriptEngine(console);
     }
 
@@ -36,7 +48,7 @@ public class MockContext extends AbstractContext {
     }
 
     @Override
-    public MockWebService getWebService() {
+    public WebService getWebService() {
         return webService;
     }
 

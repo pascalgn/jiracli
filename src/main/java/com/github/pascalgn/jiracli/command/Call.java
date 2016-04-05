@@ -15,19 +15,37 @@
  */
 package com.github.pascalgn.jiracli.command;
 
+import java.util.Objects;
+
 import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
+import com.github.pascalgn.jiracli.context.WebService.Method;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Text;
 
-@CommandDescription(names = "rest", description = "Execute REST requests")
-class Rest implements Command {
+@CommandDescription(names = "call", description = "Call the given URL")
+class Call implements Command {
+    @Argument(names = { "-m", "--method" }, parameters = Parameters.ONE, variable = "<method>",
+            description = "The method, one of GET, POST, PUT, DELETE")
+    private String method = "GET";
+
     @Argument(parameters = Parameters.ONE, variable = "<path>", description = "The path, relative to the root URL")
     private String path;
 
     @Override
     public Text execute(Context context, Data input) {
-        String response = context.getWebService().execute(path);
+        Text text = input.toText();
+        String body = (text == null ? null : text.getText());
+        String response = context.getWebService().execute(toMethod(method), path, body);
         return new Text(response);
+    }
+
+    private static Method toMethod(String str) {
+        String s = Objects.toString(str, "").trim().toUpperCase();
+        Method m = Method.valueOf(s);
+        if (m == null) {
+            throw new IllegalArgumentException("Unknown method: " + str);
+        }
+        return m;
     }
 }

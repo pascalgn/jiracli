@@ -30,16 +30,12 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import com.github.pascalgn.jiracli.context.Console;
 import com.github.pascalgn.jiracli.context.Context;
-import com.github.pascalgn.jiracli.context.DefaultContext;
-import com.github.pascalgn.jiracli.context.DefaultJavaScriptEngine;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.None;
 import com.github.pascalgn.jiracli.testutil.ExcelUtils;
-import com.github.pascalgn.jiracli.testutil.MockConsole;
-import com.github.pascalgn.jiracli.testutil.MockWebService;
+import com.github.pascalgn.jiracli.testutil.MockContext;
 
 public class ReadExcelTest {
     @Rule
@@ -58,8 +54,7 @@ public class ReadExcelTest {
             }
         }
 
-        Console console = new MockConsole();
-        Context context = new DefaultContext(console, new MockWebService(), new DefaultJavaScriptEngine(console));
+        Context context = new MockContext();
 
         ReadExcel re = new ReadExcel("U", file.getAbsolutePath());
         IssueList list = re.execute(context, None.getInstance());

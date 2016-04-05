@@ -30,6 +30,9 @@ import java.util.prefs.Preferences;
 
 import javax.swing.SwingUtilities;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.github.pascalgn.jiracli.context.Console;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.context.DefaultConsole;
@@ -48,6 +51,8 @@ import com.github.pascalgn.jiracli.util.Supplier;
  * Main class
  */
 public class Jiracli {
+    private static final Logger LOGGER = LoggerFactory.getLogger(Jiracli.class);
+
     private static final String ROOT_URL = "rootURL";
     private static final String USERNAME = "username";
 
@@ -75,6 +80,8 @@ public class Jiracli {
         } else if (options.get(Option.VERSION) == Boolean.TRUE) {
             System.out.println(Constants.getTitle().toLowerCase());
         } else {
+            LOGGER.debug("Starting {}...", Constants.getTitle());
+
             final boolean gui;
             if (options.get(Option.CONSOLE) == Boolean.TRUE) {
                 gui = false;

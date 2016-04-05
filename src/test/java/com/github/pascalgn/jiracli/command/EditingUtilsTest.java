@@ -29,13 +29,14 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import com.github.pascalgn.jiracli.context.WebService.CreateRequest;
 import com.github.pascalgn.jiracli.model.Field;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.testutil.IssueFactory;
 import com.github.pascalgn.jiracli.testutil.Resource;
 import com.github.pascalgn.jiracli.util.IOUtils;
 
-public class EditTest {
+public class EditingUtilsTest {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
 
@@ -44,9 +45,9 @@ public class EditTest {
         Issue issue = IssueFactory.create("ISSUE-123", "summary", "Summary 123");
         File file = folder.newFile("issue123.txt");
         try (BufferedWriter writer = IOUtils.createBufferedWriter(file)) {
-            Edit.write(writer, issue);
+            EditingUtils.writeEdit(writer, issue);
         }
-        Resource resource = Resource.get(getClass(), "EditTest.test1.txt");
+        Resource resource = Resource.get(getClass(), "EditingUtilsTest.test1.txt");
         assertEquals(resource.getContents(), IOUtils.toString(file));
     }
 
@@ -54,7 +55,7 @@ public class EditTest {
     public void test1b() throws Exception {
         Issue originalIssue = IssueFactory.create("ISSUE-123", "summary", "Old summary");
 
-        List<Issue> result = read("EditTest.test1.txt", originalIssue);
+        List<Issue> result = readEdit("EditingUtilsTest.test1.txt", originalIssue);
 
         assertEquals(1, result.size());
         Issue issue = result.get(0);
@@ -66,7 +67,7 @@ public class EditTest {
     public void test2() throws Exception {
         Issue originalIssue = IssueFactory.create("ISSUE-123", "summary", "Old summary");
 
-        List<Issue> result = read("EditTest.test2.txt", originalIssue);
+        List<Issue> result = readEdit("EditingUtilsTest.test2.txt", originalIssue);
 
         assertEquals(1, result.size());
         Issue issue = result.get(0);
@@ -79,7 +80,7 @@ public class EditTest {
         Issue originalIssue = IssueFactory.create("ISSUE-123", "summary", "", "environment", "", "description", "",
                 "custom_123", "X", "custom_456", "X", "custom_789", "X");
 
-        List<Issue> result = read("EditTest.test3.txt", originalIssue);
+        List<Issue> result = readEdit("EditingUtilsTest.test3.txt", originalIssue);
 
         assertEquals(1, result.size());
         Issue issue = result.get(0);
@@ -92,6 +93,12 @@ public class EditTest {
         assertEquals("\r\n", getFieldValue(issue, "custom_789"));
     }
 
+    @Test
+    public void test4() throws Exception {
+        List<CreateRequest> result = readCreate("EditingUtilsTest.test4.txt");
+        assertEquals(2, result.size());
+    }
+
     private static Object getFieldValue(Issue issue, String id) {
         Field field = issue.getFieldMap().getFieldById(id);
         if (field == null) {
@@ -100,10 +107,17 @@ public class EditTest {
         return field.getValue().getValue();
     }
 
-    private static List<Issue> read(String resourceName, Issue... originalIssues) throws IOException {
-        Resource resource = Resource.get(EditTest.class, resourceName);
+    private static List<Issue> readEdit(String resourceName, Issue... originalIssues) throws IOException {
+        Resource resource = Resource.get(EditingUtilsTest.class, resourceName);
         try (BufferedReader reader = new BufferedReader(resource.openReader())) {
-            return Edit.read(Arrays.asList(originalIssues), reader);
+            return EditingUtils.readEdit(Arrays.asList(originalIssues), reader);
+        }
+    }
+
+    private static List<CreateRequest> readCreate(String resourceName) throws IOException {
+        Resource resource = Resource.get(EditingUtilsTest.class, resourceName);
+        try (BufferedReader reader = new BufferedReader(resource.openReader())) {
+            return EditingUtils.readCreate(reader);
         }
     }
 }

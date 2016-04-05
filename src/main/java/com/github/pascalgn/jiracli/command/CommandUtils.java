@@ -16,6 +16,7 @@
 package com.github.pascalgn.jiracli.command;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -24,11 +25,16 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.github.pascalgn.jiracli.model.Field;
 import com.github.pascalgn.jiracli.model.Issue;
+import com.github.pascalgn.jiracli.util.Function;
 
 class CommandUtils {
+    private static final Logger LOGGER = LoggerFactory.getLogger(CommandUtils.class);
+
     private static final Pattern ISSUE_KEY_PATTERN = Pattern.compile("[A-Z][A-Z0-9]*-[0-9]+");
 
     public static void closeUnchecked(Closeable closeable) {
@@ -139,5 +145,20 @@ class CommandUtils {
             result.add(m.group());
         }
         return result;
+    }
+
+    public static <T> T withTemporaryFile(String prefix, String suffix, Function<File, T> function) {
+        try {
+            File tempFile = File.createTempFile(prefix, suffix);
+            try {
+                return function.apply(tempFile);
+            } finally {
+                if (!tempFile.delete() && tempFile.exists()) {
+                    LOGGER.warn("Could not delete temporary file: {}", tempFile);
+                }
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
     }
 }
