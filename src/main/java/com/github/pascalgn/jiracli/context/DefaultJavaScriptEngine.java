@@ -17,7 +17,12 @@ package com.github.pascalgn.jiracli.context;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.io.StringWriter;
 import java.io.Writer;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 
 import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
@@ -25,9 +30,20 @@ import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import javax.script.SimpleScriptContext;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.json.JSONWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.pascalgn.jiracli.model.Field;
+import com.github.pascalgn.jiracli.model.FieldMap;
+import com.github.pascalgn.jiracli.model.Issue;
+import com.github.pascalgn.jiracli.model.IssueList;
+import com.github.pascalgn.jiracli.model.Text;
+import com.github.pascalgn.jiracli.model.TextList;
+import com.github.pascalgn.jiracli.model.Value;
+import com.github.pascalgn.jiracli.util.LoadingList;
 import com.github.pascalgn.jiracli.util.StringSupplierReader;
 import com.github.pascalgn.jiracli.util.Supplier;
 
@@ -37,10 +53,13 @@ public class DefaultJavaScriptEngine implements JavaScriptEngine {
     private static final String INIT_JS = "if (typeof forEach !== 'function') { forEach = Array.prototype.forEach; } "
             + "if (typeof println !== 'function') { println = function(obj) { print(obj); print('\\n'); }; }";
 
+    private final WebService webService;
+
     private final ScriptEngine engine;
     private final ScriptCtx scriptContext;
 
-    public DefaultJavaScriptEngine(Console console) {
+    public DefaultJavaScriptEngine(Console console, WebService webService) {
+        this.webService = webService;
         ScriptEngineManager engineManager = new ScriptEngineManager();
         engine = engineManager.getEngineByExtension("js");
         if (engine == null) {
@@ -58,16 +77,148 @@ public class DefaultJavaScriptEngine implements JavaScriptEngine {
     }
 
     @Override
+    public Text evaluate(String js, Text input) {
+        Objects.requireNonNull(input, "Input must not be null!");
+        Object result = evaluate0(js, input.getText());
+        return new Text(Objects.toString(result, ""));
+    }
+
+    @Override
+    public TextList evaluate(final String js, final TextList input) {
+        Objects.requireNonNull(input, "Input must not be null!");
+        List<Text> result = new LoadingList<Text>() {
+            @Override
+            protected List<Text> loadList() {
+                JSONArray arr = new JSONArray();
+                Text text;
+                while ((text = input.next()) != null) {
+                    arr.put(text.getText());
+                }
+                return null;
+            }
+        };
+        return new TextList(result.iterator());
+    }
+
+    @Override
+    public Issue evaluate(String js, Issue input) {
+        Objects.requireNonNull(input, "Input must not be null!");
+        String inputStr = toJson(input);
+        Object inputObj = evaluate0("JSON.parse(input)", inputStr);
+        Object resultObj = evaluate0(js, inputObj);
+        String resultStr = (String) evaluate0("JSON.stringify(input)", resultObj);
+        return fromJson(resultStr);
+    }
+
+    @Override
+    public IssueList evaluate(final String js, final IssueList input) {
+        Objects.requireNonNull(input, "Input must not be null!");
+        List<Issue> result = new LoadingList<Issue>() {
+            @Override
+            protected List<Issue> loadList() {
+                List<Issue> issues = input.remaining();
+                String inputStr = toJsonArray(issues);
+                Object inputObj = evaluate0("JSON.parse(input)", inputStr);
+                Object resultObj = evaluate0(js, inputObj);
+                if (resultObj == null) {
+                    return Collections.emptyList();
+                } else {
+                    String resultStr = (String) evaluate0("JSON.stringify(input)", resultObj);
+                    return fromJsonArray(issues, resultStr);
+                }
+            }
+        };
+        return new IssueList(result.iterator());
+    }
+
+    @Override
+    public Object evaluate(String js) {
+        return evaluate0(js, null);
+    }
+
+    @Override
     public Object evaluate(String js, Object input) {
-        if (engine == null) {
-            throw new IllegalStateException("No JavaScript engine available!");
-        }
+        Objects.requireNonNull(input, "Input must not be null!");
+        return evaluate0(js, input);
+    }
+
+    private Object evaluate0(String js, Object input) {
+        Objects.requireNonNull(input);
+        Objects.requireNonNull(engine, "No JavaScript engine available!");
         scriptContext.getBindings(ScriptContext.ENGINE_SCOPE).put("input", input);
         try {
             return engine.eval(js);
         } catch (ScriptException e) {
             throw new IllegalArgumentException("Could not evaluate JavaScript: " + e.getLocalizedMessage(), e);
         }
+    }
+
+    private static String toJsonArray(List<Issue> issues) {
+        StringBuilder str = new StringBuilder("[");
+        boolean first = true;
+        for (Issue issue : issues) {
+            if (first) {
+                first = false;
+            } else {
+                str.append(",");
+            }
+            str.append(toJson(issue));
+        }
+        str.append("]");
+        return str.toString();
+    }
+
+    private static String toJson(Issue issue) {
+        try (StringWriter stringWriter = new StringWriter()) {
+            JSONWriter writer = new JSONWriter(stringWriter);
+            writer.object();
+            writer.key("key");
+            writer.value(issue.getKey());
+            writer.key("fields");
+            writer.object();
+            for (Field field : issue.getFieldMap().getFields()) {
+                writer.key(field.getId());
+                writer.value(field.getValue().get());
+            }
+            writer.endObject();
+            writer.endObject();
+            return stringWriter.toString();
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private List<Issue> fromJsonArray(List<Issue> issues2, String str) {
+        JSONArray arr = new JSONArray(str);
+        List<Issue> issues = new ArrayList<Issue>();
+        for (Object obj : arr) {
+            issues.add(fromJson((JSONObject) obj));
+        }
+        return issues;
+    }
+
+    private Issue fromJson(String str) {
+        return fromJson(new JSONObject(str));
+    }
+
+    private Issue fromJson(JSONObject json) {
+        String key = json.getString("key");
+        Issue issue = webService.getIssue(key);
+        JSONObject fields = json.optJSONObject("fields");
+        if (fields != null) {
+            FieldMap fieldMap = issue.getFieldMap();
+            for (String id : fields.keySet()) {
+                Object val = fields.get(key);
+                Field field = fieldMap.getFieldById(id);
+                if (field == null) {
+                    field = new Field(issue, id, new Value(val));
+                    fieldMap.addField(field);
+                } else if (!Objects.equals(val, field.getValue().get())) {
+                    field.getValue().set(val);
+                }
+            }
+        }
+        return issue;
     }
 
     private static class ScriptCtx extends SimpleScriptContext {

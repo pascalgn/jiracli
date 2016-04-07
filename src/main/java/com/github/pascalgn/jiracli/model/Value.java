@@ -15,10 +15,49 @@
  */
 package com.github.pascalgn.jiracli.model;
 
-public interface Value {
-    Object getValue();
+import java.util.Objects;
 
-    void setValue(Object object);
+public final class Value {
+    private Object value;
+    private boolean modified;
 
-    boolean isModified();
+    public Value(Object value) {
+        this.value = value;
+    }
+
+    public Object get() {
+        return value;
+    }
+
+    public void set(Object value) {
+        this.modified = true;
+        this.value = value;
+    }
+
+    public boolean modified() {
+        return modified;
+    }
+
+    @Override
+    public String toString() {
+        return "Value[value=" + value + ", modified=" + modified + "]";
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        return prime * (prime + (modified ? 1231 : 1237)) + Objects.hashCode(value);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        Value other = (Value) obj;
+        return other.modified == modified && Objects.equals(value, other.value);
+    }
 }

@@ -27,6 +27,7 @@ import com.github.pascalgn.jiracli.context.Console;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.None;
+import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.parser.CommandReference;
 
@@ -72,28 +73,14 @@ class Shell {
                 continue;
             }
 
-            Data result = execute(line);
-
-            if (result == null) {
-                continue;
-            }
-
-            try {
-                TextList textList = result.toTextList();
-                if (textList != null) {
-                    String str = textList.toText().getText();
-                    if (!str.isEmpty()) {
-                        console.println(str);
-                    }
-                }
-            } catch (RuntimeException e) {
-                logException(console, e);
-            }
+            execute(line);
         }
     }
 
-    Data execute(String line) {
+    void execute(String line) {
         Console console = context.getConsole();
+
+        Data result;
         try {
             Pipeline.Builder pipelineBuilder = new Pipeline.Builder();
 
@@ -103,13 +90,29 @@ class Shell {
             }
 
             Pipeline pipeline = pipelineBuilder.build();
-            return pipeline.execute(context, None.getInstance());
+            result = pipeline.execute(context, None.getInstance());
         } catch (UsageException e) {
             console.println(e.getLocalizedMessage());
-            return null;
+            return;
         } catch (RuntimeException e) {
             logException(console, e);
-            return null;
+            return;
+        }
+
+        if (result == null) {
+            return;
+        }
+
+        try {
+            TextList textList = result.toTextList();
+            if (textList != null) {
+                Text text;
+                while ((text = textList.next()) != null) {
+                    console.println(text.getText());
+                }
+            }
+        } catch (RuntimeException e) {
+            logException(console, e);
         }
     }
 

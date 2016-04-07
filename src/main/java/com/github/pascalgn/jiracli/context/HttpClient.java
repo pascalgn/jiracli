@@ -15,6 +15,7 @@
  */
 package com.github.pascalgn.jiracli.context;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -22,16 +23,23 @@ import java.io.Reader;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.security.AccessControlException;
 import java.security.GeneralSecurityException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.zip.GZIPInputStream;
 
 import javax.net.ssl.SSLContext;
 
+import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.auth.AuthScheme;
 import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.AuthState;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.AuthCache;
 import org.apache.http.client.CredentialsProvider;
@@ -50,6 +58,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.ssl.SSLContexts;
+import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,10 +66,13 @@ import com.github.pascalgn.jiracli.util.Consumer;
 import com.github.pascalgn.jiracli.util.Credentials;
 import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.IOUtils;
+import com.github.pascalgn.jiracli.util.StringUtils;
 import com.github.pascalgn.jiracli.util.Supplier;
 
 class HttpClient implements AutoCloseable {
     private static final Logger LOGGER = LoggerFactory.getLogger(HttpClient.class);
+
+    private static final int MAX_ERROR_LENGTH = 500;
 
     private static final Function<Reader, String> TO_STRING;
     private static final SSLConnectionSocketFactory SSL_SOCKET_FACTORY;
@@ -82,23 +94,25 @@ class HttpClient implements AutoCloseable {
         SSL_SOCKET_FACTORY = new SSLConnectionSocketFactory(sslcontext, NoopHostnameVerifier.INSTANCE);
     }
 
+    private final Map<String, Credentials> credentials;
     private final Supplier<String> baseUrl;
     private final CloseableHttpClient httpClient;
     private final HttpClientContext httpClientContext;
 
     public HttpClient(Supplier<String> baseUrl, Function<String, Credentials> credentials) {
+        this.credentials = new HashMap<String, Credentials>();
         this.baseUrl = baseUrl;
-        this.httpClient = createHttpClient();
+        this.httpClient = createHttpClient(credentials);
         this.httpClientContext = createHttpClientContext(credentials);
     }
 
-    private static CloseableHttpClient createHttpClient() {
+    private static CloseableHttpClient createHttpClient(final Function<String, Credentials> credentials) {
         HttpClientBuilder httpClientBuilder = HttpClients.custom();
         httpClientBuilder.setSSLSocketFactory(SSL_SOCKET_FACTORY);
         return httpClientBuilder.build();
     }
 
-    private static HttpClientContext createHttpClientContext(final Function<String, Credentials> credentials) {
+    private HttpClientContext createHttpClientContext(final Function<String, Credentials> credentials) {
         HttpClientContext context = HttpClientContext.create();
 
         CredentialsProvider credentialsProvider = new CredentialsProvider() {
@@ -108,8 +122,20 @@ class HttpClient implements AutoCloseable {
 
             @Override
             public org.apache.http.auth.Credentials getCredentials(AuthScope authscope) {
-                Credentials c = credentials.apply(authscope.getOrigin().toURI());
-                return new UsernamePasswordCredentials(c.getUsername(), new String(c.getPassword()));
+                String baseUrl = getBaseUrl();
+                Credentials c = HttpClient.this.credentials.get(baseUrl);
+                if (c == null) {
+                    c = credentials.apply(authscope.getOrigin().toURI());
+                    if (c == null) {
+                        throw new IllegalStateException("No credentials provided!");
+                    }
+                    HttpClient.this.credentials.put(baseUrl, c);
+                }
+                if (c == Credentials.getAnonymous()) {
+                    return null;
+                } else {
+                    return new UsernamePasswordCredentials(c.getUsername(), new String(c.getPassword()));
+                }
             }
 
             @Override
@@ -145,14 +171,13 @@ class HttpClient implements AutoCloseable {
 
     public String getBaseUrl() {
         String url = baseUrl.get();
-        if (url == null) {
+        if (url == null || url.trim().isEmpty()) {
             throw new IllegalStateException("No base URL provided!");
         }
-        return stripEnd(url, "/");
-    }
-
-    private static String stripEnd(String str, String end) {
-        return (str.endsWith(end) ? str.substring(0, str.length() - end.length()) : str);
+        if (url.endsWith("/") || !url.equals(url.trim())) {
+            throw new IllegalStateException("Invalid base URL: " + url);
+        }
+        return url;
     }
 
     public String get(String path) {
@@ -163,17 +188,22 @@ class HttpClient implements AutoCloseable {
         return execute(new HttpGet(getUrl(path)), function);
     }
 
-    public void get(URI uri, Consumer<InputStream> consumer) {
-        HttpEntity entity = execute(new HttpGet(uri));
-        if (entity == null) {
-            throw new IllegalStateException("No response!");
-        } else {
-            try (InputStream input = entity.getContent()) {
-                consumer.accept(input);
-            } catch (IOException e) {
-                throw new IllegalStateException("Could not read response for URL: " + uri, e);
+    public void get(final URI uri, final Consumer<InputStream> consumer) {
+        execute0(new HttpGet(uri), true, new Function<HttpEntity, Void>() {
+            @Override
+            public Void apply(HttpEntity entity) {
+                if (entity == null) {
+                    throw new IllegalStateException("No response!");
+                } else {
+                    try (InputStream input = entity.getContent()) {
+                        consumer.accept(input);
+                    } catch (IOException e) {
+                        throw new IllegalStateException("Could not read response for URL: " + uri, e);
+                    }
+                }
+                return null;
             }
-        }
+        });
     }
 
     public String post(String path, String body) {
@@ -203,12 +233,16 @@ class HttpClient implements AutoCloseable {
         return getBaseUrl() + path;
     }
 
-    private <T> T execute(HttpUriRequest request, Function<Reader, T> function) {
-        HttpEntity entity = execute(request);
-        return (entity == null ? null : readResponse(request, entity, function));
+    private <T> T execute(final HttpUriRequest request, final Function<Reader, T> function) {
+        return execute0(request, true, new Function<HttpEntity, T>() {
+            @Override
+            public T apply(HttpEntity entity) {
+                return (entity == null ? null : readResponse(request.getURI(), entity, function));
+            }
+        });
     }
 
-    private HttpEntity execute(HttpUriRequest request) {
+    private <T> T execute0(HttpUriRequest request, boolean retry, Function<HttpEntity, T> function) {
         LOGGER.debug("Calling URL: {} [{}]", request.getURI(), request.getMethod());
 
         HttpResponse response;
@@ -221,28 +255,46 @@ class HttpClient implements AutoCloseable {
         LOGGER.debug("Response received ({})", response.getStatusLine().toString().trim());
 
         HttpEntity entity = response.getEntity();
-
-        int statusCode = response.getStatusLine().getStatusCode();
-        if (isSuccess(statusCode)) {
-            return entity;
-        } else {
-            if (statusCode == HttpURLConnection.HTTP_UNAUTHORIZED) {
-                throw new IllegalStateException("Unauthorized!");
+        try {
+            int statusCode = response.getStatusLine().getStatusCode();
+            if (isSuccess(statusCode)) {
+                return function.apply(entity);
             } else {
-                String message;
-                String status = response.getStatusLine().toString().trim();
-                if (entity == null) {
-                    message = status;
+                if (statusCode == HttpURLConnection.HTTP_UNAUTHORIZED) {
+                    resetAuthentication();
+                    if (retry) {
+                        return execute0(request, false, function);
+                    } else {
+                        throw new AccessControlException("Unauthorized [401]: " + request.getURI());
+                    }
+                } else if (statusCode == HttpURLConnection.HTTP_FORBIDDEN) {
+                    resetAuthentication();
+                    checkAccountLocked(response);
+                    if (retry) {
+                        return execute0(request, false, function);
+                    } else {
+                        throw new AccessControlException("Forbidden [403]: " + request.getURI());
+                    }
+                } else if (statusCode == HttpURLConnection.HTTP_NOT_FOUND) {
+                    throw new NoSuchElementException("Not found [404]: " + request.getURI());
                 } else {
-                    String error = readResponse(request, entity, TO_STRING);
-                    message = status + (error.trim().isEmpty() ? "" : ": " + error);
-                }
-                if (statusCode == HttpURLConnection.HTTP_NOT_FOUND) {
-                    throw new NoSuchElementException(message);
-                } else {
-                    throw new IllegalStateException(message);
+                    String status = response.getStatusLine().toString().trim();
+                    String message;
+                    if (entity == null) {
+                        message = status;
+                    } else {
+                        String error = readErrorResponse(request.getURI(), entity);
+                        message = status + (error.isEmpty() ? "" : ": " + error);
+                    }
+                    if (statusCode == HttpURLConnection.HTTP_NOT_FOUND) {
+                        throw new NoSuchElementException(message);
+                    } else {
+                        throw new IllegalStateException(message);
+                    }
                 }
             }
+        } finally {
+            EntityUtils.consumeQuietly(entity);
         }
     }
 
@@ -250,15 +302,15 @@ class HttpClient implements AutoCloseable {
         return statusCode >= 200 && statusCode <= 299;
     }
 
-    private static <T> T readResponse(HttpUriRequest request, HttpEntity entity, Function<Reader, T> function) {
+    private static <T> T readResponse(URI uri, HttpEntity entity, Function<Reader, T> function) {
         try (InputStream input = entity.getContent()) {
             try (Reader reader = new InputStreamReader(input, getEncoding(entity))) {
                 return function.apply(reader);
             }
         } catch (RuntimeException e) {
-            throw new IllegalStateException("Could not read response for URL: " + request.getURI(), e);
+            throw new IllegalStateException("Could not read response for URL: " + uri, e);
         } catch (IOException e) {
-            throw new IllegalStateException("Could not read response for URL: " + request.getURI(), e);
+            throw new IllegalStateException("Could not read response for URL: " + uri, e);
         }
     }
 
@@ -275,6 +327,52 @@ class HttpClient implements AutoCloseable {
             }
         }
         return Charset.defaultCharset();
+    }
+
+    private void resetAuthentication() {
+        String url = getBaseUrl();
+        credentials.remove(url);
+        AuthState authState = httpClientContext.getTargetAuthState();
+        if (authState != null) {
+            authState.reset();
+        }
+    }
+
+    private static void checkAccountLocked(HttpResponse response) {
+        Header header = response.getLastHeader("X-Authentication-Denied-Reason");
+        if (header != null) {
+            String info = Objects.toString(header.getValue(), "").trim();
+            throw new AccessControlException("Your account seems to be locked" + (info.isEmpty() ? "" : ": " + info));
+        }
+    }
+
+    private static String readErrorResponse(URI uri, HttpEntity entity) {
+        String error;
+        try (InputStream input = entity.getContent()) {
+            try (Reader reader = new InputStreamReader(maybeDecompress(input), getEncoding(entity))) {
+                error = IOUtils.toString(reader, MAX_ERROR_LENGTH + 1);
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+        error = StringUtils.shorten(error, MAX_ERROR_LENGTH);
+        return error.trim();
+    }
+
+    private static InputStream maybeDecompress(InputStream input) throws IOException {
+        // Due to a bug, Jira sometimes returns double-compressed responses. See JRA-37608
+        BufferedInputStream buffered = new BufferedInputStream(input, 2);
+        buffered.mark(2);
+        int[] buf = new int[2];
+        buf[0] = buffered.read();
+        buf[1] = buffered.read();
+        buffered.reset();
+        int header = (buf[1] << 8) | buf[0];
+        if (header == GZIPInputStream.GZIP_MAGIC) {
+            return new GZIPInputStream(buffered);
+        } else {
+            return buffered;
+        }
     }
 
     @Override

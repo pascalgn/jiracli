@@ -13,12 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.pascalgn.jiracli;
+package com.github.pascalgn.jiracli.gui;
 
-import com.github.pascalgn.jiracli.context.Context;
+import com.github.pascalgn.jiracli.util.Credentials;
 
-public class ShellHelper {
-    public static void execute(Context context, String line) {
-        new Shell(context).execute(line);
+public class CredentialsPanelDemo {
+    public static void main(String[] args) {
+        Credentials c = CredentialsPanel.getCredentials(null, "", "http://example.com");
+        System.out.println(c);
     }
 }

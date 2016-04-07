@@ -15,16 +15,12 @@
  */
 package com.github.pascalgn.jiracli.model;
 
-import java.net.URI;
-
 public class Issue extends Data {
     private final String key;
-    private final URI uri;
     private final FieldMap fieldMap;
 
-    public Issue(String key, URI uri, FieldMap fieldMap) {
+    public Issue(String key, FieldMap fieldMap) {
         this.key = key;
-        this.uri = uri;
         this.fieldMap = fieldMap;
     }
 
@@ -36,24 +32,10 @@ public class Issue extends Data {
     }
 
     /**
-     * @return The URI of this issue, for example <code>https://jira.example.com/browse/ISSUE-123</code>
-     */
-    public URI getUri() {
-        return uri;
-    }
-
-    /**
      * @return The fields of this issue, never null
      */
     public FieldMap getFieldMap() {
         return fieldMap;
-    }
-
-    /**
-     * @return The JSON representation of this issue, never null
-     */
-    public String toJson() {
-        return IssueHelper.toJson(this);
     }
 
     @Override
@@ -79,5 +61,23 @@ public class Issue extends Data {
     @Override
     public String toString() {
         return key;
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        return prime * fieldMap.hashCode() + key.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        Issue other = (Issue) obj;
+        return key.equals(other.key) && fieldMap.equals(other.fieldMap);
     }
 }

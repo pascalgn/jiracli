@@ -24,14 +24,17 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import com.github.pascalgn.jiracli.context.WebService.CreateRequest;
+import com.github.pascalgn.jiracli.model.Converter;
 import com.github.pascalgn.jiracli.model.Field;
 import com.github.pascalgn.jiracli.model.Issue;
+import com.github.pascalgn.jiracli.model.Schema;
 import com.github.pascalgn.jiracli.testutil.IssueFactory;
 import com.github.pascalgn.jiracli.testutil.Resource;
 import com.github.pascalgn.jiracli.util.IOUtils;
@@ -44,8 +47,9 @@ public class EditingUtilsTest {
     public void test1a() throws Exception {
         Issue issue = IssueFactory.create("ISSUE-123", "summary", "Summary 123");
         File file = folder.newFile("issue123.txt");
+        Schema schema = new SchemaImpl();
         try (BufferedWriter writer = IOUtils.createBufferedWriter(file)) {
-            EditingUtils.writeEdit(writer, issue);
+            EditingUtils.writeEdit(writer, issue, issue.getFieldMap().getFields(), schema);
         }
         Resource resource = Resource.get(getClass(), "EditingUtilsTest.test1.txt");
         assertEquals(resource.getContents(), IOUtils.toString(file));
@@ -90,7 +94,7 @@ public class EditingUtilsTest {
         assertEquals("Some description\r\n; not a comment", getFieldValue(issue, "description"));
         assertEquals("", getFieldValue(issue, "custom_123"));
         assertEquals("", getFieldValue(issue, "custom_456"));
-        assertEquals("\r\n", getFieldValue(issue, "custom_789"));
+        assertEquals("", getFieldValue(issue, "custom_789"));
     }
 
     @Test
@@ -104,13 +108,14 @@ public class EditingUtilsTest {
         if (field == null) {
             throw new IllegalStateException("No such field: " + id);
         }
-        return field.getValue().getValue();
+        return field.getValue().get();
     }
 
     private static List<Issue> readEdit(String resourceName, Issue... originalIssues) throws IOException {
+        Schema schema = new SchemaImpl();
         Resource resource = Resource.get(EditingUtilsTest.class, resourceName);
         try (BufferedReader reader = new BufferedReader(resource.openReader())) {
-            return EditingUtils.readEdit(Arrays.asList(originalIssues), reader);
+            return EditingUtils.readEdit(Arrays.asList(originalIssues), schema, reader);
         }
     }
 
@@ -118,6 +123,28 @@ public class EditingUtilsTest {
         Resource resource = Resource.get(EditingUtilsTest.class, resourceName);
         try (BufferedReader reader = new BufferedReader(resource.openReader())) {
             return EditingUtils.readCreate(reader);
+        }
+    }
+
+    private static class SchemaImpl implements Schema {
+        @Override
+        public String getName(Field field) {
+            return field.getId();
+        }
+
+        @Override
+        public Converter getConverter(Field field) {
+            return new Converter() {
+                @Override
+                public String toString(Object value) {
+                    return Objects.toString(value, "");
+                }
+
+                @Override
+                public Object fromString(String str) {
+                    return str;
+                }
+            };
         }
     }
 }

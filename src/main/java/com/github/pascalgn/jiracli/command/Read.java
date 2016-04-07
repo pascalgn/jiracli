@@ -95,7 +95,7 @@ class Read implements Command {
                     try {
                         bufferedReader = new BufferedReader(new InputStreamReader(new FileInputStream(filename)));
                     } catch (FileNotFoundException e) {
-                        throw new IllegalStateException("File not found: " + filename);
+                        throw new IllegalArgumentException("File not found: " + filename);
                     }
                     context.onClose(new Runnable() {
                         @Override

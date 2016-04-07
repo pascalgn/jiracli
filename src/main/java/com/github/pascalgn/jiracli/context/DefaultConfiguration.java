@@ -19,6 +19,7 @@ import java.util.Objects;
 import java.util.prefs.Preferences;
 
 import com.github.pascalgn.jiracli.Constants;
+import com.github.pascalgn.jiracli.util.StringUtils;
 
 public class DefaultConfiguration implements Configuration {
     private static final String BASE_URL = "baseUrl";
@@ -46,8 +47,13 @@ public class DefaultConfiguration implements Configuration {
 
     @Override
     public void setBaseUrl(String baseUrl) {
-        this.baseUrl = emptyToNull(baseUrl);
-        preferences.put(BASE_URL, Objects.toString(baseUrl, ""));
+        String url = emptyToNull(baseUrl);
+        if (url != null) {
+            url = StringUtils.stripEnd(url.trim(), "/");
+            url = emptyToNull(url);
+        }
+        this.baseUrl = url;
+        preferences.put(BASE_URL, Objects.toString(url, ""));
     }
 
     @Override

@@ -37,6 +37,7 @@ import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
+import com.github.pascalgn.jiracli.model.Schema;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.util.Function;
@@ -93,14 +94,15 @@ class Sort implements Command {
     private IssueList sort(final Context context, IssueList issueList) {
         List<Issue> issues = issueList.remaining();
 
-        Collections.sort(issues, new IssueComparator());
+        Schema schema = context.getWebService().getSchema();
+        Collections.sort(issues, new IssueComparator(schema));
 
         if (unique) {
             Set<List<String>> set = new HashSet<>();
             Iterator<Issue> it = issues.iterator();
             while (it.hasNext()) {
                 Issue issue = it.next();
-                List<String> values = values(issue);
+                List<String> values = values(issue, schema);
                 if (!set.add(values)) {
                     it.remove();
                 }
@@ -125,8 +127,9 @@ class Sort implements Command {
     }
 
     private List<Issue> edit(Context context, List<Issue> issues, File file) throws IOException {
+        Schema schema = context.getWebService().getSchema();
         try (BufferedWriter writer = IOUtils.createBufferedWriter(file)) {
-            EditingUtils.writeSort(writer, issues, FORMAT);
+            EditingUtils.writeSort(writer, issues, schema, FORMAT);
         }
 
         boolean success = context.getConsole().editFile(file);
@@ -155,10 +158,16 @@ class Sort implements Command {
     }
 
     private class IssueComparator implements Comparator<Issue> {
+        private final Schema schema;
+
+        public IssueComparator(Schema schema) {
+            this.schema = schema;
+        }
+
         @Override
         public int compare(Issue issue1, Issue issue2) {
-            List<String> values1 = values(issue1);
-            List<String> values2 = values(issue2);
+            List<String> values1 = values(issue1, schema);
+            List<String> values2 = values(issue2, schema);
             for (int i = 0; i < fields.size(); i++) {
                 String value1 = values1.get(i);
                 String value2 = values2.get(i);
@@ -171,10 +180,10 @@ class Sort implements Command {
         }
     }
 
-    private List<String> values(Issue issue) {
+    private List<String> values(Issue issue, Schema schema) {
         List<String> values = new ArrayList<String>();
         for (String field : fields) {
-            Object value = CommandUtils.getFieldValue(issue, field);
+            Object value = CommandUtils.getFieldValue(issue, schema, field);
             values.add(Objects.toString(value, ""));
         }
         return values;

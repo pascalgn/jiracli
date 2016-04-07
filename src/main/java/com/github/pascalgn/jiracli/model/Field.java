@@ -16,17 +16,14 @@
 package com.github.pascalgn.jiracli.model;
 
 public class Field extends Data {
-    private final Issue issue;
+    private final transient Issue issue;
 
     private final String id;
-    private final String name;
-
     private final Value value;
 
-    public Field(Issue issue, String id, String name, Value value) {
+    public Field(Issue issue, String id, Value value) {
         this.issue = issue;
         this.id = id;
-        this.name = name;
         this.value = value;
     }
 
@@ -36,10 +33,6 @@ public class Field extends Data {
 
     public String getId() {
         return id;
-    }
-
-    public String getName() {
-        return name;
     }
 
     public Value getValue() {
@@ -58,7 +51,7 @@ public class Field extends Data {
 
     @Override
     public Text toText() {
-        return new Text(toString());
+        return new Text(id + " = " + value);
     }
 
     @Override
@@ -78,6 +71,24 @@ public class Field extends Data {
 
     @Override
     public String toString() {
-        return "Field[" + name + " = " + value + "]";
+        return "Field[" + id + " = " + value + "]";
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        return prime * (prime + id.hashCode()) + value.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        Field other = (Field) obj;
+        return id.equals(other.id) && value.equals(other.value);
     }
 }

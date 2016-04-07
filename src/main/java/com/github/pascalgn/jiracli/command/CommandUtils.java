@@ -29,8 +29,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.pascalgn.jiracli.model.Field;
+import com.github.pascalgn.jiracli.model.FieldMap;
 import com.github.pascalgn.jiracli.model.Issue;
+import com.github.pascalgn.jiracli.model.Schema;
 import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.util.StringUtils;
 
 class CommandUtils {
     private static final Logger LOGGER = LoggerFactory.getLogger(CommandUtils.class);
@@ -38,7 +41,7 @@ class CommandUtils {
     private static final Pattern ISSUE_KEY_PATTERN = Pattern.compile("[A-Z][A-Z0-9]*-[0-9]+");
     private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\$\\{([^}]+)\\}|\\$([a-zA-Z]+[a-zA-Z0-9]*)");
 
-    public static String toString(Issue issue, String pattern) {
+    public static String toString(Issue issue, Schema schema, String pattern) {
         StringBuilder str = new StringBuilder();
         Matcher m = VARIABLE_PATTERN.matcher(pattern);
         int end = 0;
@@ -47,9 +50,9 @@ class CommandUtils {
             end = m.end();
 
             String name = (m.group(1) == null ? m.group(2) : m.group(1));
-            Object value = CommandUtils.getFieldValue(issue, name);
+            Object value = CommandUtils.getFieldValue(issue, schema, name);
             if (value instanceof JSONArray) {
-                return CommandUtils.join((JSONArray) value, ", ");
+                return StringUtils.join((JSONArray) value, ", ");
             } else {
                 str.append(value);
             }
@@ -60,33 +63,9 @@ class CommandUtils {
         return str.toString();
     }
 
-    public static String join(Iterable<?> items, String sep) {
-        StringBuilder result = new StringBuilder();
-        boolean first = true;
-        for (Object obj : items) {
-            if (first) {
-                first = false;
-            } else {
-                result.append(sep);
-            }
-            result.append(obj);
-        }
-        return result.toString();
-    }
-
-    public static String repeat(String str, int times) {
-        StringBuilder result = new StringBuilder();
-        for (int i = 0; i < times; i++) {
-            result.append(str);
-        }
-        return result.toString();
-    }
-
-    public static Object getFieldValue(Issue issue, String name) {
+    public static Object getFieldValue(Issue issue, final Schema schema, String name) {
         if (name.equalsIgnoreCase("key")) {
             return issue.getKey();
-        } else if (name.equalsIgnoreCase("uri")) {
-            return issue.getUri();
         }
 
         String fieldNameOrId;
@@ -100,22 +79,28 @@ class CommandUtils {
             subname = "";
         }
 
-        Field field = issue.getFieldMap().getFieldById(fieldNameOrId);
+        FieldMap fieldMap = issue.getFieldMap();
+        Field field = fieldMap.getFieldById(fieldNameOrId);
         if (field == null) {
-            field = issue.getFieldMap().getFieldByName(fieldNameOrId);
+            field = fieldMap.getFieldByName(fieldNameOrId, new Function<Field, String>() {
+                @Override
+                public String apply(Field field) {
+                    return schema.getName(field);
+                }
+            });
         }
         if (field == null) {
-            throw new IllegalStateException("No such field: " + fieldNameOrId + ": " + issue);
+            throw new IllegalArgumentException("No such field: " + fieldNameOrId);
         }
 
-        Object value = field.getValue().getValue();
+        Object value = field.getValue().get();
         if (subname.isEmpty()) {
             return value;
         } else {
             if (value instanceof JSONObject) {
                 return getFieldValue((JSONObject) value, subname);
             } else {
-                throw new IllegalStateException("Not a Json object: " + issue + "/" + fieldNameOrId + ": " + value);
+                throw new IllegalArgumentException("Not a Json object: " + fieldNameOrId + ": " + value);
             }
         }
     }
@@ -132,7 +117,7 @@ class CommandUtils {
             if (json.has(name)) {
                 return json.get(name);
             } else {
-                throw new IllegalStateException("Name '" + name + "' not found: " + json.toString(2));
+                throw new IllegalArgumentException("Name '" + name + "' not found: " + json.toString(2));
             }
         }
     }

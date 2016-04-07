@@ -16,12 +16,17 @@
 package com.github.pascalgn.jiracli.command;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
+import java.util.Arrays;
 
 import org.json.JSONObject;
 import org.junit.Test;
 
+import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
+import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.testutil.IssueFactory;
 import com.github.pascalgn.jiracli.testutil.MockContext;
 
@@ -30,12 +35,39 @@ public class JavaScriptTest {
     public void test1() throws Exception {
         MockContext context = new MockContext();
 
+        Issue issue1 = IssueFactory.create("ISSUE-1");
+        Issue issue2 = IssueFactory.create("ISSUE-2");
+
+        JavaScript javaScript = new JavaScript(true, "input");
+        Data result = javaScript.execute(context, new IssueList(issue1, issue2));
+
+        assertNotNull(result);
+        assertEquals(Arrays.asList(issue1, issue2), result.toIssueList().remaining());
+    }
+
+    @Test
+    public void test2() throws Exception {
+        MockContext context = new MockContext();
+
         Issue issue1 = IssueFactory.create("ISSUE-1", "author", new JSONObject("{name:'Author-Name'}"));
 
-        JavaScript javaScript = new JavaScript("forEach.call(input, function(issue) { print(issue.key"
-                + " + ': ' + issue.fields.author.name); });");
-        javaScript.execute(context, new IssueList(issue1));
+        String js = "forEach.call(input, function(issue) { print(issue.key + ': ' + issue.fields.author.name); });";
+        JavaScript javaScript = new JavaScript(true, js);
+        Data result = javaScript.execute(context, new IssueList(issue1));
+
+        assertNotNull(result);
+        assertEquals("", context.getConsole().getOutput().trim());
+
+        // Lazy evaluation!
+        result.toTextList().toText();
 
         assertEquals("ISSUE-1: Author-Name", context.getConsole().getOutput().trim());
+    }
+
+    @Test
+    public void test3() throws Exception {
+        MockContext context = new MockContext();
+        JavaScript javaScript = new JavaScript("if (input == '123') { input += '456'; } println('Hello'); input;");
+        assertEquals("123456", javaScript.execute(context, new Text("123")).toTextOrFail().getText());
     }
 }

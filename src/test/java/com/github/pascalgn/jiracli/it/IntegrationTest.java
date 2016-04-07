@@ -30,9 +30,6 @@ import com.github.pascalgn.jiracli.context.DefaultJavaScriptEngine;
 import com.github.pascalgn.jiracli.context.DefaultWebService;
 import com.github.pascalgn.jiracli.context.JavaScriptEngine;
 import com.github.pascalgn.jiracli.context.WebService;
-import com.github.pascalgn.jiracli.model.Data;
-import com.github.pascalgn.jiracli.model.Text;
-import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.testutil.MockConsole;
 
 public class IntegrationTest {
@@ -42,16 +39,16 @@ public class IntegrationTest {
     @Test
     public void testSearch1() throws Exception {
         try (Context context = createContext()) {
-            Data data = ShellHelper.execute(context, "search 'key=JRA-123' | print $summary");
-            assertEquals("A simple Jira issue", toString(data.toTextListOrFail()));
+            ShellHelper.execute(context, "search 'key=JRA-123' | print $summary");
+            assertEquals("A simple Jira issue", getOutput(context));
         }
     }
 
     @Test
     public void testSearch2() throws Exception {
         try (Context context = createContext()) {
-            Data data = ShellHelper.execute(context, "search 'key=JRA-123' | print ${issuetype.name}");
-            assertEquals("Change request", toString(data.toTextListOrFail()));
+            ShellHelper.execute(context, "search 'key=JRA-123' | print ${issuetype.name}");
+            assertEquals("Change request", getOutput(context));
         }
     }
 
@@ -59,17 +56,16 @@ public class IntegrationTest {
     public void testJavaScript1() throws Exception {
         try (Context context = createContext()) {
             ShellHelper.execute(context, "get JRA-123 | "
-                    + "js \"forEach.call(input, function(issue) { println(issue.fields.issuetype.name); })\"");
-            MockConsole console = (MockConsole) context.getConsole();
-            assertEquals("Change request", console.getOutput().trim());
+                    + "js -l \"forEach.call(input, function(issue) { println(issue.fields.issuetype.name); })\"");
+            assertEquals("Change request", getOutput(context));
         }
     }
 
     @Test
     public void testBrowse1() throws Exception {
         try (Context context = createContext()) {
-            Data data = ShellHelper.execute(context, "get JRA-123 | browse -n");
-            assertEquals(testServerRule.getRootUrl() + "/browse/JRA-123", toString(data.toTextListOrFail()));
+            ShellHelper.execute(context, "get JRA-123 | browse -n");
+            assertEquals(testServerRule.getRootUrl() + "/browse/JRA-123", getOutput(context));
         }
     }
 
@@ -77,22 +73,11 @@ public class IntegrationTest {
         Configuration configuration = Mockito.mock(Configuration.class);
         Console console = new MockConsole(testServerRule.getRootUrl());
         WebService webService = new DefaultWebService(console);
-        JavaScriptEngine javaScriptEngine = new DefaultJavaScriptEngine(console);
+        JavaScriptEngine javaScriptEngine = new DefaultJavaScriptEngine(console, webService);
         return new DefaultContext(configuration, console, webService, javaScriptEngine);
     }
 
-    private static String toString(TextList textList) {
-        StringBuilder str = new StringBuilder();
-        boolean first = true;
-        Text text;
-        while ((text = textList.next()) != null) {
-            if (first) {
-                first = false;
-            } else {
-                str.append(", ");
-            }
-            str.append(text);
-        }
-        return str.toString();
+    private static String getOutput(Context context) {
+        return ((MockConsole) context.getConsole()).getOutput().trim();
     }
 }

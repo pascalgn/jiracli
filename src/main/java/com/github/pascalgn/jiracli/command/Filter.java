@@ -23,6 +23,7 @@ import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
+import com.github.pascalgn.jiracli.model.Schema;
 import com.github.pascalgn.jiracli.util.Supplier;
 
 @CommandDescription(names = "filter", description = "Filter issues by the given field value")
@@ -60,7 +61,8 @@ class Filter implements Command {
     }
 
     boolean matches(Context context, Issue issue) {
-        Object obj = CommandUtils.getFieldValue(issue, field);
+        Schema schema = context.getWebService().getSchema();
+        Object obj = CommandUtils.getFieldValue(issue, schema, field);
         String fieldValue = Objects.toString(obj, "");
         return pattern.matcher(fieldValue).find();
     }

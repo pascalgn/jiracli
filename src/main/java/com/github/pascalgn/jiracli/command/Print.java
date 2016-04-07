@@ -23,6 +23,7 @@ import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
+import com.github.pascalgn.jiracli.model.Schema;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.util.Function;
@@ -47,15 +48,16 @@ class Print implements Command {
     @Override
     public TextList execute(final Context context, Data input) {
         IssueList issueList = input.toIssueListOrFail();
+        final Schema schema = context.getWebService().getSchema();
         return new TextList(issueList.convertingSupplier(new Function<Issue, Text>() {
             @Override
             public Text apply(Issue issue) {
                 String str;
                 try {
-                    str = CommandUtils.toString(issue, pattern);
-                } catch (RuntimeException e) {
-                    LOGGER.debug("Error while reading issue: {}", issue, e);
-                    str = "[Invalid issue: " + e.getLocalizedMessage() + " - " + issue + "]";
+                    str = CommandUtils.toString(issue, schema, pattern);
+                } catch (IllegalArgumentException e) {
+                    LOGGER.trace("Error while reading issue: {}", issue, e);
+                    str = "[Error: " + issue + ": " + e.getLocalizedMessage() + "]";
                 }
                 return new Text(str);
             }

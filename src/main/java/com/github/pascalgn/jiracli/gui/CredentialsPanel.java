@@ -16,14 +16,20 @@
 package com.github.pascalgn.jiracli.gui;
 
 import java.awt.Window;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.util.Objects;
 
+import javax.swing.ButtonGroup;
 import javax.swing.GroupLayout;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
+import javax.swing.JRadioButton;
 import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 import javax.swing.event.AncestorEvent;
 import javax.swing.event.AncestorListener;
 
@@ -36,14 +42,14 @@ class CredentialsPanel extends JPanel {
     public static Credentials getCredentials(Window parent, String username, String url) {
         CredentialsPanel credentialsPanel = new CredentialsPanel(username, url);
         int result = JOptionPane.showConfirmDialog(parent, credentialsPanel, Constants.getTitle(),
-                JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
         if (result == JOptionPane.OK_OPTION) {
-            String user = credentialsPanel.getUsername();
-            char[] password = credentialsPanel.getPassword();
-            if (user.trim().isEmpty()) {
-                return null;
+            if (credentialsPanel.isAnonymous()) {
+                return Credentials.getAnonymous();
             } else {
-                return new Credentials(user.trim(), password);
+                String user = credentialsPanel.getUsername();
+                char[] password = credentialsPanel.getPassword();
+                return Credentials.create(user, password);
             }
         } else {
             return null;
@@ -52,57 +58,113 @@ class CredentialsPanel extends JPanel {
 
     private final String url;
 
+    private final JRadioButton usernamePassword;
+    private final JRadioButton anonymous;
+    private final ButtonGroup buttonGroup;
+
+    private final JLabel usernameLabel;
     private final JTextField username;
+
+    private final JLabel passwordLabel;
     private final JPasswordField password;
 
     private CredentialsPanel(String username, String url) {
         this.url = url;
+        this.usernamePassword = new JRadioButton("Username and password");
+        this.usernamePassword.addActionListener(new RadioButtonListener());
+        this.anonymous = new JRadioButton("Anonymous access");
+        this.anonymous.addActionListener(new RadioButtonListener());
+        this.buttonGroup = new ButtonGroup();
+        this.buttonGroup.add(usernamePassword);
+        this.buttonGroup.add(anonymous);
+        this.usernameLabel = new JLabel("Username:");
         this.username = new JTextField(Objects.toString(username, ""), 20);
+        this.passwordLabel = new JLabel("Password:");
         this.password = new JPasswordField(20);
         if (username == null || username.isEmpty()) {
-            this.username.addAncestorListener(new RequestFocusListener());
+            this.anonymous.setSelected(true);
         } else {
+            this.usernamePassword.setSelected(true);
             this.password.addAncestorListener(new RequestFocusListener());
         }
+        radioButtonToggled();
         layoutComponents();
     }
 
     private void layoutComponents() {
         JLabel titleLabel = new JLabel("Please enter the credentials for " + url);
 
-        JLabel usernameLabel = new JLabel("Username:");
-        JLabel passwordLabel = new JLabel("Password:");
+        int em = getFontMetrics(getFont()).stringWidth("m");
 
         GroupLayout groupLayout = new GroupLayout(this);
         groupLayout.setAutoCreateGaps(true);
-        groupLayout.setHorizontalGroup(groupLayout.createParallelGroup().addComponent(titleLabel).addGroup(groupLayout
-                .createSequentialGroup()
-                .addGroup(groupLayout.createParallelGroup().addComponent(usernameLabel).addComponent(passwordLabel))
-                .addGroup(groupLayout.createParallelGroup()
-                        .addComponent(username, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE,
-                                GroupLayout.PREFERRED_SIZE)
-                        .addComponent(password, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE,
-                                GroupLayout.PREFERRED_SIZE))));
-        groupLayout.setVerticalGroup(groupLayout.createSequentialGroup().addComponent(titleLabel)
+        groupLayout.setHorizontalGroup(groupLayout.createParallelGroup()
+                .addComponent(titleLabel)
+                .addComponent(usernamePassword)
+                .addGroup(groupLayout.createSequentialGroup().addGap(3 * em)
+                        .addGroup(groupLayout.createParallelGroup().addComponent(usernameLabel)
+                                .addComponent(passwordLabel))
+                        .addGroup(groupLayout.createParallelGroup()
+                                .addComponent(username, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE,
+                                        GroupLayout.PREFERRED_SIZE)
+                                .addComponent(password, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE,
+                                        GroupLayout.PREFERRED_SIZE)))
+                .addComponent(anonymous));
+        groupLayout.setVerticalGroup(groupLayout.createSequentialGroup()
+                .addComponent(titleLabel).addComponent(usernamePassword)
                 .addGroup(
                         groupLayout.createBaselineGroup(true, false).addComponent(usernameLabel).addComponent(username))
-                .addGroup(groupLayout.createBaselineGroup(true, false).addComponent(passwordLabel)
-                        .addComponent(password)));
+                .addGroup(
+                        groupLayout.createBaselineGroup(true, false).addComponent(passwordLabel).addComponent(password))
+                .addComponent(anonymous));
         setLayout(groupLayout);
     }
 
-    private String getUsername() {
-        return username.getText();
+    public boolean isAnonymous() {
+        return anonymous.isSelected();
     }
 
-    private char[] getPassword() {
+    public String getUsername() {
+        return username.getText().trim();
+    }
+
+    public char[] getPassword() {
         return password.getPassword();
+    }
+
+    private void radioButtonToggled() {
+        boolean enabled = usernamePassword.isSelected();
+        usernameLabel.setEnabled(enabled);
+        username.setEnabled(enabled);
+        passwordLabel.setEnabled(enabled);
+        password.setEnabled(enabled);
+    }
+
+    private class RadioButtonListener implements ActionListener {
+        @Override
+        public void actionPerformed(ActionEvent evt) {
+            radioButtonToggled();
+        }
     }
 
     private static class RequestFocusListener implements AncestorListener {
         @Override
         public void ancestorAdded(AncestorEvent evt) {
-            evt.getComponent().requestFocusInWindow();
+            final JComponent component = evt.getComponent();
+            component.requestFocusInWindow();
+            // for macOS:
+            SwingUtilities.invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    component.requestFocusInWindow();
+                    SwingUtilities.invokeLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            component.requestFocusInWindow();
+                        }
+                    });
+                }
+            });
         }
 
         @Override

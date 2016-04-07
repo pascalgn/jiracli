@@ -35,7 +35,7 @@ import java.nio.charset.StandardCharsets;
 public class IOUtils {
     private static final Charset CHARSET = StandardCharsets.UTF_8;
 
-    private static final int BUFFER_SIZE = 4096;
+    static final int BUFFER_SIZE = 4096;
 
     public static Reader createReader(File file) throws FileNotFoundException {
         return new InputStreamReader(new FileInputStream(file), CHARSET);
@@ -77,6 +77,14 @@ public class IOUtils {
         }
     }
 
+    public static String toString(Reader reader, int maxLength) {
+        try {
+            return toString0(reader, maxLength);
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
     private static String toString0(Reader reader) throws IOException {
         StringBuilder str = new StringBuilder();
         char[] buf = new char[BUFFER_SIZE];
@@ -85,6 +93,28 @@ public class IOUtils {
             str.append(buf, 0, len);
         }
         return str.toString();
+    }
+
+    private static String toString0(Reader reader, int maxLength) throws IOException {
+        if (maxLength < 0) {
+            throw new IllegalArgumentException("Invalid length: " + maxLength);
+        } else if (maxLength == 0) {
+            return "";
+        } else {
+            int size = Math.min(maxLength, BUFFER_SIZE);
+            StringBuilder str = new StringBuilder();
+            char[] buf = new char[size];
+            int len;
+            while ((len = reader.read(buf)) != -1) {
+                if (str.length() + len < maxLength) {
+                    str.append(buf, 0, len);
+                } else {
+                    str.append(buf, 0, maxLength - str.length());
+                    break;
+                }
+            }
+            return str.toString();
+        }
     }
 
     public static void copy(InputStream input, OutputStream output) {

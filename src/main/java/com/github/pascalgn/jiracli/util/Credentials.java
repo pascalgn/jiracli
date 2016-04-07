@@ -15,13 +15,38 @@
  */
 package com.github.pascalgn.jiracli.util;
 
+import java.util.Objects;
+
 public final class Credentials {
+    private static final Credentials ANONYMOUS = new Credentials();
+
+    public static Credentials getAnonymous() {
+        return ANONYMOUS;
+    }
+
+    public static Credentials create(String username, char[] password) {
+        return new Credentials(username, password);
+    }
+
     private final String username;
     private final char[] password;
 
-    public Credentials(String username, char[] password) {
+    private Credentials(String username, char[] password) {
+        Objects.requireNonNull(username, "Username must not be null!");
+        Objects.requireNonNull(password, "Password must not be null!");
+        if (!username.equals(username.trim())) {
+            throw new IllegalArgumentException("Invalid username!");
+        }
+        if (username.isEmpty()) {
+            throw new IllegalArgumentException("Username is empty!");
+        }
         this.username = username;
         this.password = password;
+    }
+
+    private Credentials() {
+        this.username = null;
+        this.password = null;
     }
 
     public String getUsername() {

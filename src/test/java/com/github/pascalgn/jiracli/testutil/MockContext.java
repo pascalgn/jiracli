@@ -40,7 +40,7 @@ public class MockContext extends AbstractContext {
                 return IssueFactory.create(invocation.getArgumentAt(0, String.class));
             }
         });
-        javaScriptEngine = new DefaultJavaScriptEngine(console);
+        javaScriptEngine = new DefaultJavaScriptEngine(console, webService);
     }
 
     @Override

@@ -52,13 +52,13 @@ class Labels implements Command {
             if (!add.isEmpty()) {
                 for (Issue issue : issues) {
                     Value value = getLabels(issue);
-                    JSONArray arr = (JSONArray) value.getValue();
+                    JSONArray arr = (JSONArray) value.get();
                     for (String label : add) {
                         if (!contains(arr, label)) {
                             arr.put(label);
                         }
                     }
-                    value.setValue(arr);
+                    value.set(arr);
                 }
             }
 
@@ -66,7 +66,7 @@ class Labels implements Command {
             if (!remove.isEmpty()) {
                 for (Issue issue : issues) {
                     Value value = getLabels(issue);
-                    JSONArray arr = (JSONArray) value.getValue();
+                    JSONArray arr = (JSONArray) value.get();
                     Iterator<Object> it = arr.iterator();
                     while (it.hasNext()) {
                         Object obj = it.next();
@@ -74,7 +74,7 @@ class Labels implements Command {
                             it.remove();
                         }
                     }
-                    value.setValue(arr);
+                    value.set(arr);
                 }
             }
 

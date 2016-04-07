@@ -20,6 +20,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.io.File;
+import java.lang.reflect.InvocationTargetException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.prefs.Preferences;
 
 import javax.swing.AbstractAction;
@@ -29,6 +31,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.KeyStroke;
 import javax.swing.ScrollPaneConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
 
 import com.github.pascalgn.jiracli.Constants;
@@ -36,6 +39,7 @@ import com.github.pascalgn.jiracli.context.AbstractConsole;
 import com.github.pascalgn.jiracli.context.Configuration;
 import com.github.pascalgn.jiracli.context.Console;
 import com.github.pascalgn.jiracli.util.Credentials;
+import com.github.pascalgn.jiracli.util.Supplier;
 
 /**
  * Main window of the GUI: Displays the console for input/output
@@ -132,13 +136,18 @@ public class ConsoleWindow extends JFrame {
         }
 
         @Override
-        public void print(String str) {
-            consoleTextArea.appendText(str);
+        public void print(final String str) {
+            SwingUtilities.invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    consoleTextArea.appendText(str);
+                }
+            });
         }
 
         @Override
         public void println(String str) {
-            consoleTextArea.appendText(str + System.lineSeparator());
+            print(str + System.lineSeparator());
         }
 
         @Override
@@ -148,13 +157,46 @@ public class ConsoleWindow extends JFrame {
 
         @Override
         protected String provideBaseUrl() {
-            return JOptionPane.showInputDialog(ConsoleWindow.this, "Please enter the base URL: ",
-                    Constants.getTitle(), JOptionPane.QUESTION_MESSAGE);
+            return invokeAndWait(new Supplier<String>() {
+                @Override
+                public String get() {
+                    return JOptionPane.showInputDialog(ConsoleWindow.this, "Please enter the base URL: ",
+                            Constants.getTitle(), JOptionPane.PLAIN_MESSAGE);
+                }
+            });
         }
 
         @Override
-        protected Credentials provideCredentials(String username, String url) {
-            return CredentialsPanel.getCredentials(ConsoleWindow.this, username, url);
+        protected Credentials provideCredentials(final String username, final String url) {
+            return invokeAndWait(new Supplier<Credentials>() {
+                @Override
+                public Credentials get() {
+                    return CredentialsPanel.getCredentials(ConsoleWindow.this, username, url);
+                }
+            });
+        }
+
+        private <T> T invokeAndWait(final Supplier<T> supplier) {
+            final AtomicReference<T> result = new AtomicReference<>();
+            try {
+                SwingUtilities.invokeAndWait(new Runnable() {
+                    @Override
+                    public void run() {
+                        result.set(supplier.get());
+                    }
+                });
+                return result.get();
+            } catch (InvocationTargetException e) {
+                Throwable cause = e.getCause();
+                if (cause instanceof RuntimeException) {
+                    throw (RuntimeException) cause;
+                } else {
+                    throw new IllegalStateException(e);
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(e);
+            }
         }
 
         @Override

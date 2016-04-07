@@ -15,6 +15,23 @@
  */
 package com.github.pascalgn.jiracli.context;
 
+import com.github.pascalgn.jiracli.model.Issue;
+import com.github.pascalgn.jiracli.model.IssueList;
+import com.github.pascalgn.jiracli.model.Text;
+import com.github.pascalgn.jiracli.model.TextList;
+
 public interface JavaScriptEngine {
+    Text evaluate(String js, Text input);
+
+    TextList evaluate(String js, TextList input);
+
+    Issue evaluate(String js, Issue input);
+
+    IssueList evaluate(String js, IssueList input);
+
+    @Deprecated
+    Object evaluate(String js);
+
+    @Deprecated
     Object evaluate(String js, Object input);
 }

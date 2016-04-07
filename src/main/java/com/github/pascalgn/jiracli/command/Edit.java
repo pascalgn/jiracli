@@ -19,12 +19,15 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
+import com.github.pascalgn.jiracli.model.Field;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
+import com.github.pascalgn.jiracli.model.Schema;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.IOUtils;
@@ -74,9 +77,12 @@ class Edit implements Command {
     private Data editIssues(Context context, File file, IssueList issueList) throws IOException {
         List<Issue> issues = issueList.remaining();
 
+        Schema schema = context.getWebService().getSchema();
+
         try (BufferedWriter writer = IOUtils.createBufferedWriter(file)) {
             for (Issue issue : issues) {
-                EditingUtils.writeEdit(writer, issue);
+                Collection<Field> fields = context.getWebService().getEditableFields(issue);
+                EditingUtils.writeEdit(writer, issue, fields, schema);
             }
         }
 
@@ -87,7 +93,7 @@ class Edit implements Command {
             if (success) {
                 List<Issue> result;
                 try (BufferedReader reader = IOUtils.createBufferedReader(file)) {
-                    result = EditingUtils.readEdit(issues, reader);
+                    result = EditingUtils.readEdit(issues, schema, reader);
                 }
                 return new IssueList(result.iterator());
             } else {

@@ -16,29 +16,29 @@
 package com.github.pascalgn.jiracli.context;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
 
 import com.github.pascalgn.jiracli.util.Credentials;
 
 public abstract class AbstractConsole implements Console {
     private final Configuration configuration;
-    private final Map<String, Credentials> credentials;
 
     public AbstractConsole(Configuration configuration) {
         this.configuration = configuration;
-        this.credentials = new HashMap<>();
     }
 
     @Override
-    public String getBaseUrl() {
+    public final String getBaseUrl() {
         String baseUrl = configuration.getBaseUrl();
         if (baseUrl == null) {
             baseUrl = provideBaseUrl();
             if (baseUrl == null) {
                 throw new IllegalStateException("No base URL provided!");
             }
+            if (baseUrl.trim().isEmpty()) {
+                throw new IllegalStateException("Empty base URL!");
+            }
             configuration.setBaseUrl(baseUrl);
+            return getBaseUrl();
         }
         return baseUrl;
     }
@@ -47,14 +47,11 @@ public abstract class AbstractConsole implements Console {
 
     @Override
     public final Credentials getCredentials(String url) {
-        Credentials c = credentials.get(url);
+        Credentials c = provideCredentials(configuration.getUsername(), url);
         if (c == null) {
-            c = provideCredentials(configuration.getUsername(), url);
-            if (c == null) {
-                throw new IllegalStateException("No credentials provided!");
-            }
-            configuration.setUsername(c.getUsername());
+            throw new IllegalStateException("No credentials provided!");
         }
+        configuration.setUsername(c.getUsername());
         return c;
     }
 

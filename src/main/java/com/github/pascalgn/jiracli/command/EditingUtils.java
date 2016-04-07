@@ -28,12 +28,11 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.json.JSONObject;
-
 import com.github.pascalgn.jiracli.context.WebService.CreateRequest;
+import com.github.pascalgn.jiracli.model.Converter;
 import com.github.pascalgn.jiracli.model.Field;
 import com.github.pascalgn.jiracli.model.Issue;
-import com.github.pascalgn.jiracli.model.Value;
+import com.github.pascalgn.jiracli.model.Schema;
 
 class EditingUtils {
     private static final String NO_EDITABLE_FIELDS = "no editable fields for this issue!";
@@ -58,19 +57,19 @@ class EditingUtils {
         EXPECT_ISSUE_TITLE, EXPECT_FIELD_OR_ISSUE, EXPECT_FIELD_CONTENT_MULTILINE;
     }
 
-    public static void writeEdit(BufferedWriter writer, Issue issue) throws IOException {
-        write(writer, issue.getKey(), toEditingFields(issue.getFieldMap().getEditableFields()), NO_EDITABLE_FIELDS);
+    public static void writeEdit(BufferedWriter writer, Issue issue, Collection<Field> fields, Schema schema)
+            throws IOException {
+        write(writer, issue.getKey(), toEditingFields(fields, schema), NO_EDITABLE_FIELDS);
     }
 
-    private static Collection<EditingField> toEditingFields(Collection<Field> fields) {
+    private static Collection<EditingField> toEditingFields(Collection<Field> fields, Schema schema) {
         Collection<EditingField> editingFields = new ArrayList<EditingField>(fields.size());
         for (Field field : fields) {
-            Object val = field.getValue().getValue();
-            if (val == JSONObject.NULL) {
-                val = null;
-            }
-            String value = Objects.toString(val, "");
-            editingFields.add(new EditingField(field.getId(), field.getName(), value));
+            Object value = field.getValue().get();
+            Converter converter = schema.getConverter(field);
+            String str = converter.toString(value);
+            String fieldName = schema.getName(field);
+            editingFields.add(new EditingField(field.getId(), fieldName, str));
         }
         return editingFields;
     }
@@ -130,22 +129,24 @@ class EditingUtils {
         writer.newLine();
     }
 
-    public static void writeSort(BufferedWriter writer, Collection<Issue> issues, String format) throws IOException {
+    public static void writeSort(BufferedWriter writer, Collection<Issue> issues, Schema schema, String format)
+            throws IOException {
         for (Issue issue : issues) {
-            String s = CommandUtils.toString(issue, format);
+            String s = CommandUtils.toString(issue, schema, format);
             writer.write(issue.getKey() + (s.isEmpty() ? "" : " " + s));
             writer.newLine();
         }
     }
 
-    public static List<Issue> readEdit(List<Issue> originalIssues, BufferedReader reader) throws IOException {
+    public static List<Issue> readEdit(List<Issue> originalIssues, Schema schema, BufferedReader reader)
+            throws IOException {
         List<IssueData> issueData = read(reader, ISSUE_TITLE);
         List<Issue> issues = new ArrayList<Issue>(issueData.size());
         for (IssueData data : issueData) {
             Issue issue = findIssue(originalIssues, data.getKey());
             for (Map.Entry<String, String> entry : data.getFields().entrySet()) {
                 Field field = getField(issue, entry.getKey());
-                setFieldValue(field, entry.getValue());
+                setFieldValue(field, entry.getValue(), schema);
             }
             issues.add(issue);
         }
@@ -207,7 +208,7 @@ class EditingUtils {
                     Matcher mv = FIELD_VALUE.matcher(line);
                     if (mv.matches()) {
                         String id = mv.group(1);
-                        String value = mv.group(2);
+                        String value = Objects.toString(mv.group(2), "").trim();
                         issue.setField(id, value);
                         continue;
                     }
@@ -216,7 +217,7 @@ class EditingUtils {
 
             case EXPECT_FIELD_CONTENT_MULTILINE:
                 if (line.equals(".")) {
-                    issue.setField(field, content == null ? "" : content.toString());
+                    issue.setField(field, content == null ? "" : content.toString().trim());
                     field = null;
                     content = null;
                     s = ReadState.EXPECT_FIELD_OR_ISSUE;
@@ -235,7 +236,7 @@ class EditingUtils {
                 break;
             }
 
-            throw new IllegalStateException("Unexpected line: " + line);
+            throw new IllegalArgumentException("Unexpected line: " + line);
         }
 
         return issues;
@@ -254,7 +255,7 @@ class EditingUtils {
                 String key = m.group(1);
                 issues.add(findIssue(originalIssues, key));
             } else {
-                throw new IllegalStateException("Unexpected line: " + line);
+                throw new IllegalArgumentException("Unexpected line: " + line);
             }
         }
 
@@ -267,7 +268,7 @@ class EditingUtils {
                 return issue;
             }
         }
-        throw new IllegalStateException("No such issue: " + key);
+        throw new IllegalArgumentException("No such issue: " + key);
     }
 
     private static boolean commentOrEmpty(String line) {
@@ -277,16 +278,18 @@ class EditingUtils {
     private static Field getField(Issue issue, String id) {
         Field field = issue.getFieldMap().getFieldById(id);
         if (field == null) {
-            throw new IllegalStateException("No such field for issue " + issue + ": " + id);
+            throw new IllegalArgumentException("No such field for issue " + issue + ": " + id);
         }
         return field;
     }
 
-    private static void setFieldValue(Field field, String str) {
-        Value value = field.getValue();
-        String original = Objects.toString(value.getValue(), "");
-        if (!str.equals(original)) {
-            value.setValue(str);
+    private static void setFieldValue(Field field, String str, Schema schema) {
+        Object value = field.getValue().get();
+        Converter converter = schema.getConverter(field);
+        String original = converter.toString(value);
+        if (!str.equals(original) && (original == null || !str.equals(original.trim()))) {
+            Object newValue = converter.fromString(str);
+            field.getValue().set(newValue);
         }
     }
 

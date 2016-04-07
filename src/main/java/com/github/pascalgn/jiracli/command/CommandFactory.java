@@ -25,6 +25,7 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 
 import com.github.pascalgn.jiracli.command.Argument.Parameters;
+import com.github.pascalgn.jiracli.util.StringUtils;
 
 public class CommandFactory {
     private static final CommandFactory INSTANCE = new CommandFactory();
@@ -270,7 +271,7 @@ public class CommandFactory {
 
             str.append("  ");
             str.append(help);
-            str.append(CommandUtils.repeat(" ", maxLength - help.length()));
+            str.append(StringUtils.repeat(" ", maxLength - help.length()));
             str.append("  ");
             str.append("show this command usage");
 
@@ -286,7 +287,7 @@ public class CommandFactory {
         str.append("  ");
         String name = getArgumentName(argument);
         str.append(name);
-        str.append(CommandUtils.repeat(" ", maxLength - name.length()));
+        str.append(StringUtils.repeat(" ", maxLength - name.length()));
         str.append("  ");
         str.append(argument.getDescription());
     }
@@ -295,7 +296,7 @@ public class CommandFactory {
         if (argument.getNames().isEmpty()) {
             return argument.getVariable();
         } else {
-            return CommandUtils.join(argument.getNames(), ", ");
+            return StringUtils.join(argument.getNames(), ", ");
         }
     }
 
@@ -489,7 +490,7 @@ public class CommandFactory {
                     return Integer.parseInt(param);
                 }
             }
-            throw new IllegalArgumentException("Cannot convert parameter: field " + field + ", parameter: " + params);
+            throw new IllegalStateException("Cannot convert parameter: field " + field + ", parameter: " + params);
         }
 
         public Parameters getParameters() {

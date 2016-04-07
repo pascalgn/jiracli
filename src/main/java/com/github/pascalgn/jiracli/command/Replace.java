@@ -16,7 +16,6 @@
 package com.github.pascalgn.jiracli.command;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -25,11 +24,13 @@ import org.slf4j.LoggerFactory;
 
 import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
+import com.github.pascalgn.jiracli.model.Converter;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Field;
 import com.github.pascalgn.jiracli.model.FieldMap;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
+import com.github.pascalgn.jiracli.model.Schema;
 import com.github.pascalgn.jiracli.util.Function;
 
 @CommandDescription(names = "replace", description = "Replace field values")
@@ -52,7 +53,7 @@ class Replace implements Command {
     private String replace;
 
     @Override
-    public Data execute(Context context, Data input) {
+    public Data execute(final Context context, Data input) {
         int flags = 0;
         if (!regexp) {
             flags |= Pattern.LITERAL;
@@ -66,21 +67,29 @@ class Replace implements Command {
             @Override
             public Issue apply(Issue issue) {
                 FieldMap fieldMap = issue.getFieldMap();
+                final Schema schema = context.getWebService().getSchema();
                 for (String f : fields) {
                     Field field = fieldMap.getFieldById(f);
                     if (field == null) {
-                        field = fieldMap.getFieldByName(f);
+                        field = fieldMap.getFieldByName(f, new Function<Field, String>() {
+                            @Override
+                            public String apply(Field field) {
+                                return schema.getName(field);
+                            }
+                        });
                     }
                     if (field == null) {
                         LOGGER.debug("Field not found: {}: {}", issue, f);
                         continue;
                     }
-                    Object val = field.getValue().getValue();
-                    String orig = Objects.toString(val, "");
-                    Matcher m = pattern.matcher(orig);
+                    Object value = field.getValue().get();
+                    Converter converter = schema.getConverter(field);
+                    String original = converter.toString(value);
+                    Matcher m = pattern.matcher(original);
                     String str = m.replaceAll(replace);
-                    if (!str.equals(orig)) {
-                        field.getValue().setValue(str);
+                    if (!str.equals(original)) {
+                        Object newValue = converter.fromString(str);
+                        field.getValue().set(newValue);
                     }
                 }
                 return issue;

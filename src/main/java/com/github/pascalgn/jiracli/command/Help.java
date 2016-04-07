@@ -23,6 +23,7 @@ import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
+import com.github.pascalgn.jiracli.util.StringUtils;
 
 @CommandDescription(names = { "help", "h", "?" }, description = "Show a list of available commands")
 class Help implements Command {
@@ -32,7 +33,7 @@ class Help implements Command {
         CommandFactory commandFactory = CommandFactory.getInstance();
         for (CommandDescriptor commandDescriptor : commandFactory.getCommandDescriptors()) {
             StringBuilder str = new StringBuilder();
-            str.append(CommandUtils.join(commandDescriptor.getNames(), ", "));
+            str.append(StringUtils.join(commandDescriptor.getNames(), ", "));
             str.append(System.lineSeparator());
             str.append("    ");
             str.append(commandDescriptor.getDescription());

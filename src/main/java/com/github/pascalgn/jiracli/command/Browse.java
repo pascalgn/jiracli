@@ -40,7 +40,7 @@ class Browse implements Command {
             return new TextList(issueList.convertingSupplier(new Function<Issue, Text>() {
                 @Override
                 public Text apply(Issue issue) {
-                    URI uri = issue.getUri();
+                    URI uri = context.getWebService().getUrl(issue);
                     return new Text(uri.toString());
                 }
             }));
@@ -49,7 +49,7 @@ class Browse implements Command {
 
             Issue issue;
             while ((issue = issueList.next()) != null) {
-                URI uri = issue.getUri();
+                URI uri = context.getWebService().getUrl(issue);
                 try {
                     desktop.browse(uri);
                 } catch (IOException e) {

@@ -63,7 +63,7 @@ public class MockConsole implements Console {
 
     @Override
     public Credentials getCredentials(String url) {
-        return new Credentials("", "".toCharArray());
+        return Credentials.getAnonymous();
     }
 
     @Override

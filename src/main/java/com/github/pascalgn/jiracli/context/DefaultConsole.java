@@ -19,6 +19,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Objects;
 
 import com.github.pascalgn.jiracli.util.Credentials;
 
@@ -63,25 +64,20 @@ public class DefaultConsole extends AbstractConsole {
         String user = username;
         if (user == null) {
             print("Username: ");
-            user = emptyToNull(readLine());
-        }
-
-        if (user == null) {
-            return null;
+            user = Objects.toString(readLine(), "").trim();
+        } else {
+            user = user.trim();
+            println("Username: " + user);
         }
 
         print("Password: ");
-        char[] password = emptyToNull(readPassword());
+        char[] password = readPassword();
 
-        return new Credentials(user, password);
-    }
-
-    private static String emptyToNull(String str) {
-        return (str == null || str.trim().isEmpty() ? null : str);
-    }
-
-    private static char[] emptyToNull(char[] str) {
-        return (str.length == 0 ? null : str);
+        if (username.isEmpty() && password.length == 0) {
+            return Credentials.getAnonymous();
+        } else {
+            return Credentials.create(user, password);
+        }
     }
 
     private char[] readPassword() {

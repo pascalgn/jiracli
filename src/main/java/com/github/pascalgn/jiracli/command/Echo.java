@@ -22,6 +22,7 @@ import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
+import com.github.pascalgn.jiracli.util.StringUtils;
 
 @CommandDescription(names = "echo", description = "Print the given text")
 class Echo implements Command {
@@ -33,7 +34,7 @@ class Echo implements Command {
         if (text == null || text.isEmpty()) {
             return new TextList();
         } else {
-            return new TextList(new Text(CommandUtils.join(text, " ")));
+            return new TextList(new Text(StringUtils.join(text, " ")));
         }
     }
 }

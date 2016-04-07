@@ -24,6 +24,7 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,18 +40,18 @@ import org.slf4j.LoggerFactory;
 import com.github.pascalgn.jiracli.model.Attachment;
 import com.github.pascalgn.jiracli.model.Board;
 import com.github.pascalgn.jiracli.model.Board.Type;
+import com.github.pascalgn.jiracli.model.Converter;
 import com.github.pascalgn.jiracli.model.Field;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueType;
 import com.github.pascalgn.jiracli.model.Project;
+import com.github.pascalgn.jiracli.model.Schema;
 import com.github.pascalgn.jiracli.model.Sprint;
 import com.github.pascalgn.jiracli.model.Value;
 import com.github.pascalgn.jiracli.util.Consumer;
 import com.github.pascalgn.jiracli.util.Credentials;
 import com.github.pascalgn.jiracli.util.Function;
-import com.github.pascalgn.jiracli.util.LoadingCache;
 import com.github.pascalgn.jiracli.util.LoadingList;
-import com.github.pascalgn.jiracli.util.MemoizingSupplier;
 import com.github.pascalgn.jiracli.util.Supplier;
 
 public class DefaultWebService implements WebService {
@@ -75,25 +76,39 @@ public class DefaultWebService implements WebService {
     private final HttpClient httpClient;
 
     private final Map<String, String> cache;
+    private final Map<String, JSONObject> fieldCache;
 
-    private final Supplier<Map<String, JSONObject>> fieldDataCache;
-    private final LoadingCache<String, IssueData> issueCache;
+    private final LoadingSchema schema;
 
     public DefaultWebService(Console console) {
         this.httpClient = createHttpClient(console);
         this.cache = new HashMap<String, String>();
-        this.fieldDataCache = new MemoizingSupplier<>(new Supplier<Map<String, JSONObject>>() {
+        this.fieldCache = new HashMap<String, JSONObject>();
+        this.schema = new LoadingSchema() {
             @Override
-            public Map<String, JSONObject> get() {
-                return loadFieldData();
+            protected Map<String, FieldInfo> loadMap() {
+                Map<String, FieldInfo> map = new HashMap<>();
+                JSONArray array = get("/rest/api/latest/field", TO_ARRAY);
+                for (Object obj : array) {
+                    JSONObject json = (JSONObject) obj;
+                    String id = json.getString("id");
+
+                    String name = json.optString("name");
+                    if (name == null || name.isEmpty()) {
+                        name = id;
+                    }
+
+                    JSONObject schema = json.optJSONObject("schema");
+                    if (schema == null) {
+                        LOGGER.trace("Schema is null: {}", json);
+                    }
+
+                    Converter converter = ConverterProvider.getConverter(schema);
+                    map.put(id, new FieldInfo(name, converter));
+                }
+                return map;
             }
-        });
-        this.issueCache = new LoadingCache<>(new Function<String, IssueData>() {
-            @Override
-            public IssueData apply(String key) {
-                return new IssueData(key);
-            }
-        });
+        };
     }
 
     private static HttpClient createHttpClient(final Console console) {
@@ -131,21 +146,81 @@ public class DefaultWebService implements WebService {
     }
 
     @Override
+    public Schema getSchema() {
+        return schema;
+    }
+
+    @Override
     public Issue getIssue(String key) {
-        URI uri = URI.create(httpClient.getBaseUrl() + "/browse/" + key);
-        IssueData issueData = issueCache.get(key);
-        LoadableFieldMap fieldMap = new LoadableFieldMap(issueData, fieldDataCache);
-        Issue issue = new Issue(key, uri, fieldMap);
-        fieldMap.setIssue(issue);
-        return issue;
+        JSONObject fields = fieldCache.get(key);
+        return getIssue(key, fields);
     }
 
     private Issue getIssue(String key, JSONObject fields) {
+        LoadingFieldMap fieldMap = new LoadingFieldMap();
+        final Issue issue = new Issue(key, fieldMap);
         if (fields != null) {
-            IssueData issueData = new IssueData(key, fields);
-            issueCache.putIfAbsent(key, issueData);
+            if (!fieldCache.containsKey(key)) {
+                fieldCache.put(key, fields);
+            }
+            List<Field> fieldList = toFields(issue, fields);
+            for (Field field : fieldList) {
+                fieldMap.addField(field);
+            }
         }
-        return getIssue(key);
+        fieldMap.setSupplier(new Supplier<List<Field>>() {
+            @Override
+            public List<Field> get() {
+                JSONObject response = DefaultWebService.this.get("/rest/api/latest/issue/" + issue, TO_OBJECT);
+                JSONObject all = response.getJSONObject("fields");
+                return toFields(issue, all);
+            }
+        });
+        return issue;
+    }
+
+    private static List<Field> toFields(Issue issue, JSONObject json) {
+        List<Field> fields = new ArrayList<Field>();
+        for (String id : json.keySet()) {
+            Object val = json.get(id);
+            fields.add(new Field(issue, id, new Value(val)));
+        }
+        return fields;
+    }
+
+    @Override
+    public URI getUrl(Issue issue) {
+        return URI.create(httpClient.getBaseUrl() + "/browse/" + issue.getKey());
+    }
+
+    @Override
+    public Collection<Field> getEditableFields(Issue issue) {
+        JSONObject response = get("/rest/api/latest/issue/" + issue + "/editmeta", TO_OBJECT);
+        JSONObject json = response.getJSONObject("fields");
+        List<Field> editableFields = new ArrayList<Field>();
+        for (String id : json.keySet()) {
+            Field field = issue.getFieldMap().getFieldById(id);
+            if (field == null) {
+                LOGGER.debug("Unknown field in editmeta: {} (issue {})", id, issue);
+            } else {
+                boolean setAllowed = false;
+                JSONObject editMeta = json.getJSONObject(id);
+                JSONArray operations = editMeta.optJSONArray("operations");
+                if (operations != null) {
+                    for (Object obj : operations) {
+                        if ("set".equals(obj)) {
+                            setAllowed = true;
+                            break;
+                        }
+                    }
+                }
+                if (setAllowed && !editableFields.contains(field)) {
+                    editableFields.add(field);
+                }
+            }
+        }
+        Collections.sort(editableFields, new FieldComparator());
+        return editableFields;
     }
 
     @Override
@@ -157,7 +232,7 @@ public class DefaultWebService implements WebService {
     public List<Issue> getLinks(Issue issue) {
         Field field = issue.getFieldMap().getFieldById("issuelinks");
         if (field != null) {
-            Object value = field.getValue().getValue();
+            Object value = field.getValue().get();
             if (value instanceof JSONArray) {
                 JSONArray array = (JSONArray) value;
                 List<Issue> links = new ArrayList<Issue>();
@@ -200,11 +275,11 @@ public class DefaultWebService implements WebService {
     @Override
     public void updateIssue(Issue issue) {
         JSONObject update = new JSONObject();
-        Collection<Field> fields = issue.getFieldMap().getEditableFields();
+        Collection<Field> fields = getEditableFields(issue);
         for (Field field : fields) {
             Value value = field.getValue();
-            if (value.isModified()) {
-                Object val = value.getValue();
+            if (value.modified()) {
+                Object val = value.get();
 
                 Object set;
                 if (val instanceof JSONArray || val instanceof JSONObject || val instanceof String) {
@@ -212,7 +287,7 @@ public class DefaultWebService implements WebService {
                 } else if (val == null || val == JSONObject.NULL) {
                     set = JSONObject.NULL;
                 } else {
-                    set = Objects.toString(value.getValue(), "");
+                    set = Objects.toString(value.get(), "");
                 }
 
                 LOGGER.debug("Updating field: {}/{}: New value: {}", issue, field.getId(), set);
@@ -253,7 +328,7 @@ public class DefaultWebService implements WebService {
     public List<Attachment> getAttachments(Issue issue) {
         Field field = issue.getFieldMap().getFieldById("attachment");
         if (field != null) {
-            Object value = field.getValue().getValue();
+            Object value = field.getValue().get();
             if (value instanceof JSONArray) {
                 JSONArray array = (JSONArray) value;
                 List<Attachment> attachments = new ArrayList<Attachment>();
@@ -418,18 +493,21 @@ public class DefaultWebService implements WebService {
             for (Map.Entry<String, String> entry : createRequest.getFields().entrySet()) {
                 String id = entry.getKey();
                 String value = entry.getValue();
-                if (id.equals("project")) {
-                    fields.put(id, new JSONObject().put("key", value));
-                } else if (id.equals("issuetype")) {
-                    fields.put(id, new JSONObject().put("name", value));
-                } else {
-                    fields.put(id, value);
+                Converter converter = schema.getConverter(id);
+                Object val;
+                try {
+                    val = converter.fromString(value);
+                } catch (RuntimeException e) {
+                    throw new IllegalStateException("Error converting field " + id + ": " + value, e);
                 }
+                fields.put(id, val);
             }
             issueUpdates.put(new JSONObject().put("fields", fields));
         }
 
         String request = new JSONObject().put("issueUpdates", issueUpdates).toString();
+        LOGGER.debug("Request: {}", request);
+
         String response = post("/rest/api/latest/issue/bulk", request);
 
         JSONObject responseObj = new JSONObject(response);
@@ -441,17 +519,6 @@ public class DefaultWebService implements WebService {
             issues.add(getIssue(key));
         }
         return issues;
-    }
-
-    private Map<String, JSONObject> loadFieldData() {
-        Map<String, JSONObject> map = new HashMap<String, JSONObject>();
-        JSONArray array = get("/rest/api/latest/field", TO_ARRAY);
-        for (Object obj : array) {
-            JSONObject field = (JSONObject) obj;
-            String id = field.getString("id");
-            map.put(id, field);
-        }
-        return map;
     }
 
     private static String urlEncode(String str) {
@@ -475,59 +542,30 @@ public class DefaultWebService implements WebService {
 
     private String post(String path, String body) {
         cache.clear();
-        issueCache.clear();
+        fieldCache.clear();
         return httpClient.post(path, body);
     }
 
     private String put(String path, String body) {
         cache.clear();
-        issueCache.clear();
+        fieldCache.clear();
         return httpClient.put(path, body);
     }
 
     @Override
     public void close() {
         try {
-            issueCache.clear();
+            cache.clear();
+            fieldCache.clear();
         } finally {
             httpClient.close();
         }
     }
 
-    class IssueData {
-        private final String issue;
-        private final JSONObject initialFields;
-
-        private JSONObject allFields;
-        private JSONObject editMeta;
-
-        public IssueData(String issue) {
-            this(issue, null);
-        }
-
-        public IssueData(String issue, JSONObject initialFields) {
-            this.issue = issue;
-            this.initialFields = initialFields;
-        }
-
-        public JSONObject getInitialFields() {
-            return initialFields;
-        }
-
-        public synchronized JSONObject getAllFields() {
-            if (allFields == null) {
-                JSONObject response = get("/rest/api/latest/issue/" + issue, TO_OBJECT);
-                allFields = response.getJSONObject("fields");
-            }
-            return allFields;
-        }
-
-        public synchronized JSONObject getEditMeta() {
-            if (editMeta == null) {
-                JSONObject response = get("/rest/api/latest/issue/" + issue + "/editmeta", TO_OBJECT);
-                editMeta = response.getJSONObject("fields");
-            }
-            return editMeta;
+    private static class FieldComparator implements Comparator<Field> {
+        @Override
+        public int compare(Field f1, Field f2) {
+            return f1.getId().compareTo(f2.getId());
         }
     }
 }

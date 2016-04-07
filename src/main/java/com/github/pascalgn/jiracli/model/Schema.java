@@ -13,12 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.pascalgn.jiracli;
+package com.github.pascalgn.jiracli.model;
 
-import com.github.pascalgn.jiracli.context.Context;
+public interface Schema {
+    String getName(Field field);
 
-public class ShellHelper {
-    public static void execute(Context context, String line) {
-        new Shell(context).execute(line);
-    }
+    Converter getConverter(Field field);
 }

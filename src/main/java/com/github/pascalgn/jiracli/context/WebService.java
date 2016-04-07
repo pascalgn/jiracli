@@ -23,8 +23,10 @@ import java.util.Map;
 
 import com.github.pascalgn.jiracli.model.Attachment;
 import com.github.pascalgn.jiracli.model.Board;
+import com.github.pascalgn.jiracli.model.Field;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.Project;
+import com.github.pascalgn.jiracli.model.Schema;
 import com.github.pascalgn.jiracli.model.Sprint;
 import com.github.pascalgn.jiracli.util.Consumer;
 
@@ -41,7 +43,19 @@ public interface WebService extends AutoCloseable {
 
     void download(URI uri, Consumer<InputStream> consumer);
 
+    Schema getSchema();
+
     Issue getIssue(String key);
+
+    /**
+     * @return The URL of this issue, for example <code>https://jira.example.com/browse/ISSUE-123</code>
+     */
+    URI getUrl(Issue issue);
+
+    /**
+     * @return All fields that may be edited by the user, never null
+     */
+    Collection<Field> getEditableFields(Issue issue);
 
     List<Issue> getIssues(Issue epic);
 

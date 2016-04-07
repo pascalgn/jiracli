@@ -17,11 +17,18 @@ package com.github.pascalgn.jiracli.model;
 
 import java.util.Collection;
 
+import com.github.pascalgn.jiracli.util.Function;
+
 public interface FieldMap {
     /**
      * @return All fields, never null
      */
     Collection<Field> getFields();
+
+    /**
+     * Add the field if it does not already exist in this map
+     */
+    void addField(Field field);
 
     /**
      * @return The field with the given ID or <code>null</code>
@@ -31,10 +38,5 @@ public interface FieldMap {
     /**
      * @return The field with the given name or <code>null</code>
      */
-    Field getFieldByName(String name);
-
-    /**
-     * @return All fields that may be edited by the user, never null
-     */
-    Collection<Field> getEditableFields();
+    Field getFieldByName(String name, Function<Field, String> function);
 }

@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 
 import com.github.pascalgn.jiracli.command.Argument.Parameters;
@@ -55,6 +56,9 @@ class Create implements Command {
         final Project project;
         if (this.project != null) {
             project = context.getWebService().getProject(this.project);
+            if (project == null) {
+                throw new IllegalArgumentException("Project not found: " + this.project);
+            }
         } else {
             ProjectList projectList = input.toProjectList();
             if (projectList == null) {
@@ -67,7 +71,7 @@ class Create implements Command {
         final IssueType issueType;
         if (this.issueType != null) {
             if (project == null) {
-                throw new IllegalStateException("Type given, but no project given!");
+                throw new IllegalArgumentException("Type given, but no project given!");
             } else {
                 issueType = findIssueType(project.getIssueTypes(), this.issueType);
             }
@@ -90,8 +94,19 @@ class Create implements Command {
         if (createRequests == null) {
             return new IssueList();
         } else {
-            List<Issue> issues = context.getWebService().createIssues(createRequests);
-            return new IssueList(issues.iterator());
+            Iterator<CreateRequest> it = createRequests.iterator();
+            while (it.hasNext()) {
+                CreateRequest createRequest = it.next();
+                if (createRequest.getFields().isEmpty()) {
+                    it.remove();
+                }
+            }
+            if (createRequests.isEmpty()) {
+                return new IssueList();
+            } else {
+                List<Issue> issues = context.getWebService().createIssues(createRequests);
+                return new IssueList(issues.iterator());
+            }
         }
     }
 
