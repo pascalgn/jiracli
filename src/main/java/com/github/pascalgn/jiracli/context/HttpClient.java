@@ -45,7 +45,6 @@ import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.auth.BasicScheme;
-import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
@@ -53,8 +52,10 @@ import org.apache.http.ssl.SSLContexts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.pascalgn.jiracli.util.Credentials;
 import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.IOUtils;
+import com.github.pascalgn.jiracli.util.Supplier;
 
 class HttpClient implements AutoCloseable {
     private static final Logger LOGGER = LoggerFactory.getLogger(HttpClient.class);
@@ -79,18 +80,14 @@ class HttpClient implements AutoCloseable {
         SSL_SOCKET_FACTORY = new SSLConnectionSocketFactory(sslcontext, NoopHostnameVerifier.INSTANCE);
     }
 
-    private final String baseUrl;
+    private final Supplier<String> baseUrl;
     private final CloseableHttpClient httpClient;
     private final HttpClientContext httpClientContext;
 
-    public HttpClient(String baseUrl, String username, char[] password) {
-        this.baseUrl = stripEnd(baseUrl, "/");
+    public HttpClient(Supplier<String> baseUrl, Function<String, Credentials> credentials) {
+        this.baseUrl = baseUrl;
         this.httpClient = createHttpClient();
-        this.httpClientContext = createHttpClientContext(username, password);
-    }
-
-    private static String stripEnd(String str, String end) {
-        return (str.endsWith(end) ? str.substring(0, str.length() - end.length()) : str);
+        this.httpClientContext = createHttpClientContext(credentials);
     }
 
     private static CloseableHttpClient createHttpClient() {
@@ -99,41 +96,61 @@ class HttpClient implements AutoCloseable {
         return httpClientBuilder.build();
     }
 
-    private static HttpClientContext createHttpClientContext(String username, char[] password) {
+    private static HttpClientContext createHttpClientContext(final Function<String, Credentials> credentials) {
         HttpClientContext context = HttpClientContext.create();
-        if (username != null && password != null) {
-            CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-            credentialsProvider.setCredentials(AuthScope.ANY,
-                    new UsernamePasswordCredentials(username, new String(password)));
 
-            final AuthScheme authScheme = new BasicScheme();
-            AuthCache authCache = new AuthCache() {
-                @Override
-                public void remove(HttpHost host) {
-                }
+        CredentialsProvider credentialsProvider = new CredentialsProvider() {
+            @Override
+            public void setCredentials(AuthScope authscope, org.apache.http.auth.Credentials credentials) {
+            }
 
-                @Override
-                public void put(HttpHost host, AuthScheme authScheme) {
-                }
+            @Override
+            public org.apache.http.auth.Credentials getCredentials(AuthScope authscope) {
+                Credentials c = credentials.apply(authscope.getOrigin().toURI());
+                return new UsernamePasswordCredentials(c.getUsername(), new String(c.getPassword()));
+            }
 
-                @Override
-                public AuthScheme get(HttpHost host) {
-                    return authScheme;
-                }
+            @Override
+            public void clear() {
+            }
+        };
 
-                @Override
-                public void clear() {
-                }
-            };
+        final AuthScheme authScheme = new BasicScheme();
+        AuthCache authCache = new AuthCache() {
+            @Override
+            public void remove(HttpHost host) {
+            }
 
-            context.setCredentialsProvider(credentialsProvider);
-            context.setAuthCache(authCache);
-        }
+            @Override
+            public void put(HttpHost host, AuthScheme authScheme) {
+            }
+
+            @Override
+            public AuthScheme get(HttpHost host) {
+                return authScheme;
+            }
+
+            @Override
+            public void clear() {
+            }
+        };
+
+        context.setCredentialsProvider(credentialsProvider);
+        context.setAuthCache(authCache);
+
         return context;
     }
 
     public String getBaseUrl() {
-        return baseUrl;
+        String url = baseUrl.get();
+        if (url == null) {
+            throw new IllegalStateException("No base URL provided!");
+        }
+        return stripEnd(url, "/");
+    }
+
+    private static String stripEnd(String str, String end) {
+        return (str.endsWith(end) ? str.substring(0, str.length() - end.length()) : str);
     }
 
     public String get(String path) {
@@ -168,7 +185,7 @@ class HttpClient implements AutoCloseable {
         if (!path.startsWith("/")) {
             throw new IllegalArgumentException("Invalid path: " + path);
         }
-        return baseUrl + path;
+        return getBaseUrl() + path;
     }
 
     private <T> T execute(HttpUriRequest request, Function<Reader, T> function) {

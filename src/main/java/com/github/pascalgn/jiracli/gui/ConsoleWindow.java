@@ -19,22 +19,28 @@ import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.io.File;
 import java.util.prefs.Preferences;
 
 import javax.swing.AbstractAction;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.KeyStroke;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.WindowConstants;
 
 import com.github.pascalgn.jiracli.Constants;
+import com.github.pascalgn.jiracli.context.AbstractConsole;
+import com.github.pascalgn.jiracli.context.Configuration;
+import com.github.pascalgn.jiracli.context.Console;
+import com.github.pascalgn.jiracli.util.Credentials;
 
 /**
  * Main window of the GUI: Displays the console for input/output
  */
-public class MainWindow extends JFrame {
+public class ConsoleWindow extends JFrame {
     private static final long serialVersionUID = -6569821157912403607L;
 
     private static final String WIDTH = "width";
@@ -45,9 +51,11 @@ public class MainWindow extends JFrame {
     private final ConsoleTextArea consoleTextArea;
     private final Preferences preferences;
 
+    private final Console console;
+
     private Runnable newWindowListener;
 
-    public MainWindow() {
+    public ConsoleWindow(Configuration configuration) {
         super(Constants.getTitle());
         setIconImages(Images.getIcons());
 
@@ -66,6 +74,8 @@ public class MainWindow extends JFrame {
         });
 
         preferences = Constants.getPreferences();
+
+        console = new DelegateConsole(configuration);
 
         JScrollPane consoleTextAreaScroll = new JScrollPane(consoleTextArea);
         consoleTextAreaScroll.setBorder(null);
@@ -97,6 +107,8 @@ public class MainWindow extends JFrame {
             setSize(width, height);
         }
 
+        consoleTextArea.setRows(0);
+
         addComponentListener(new ResizeListener());
 
         setLocationRelativeTo(null);
@@ -106,16 +118,49 @@ public class MainWindow extends JFrame {
         return (size < MIN_SIZE ? MIN_SIZE : size);
     }
 
-    public void appendText(String str) {
-        consoleTextArea.appendText(str);
-    }
-
-    public String readLine() {
-        return consoleTextArea.readLine();
+    public Console getConsole() {
+        return console;
     }
 
     public void setNewWindowListener(Runnable newWindowListener) {
         this.newWindowListener = newWindowListener;
+    }
+
+    private class DelegateConsole extends AbstractConsole {
+        public DelegateConsole(Configuration configuration) {
+            super(configuration);
+        }
+
+        @Override
+        public void print(String str) {
+            consoleTextArea.appendText(str);
+        }
+
+        @Override
+        public void println(String str) {
+            consoleTextArea.appendText(str + System.lineSeparator());
+        }
+
+        @Override
+        public String readLine() {
+            return consoleTextArea.readLine();
+        }
+
+        @Override
+        protected String provideBaseUrl() {
+            return JOptionPane.showInputDialog(ConsoleWindow.this, "Please enter the base URL: ",
+                    Constants.getTitle(), JOptionPane.QUESTION_MESSAGE);
+        }
+
+        @Override
+        protected Credentials provideCredentials(String username, String url) {
+            return CredentialsPanel.getCredentials(ConsoleWindow.this, url);
+        }
+
+        @Override
+        public boolean editFile(File file) {
+            return editFile(file, true);
+        }
     }
 
     private class ResizeListener extends ComponentAdapter {

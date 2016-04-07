@@ -20,10 +20,13 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
-public class DefaultConsole implements Console {
+import com.github.pascalgn.jiracli.util.Credentials;
+
+public class DefaultConsole extends AbstractConsole {
     private final BufferedReader reader;
 
-    public DefaultConsole() {
+    public DefaultConsole(Configuration configuration) {
+        super(configuration);
         reader = new BufferedReader(new InputStreamReader(System.in));
     }
 
@@ -48,7 +51,38 @@ public class DefaultConsole implements Console {
     }
 
     @Override
-    public char[] readPassword() {
+    protected String provideBaseUrl() {
+        print("Base URL: ");
+        return readLine();
+    }
+
+    @Override
+    protected Credentials provideCredentials(String username, String url) {
+        String user = username;
+        if (user == null) {
+            print("Username: ");
+            user = emptyToNull(readLine());
+        }
+
+        if (user == null) {
+            return null;
+        }
+
+        print("Password: ");
+        char[] password = emptyToNull(readPassword());
+
+        return new Credentials(user, password);
+    }
+
+    private static String emptyToNull(String str) {
+        return (str == null || str.trim().isEmpty() ? null : str);
+    }
+
+    private static char[] emptyToNull(char[] str) {
+        return (str.length == 0 ? null : str);
+    }
+
+    private char[] readPassword() {
         java.io.Console console = System.console();
         if (console == null) {
             String str = readLine();
@@ -60,6 +94,6 @@ public class DefaultConsole implements Console {
 
     @Override
     public boolean editFile(File file) {
-        return EditorProvider.getEditor(false).editFile(file);
+        return editFile(file, false);
     }
 }

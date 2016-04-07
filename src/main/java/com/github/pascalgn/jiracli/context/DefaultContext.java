@@ -16,14 +16,22 @@
 package com.github.pascalgn.jiracli.context;
 
 public class DefaultContext extends AbstractContext {
+    private final Configuration configuration;
     private final Console console;
     private final WebService webService;
     private final JavaScriptEngine javaScriptEngine;
 
-    public DefaultContext(Console console, WebService webService, JavaScriptEngine javaScriptEngine) {
+    public DefaultContext(Configuration configuration, Console console, WebService webService,
+            JavaScriptEngine javaScriptEngine) {
+        this.configuration = configuration;
         this.console = console;
         this.webService = webService;
         this.javaScriptEngine = javaScriptEngine;
+    }
+
+    @Override
+    public Configuration getConfiguration() {
+        return configuration;
     }
 
     @Override

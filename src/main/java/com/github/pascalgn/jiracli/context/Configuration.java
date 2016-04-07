@@ -15,20 +15,12 @@
  */
 package com.github.pascalgn.jiracli.context;
 
-import java.io.File;
-
-import com.github.pascalgn.jiracli.util.Credentials;
-
-public interface Console {
-    void print(String str);
-
-    void println(String str);
-
-    String readLine();
-
+public interface Configuration {
     String getBaseUrl();
 
-    Credentials getCredentials(String url);
+    void setBaseUrl(String baseUrl);
 
-    boolean editFile(File file);
+    String getUsername();
+
+    void setUsername(String username);
 }

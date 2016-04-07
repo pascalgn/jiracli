@@ -49,7 +49,7 @@ public class Project extends Data {
 
     @Override
     public Text toText() {
-        return new Text(toString());
+        return new Text(getKey());
     }
 
     @Override

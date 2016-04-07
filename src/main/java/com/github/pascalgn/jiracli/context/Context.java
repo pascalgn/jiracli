@@ -16,6 +16,8 @@
 package com.github.pascalgn.jiracli.context;
 
 public interface Context extends AutoCloseable {
+    Configuration getConfiguration();
+
     Console getConsole();
 
     WebService getWebService();

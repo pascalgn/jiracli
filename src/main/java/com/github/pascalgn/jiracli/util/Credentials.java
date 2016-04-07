@@ -13,23 +13,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.pascalgn.jiracli;
+package com.github.pascalgn.jiracli.util;
 
-import com.github.pascalgn.jiracli.context.DefaultWebService;
-import com.github.pascalgn.jiracli.context.WebService;
-
-class WebServiceFactory {
-    private final String rootURL;
+public final class Credentials {
     private final String username;
     private final char[] password;
 
-    public WebServiceFactory(String rootURL, String username, char[] password) {
-        this.rootURL = rootURL;
+    public Credentials(String username, char[] password) {
         this.username = username;
         this.password = password;
     }
 
-    public WebService createWebService() {
-        return new DefaultWebService(rootURL, username, password);
+    public String getUsername() {
+        return username;
+    }
+
+    public char[] getPassword() {
+        return password;
+    }
+
+    public void clearPassword() {
+        char[] pw = password;
+        if (pw != null) {
+            for (int i = 0; i < pw.length; i++) {
+                pw[i] = '\0';
+            }
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "Credentials[username=" + username + "]";
     }
 }

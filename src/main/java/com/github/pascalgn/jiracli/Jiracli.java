@@ -24,28 +24,24 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.prefs.Preferences;
 
 import javax.swing.SwingUtilities;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.pascalgn.jiracli.context.Configuration;
 import com.github.pascalgn.jiracli.context.Console;
 import com.github.pascalgn.jiracli.context.Context;
+import com.github.pascalgn.jiracli.context.DefaultConfiguration;
 import com.github.pascalgn.jiracli.context.DefaultConsole;
 import com.github.pascalgn.jiracli.context.DefaultContext;
 import com.github.pascalgn.jiracli.context.DefaultJavaScriptEngine;
 import com.github.pascalgn.jiracli.context.DefaultWebService;
-import com.github.pascalgn.jiracli.context.DelegateConsole;
 import com.github.pascalgn.jiracli.context.JavaScriptEngine;
 import com.github.pascalgn.jiracli.context.WebService;
-import com.github.pascalgn.jiracli.gui.ContextDialog;
-import com.github.pascalgn.jiracli.gui.MainWindow;
-import com.github.pascalgn.jiracli.util.Consumer;
-import com.github.pascalgn.jiracli.util.Supplier;
+import com.github.pascalgn.jiracli.gui.ConsoleWindow;
 
 /**
  * Main class
@@ -53,32 +49,27 @@ import com.github.pascalgn.jiracli.util.Supplier;
 public class Jiracli {
     private static final Logger LOGGER = LoggerFactory.getLogger(Jiracli.class);
 
-    private static final String ROOT_URL = "rootURL";
-    private static final String USERNAME = "username";
-
     private static final AtomicInteger SHELL_THREAD_INDEX = new AtomicInteger(0);
 
     private enum Option {
-        HELP, VERSION, CONSOLE, GUI, ROOT_URL, USERNAME;
+        HELP, VERSION, CONSOLE, GUI;
     }
 
     public static void main(String[] args) {
         Map<Option, Object> options = parse(args);
         if (options.get(Option.HELP) == Boolean.TRUE
                 || (options.get(Option.CONSOLE) == Boolean.TRUE && options.get(Option.GUI) == Boolean.TRUE)) {
-            System.out.println("usage: " + Jiracli.class.getSimpleName() + " [-h] [-g|-c] [<root-url>] [<username>]");
+            System.out.println("usage: " + Jiracli.class.getSimpleName() + " [-h] [-V] [-g|-c]");
             System.out.println();
-            System.out.println("JIRA Command Line Interface");
+            System.out.println("Jira Command Line Interface");
             System.out.println();
             System.out.println("options:");
             System.out.println("  -h, --help      show this help message");
             System.out.println("  -g, --gui       show a graphical console window");
             System.out.println("  -c, --console   run in console mode, using stdin and stdout");
-            System.out.println("  --version       show the program version and exit");
-            System.out.println("  <root-url>      the root URL of the JIRA service");
-            System.out.println("  <username>      the username to use for authentication");
+            System.out.println("  -V, --version       show the program version and exit");
         } else if (options.get(Option.VERSION) == Boolean.TRUE) {
-            System.out.println(Constants.getTitle().toLowerCase());
+            System.out.println(Constants.getTitle());
         } else {
             LOGGER.debug("Starting {}...", Constants.getTitle());
 
@@ -92,9 +83,9 @@ public class Jiracli {
             }
 
             if (gui) {
-                startGUI((String) options.get(Option.ROOT_URL), (String) options.get(Option.USERNAME));
+                startGUI();
             } else {
-                startConsole((String) options.get(Option.ROOT_URL), (String) options.get(Option.USERNAME));
+                startConsole();
             }
         }
     }
@@ -105,50 +96,21 @@ public class Jiracli {
         map.put(Option.HELP, list.contains("-h") || list.contains("--help"));
         map.put(Option.CONSOLE, list.contains("-c") || list.contains("--console"));
         map.put(Option.GUI, list.contains("-g") || list.contains("--gui"));
-        map.put(Option.VERSION, list.contains("--version"));
-        list.removeAll(Arrays.asList("-h", "--help", "-c", "--console", "-g", "--gui", "--version"));
-        if (!list.isEmpty()) {
-            map.put(Option.ROOT_URL, list.remove(0));
-        }
-        if (!list.isEmpty()) {
-            map.put(Option.USERNAME, list.remove(0));
-        }
+        map.put(Option.VERSION, list.contains("-V") || list.contains("--version"));
+        list.removeAll(Arrays.asList("-h", "--help", "-c", "--console", "-g", "--gui", "-V", "--version"));
         if (!list.isEmpty()) {
             map.put(Option.HELP, true);
         }
         return map;
     }
 
-    private static void startConsole(String givenRootURL, String givenUsername) {
-        Console console = new DefaultConsole();
+    private static void startConsole() {
+        Configuration configuration = new DefaultConfiguration();
+        Console console = new DefaultConsole(configuration);
 
-        final String rootURL;
-        if (givenRootURL == null) {
-            console.print("Root URL: ");
-            rootURL = console.readLine();
-        } else {
-            rootURL = givenRootURL;
-        }
-
-        final String username;
-        if (givenUsername == null) {
-            console.print("Username: ");
-            username = emptyToNull(console.readLine());
-        } else {
-            username = givenUsername;
-        }
-
-        final char[] password;
-        if (username == null) {
-            password = null;
-        } else {
-            console.print("Password: ");
-            password = emptyToNull(console.readPassword());
-        }
-
-        final WebService webService = new DefaultWebService(rootURL, username, password);
+        final WebService webService = new DefaultWebService(console);
         JavaScriptEngine javaScriptEngine = new DefaultJavaScriptEngine(console);
-        Context context = new DefaultContext(console, webService, javaScriptEngine);
+        Context context = new DefaultContext(configuration, console, webService, javaScriptEngine);
 
         context.onClose(new Runnable() {
             @Override
@@ -157,70 +119,20 @@ public class Jiracli {
             }
         });
 
-        context.onClose(new Runnable() {
-            @Override
-            public void run() {
-                clearPassword(password);
-            }
-        });
-
         new Shell(context).start();
     }
 
-    private static void startGUI(String givenRootURL, String givenUsername) {
-        final Preferences preferences = Constants.getPreferences();
-        String storedRootURL = preferences.get(ROOT_URL, givenRootURL);
-        String storedUsername = preferences.get(USERNAME, givenUsername);
-
-        final ContextDialog contextDialog = new ContextDialog(storedRootURL, storedUsername);
-        contextDialog.setOkListener(new Runnable() {
-            @Override
-            public void run() {
-                final String rootURL = contextDialog.getRootURL();
-                final String username = emptyToNull(contextDialog.getUsername());
-                final char[] password = emptyToNull(contextDialog.getPassword());
-
-                Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        clearPassword(password);
-                    }
-                }));
-
-                preferences.put(ROOT_URL, rootURL);
-                preferences.put(USERNAME, Objects.toString(username, ""));
-
-                openNewWindow(new WebServiceFactory(rootURL, username, password));
-
-                contextDialog.setVisible(false);
-                contextDialog.dispose();
-            }
-        });
-        contextDialog.setVisible(true);
+    private static void startGUI() {
+        openNewWindow();
     }
 
-    private static String emptyToNull(String str) {
-        return (str.isEmpty() ? null : str);
+    private static void openNewWindow() {
+        openNewWindow(null);
     }
 
-    private static char[] emptyToNull(char[] str) {
-        return (str.length == 0 ? null : str);
-    }
-
-    private static void clearPassword(char[] password) {
-        if (password != null) {
-            for (int i = 0; i < password.length; i++) {
-                password[i] = '\0';
-            }
-        }
-    }
-
-    private static void openNewWindow(final WebServiceFactory webServiceFactory) {
-        openNewWindow(webServiceFactory, null);
-    }
-
-    private static void openNewWindow(final WebServiceFactory webServiceFactory, Window oldWindow) {
-        final MainWindow window = new MainWindow();
+    private static void openNewWindow(Window oldWindow) {
+        Configuration configuration = new DefaultConfiguration();
+        final ConsoleWindow window = new ConsoleWindow(configuration);
 
         if (oldWindow != null) {
             int offset = (int) (window.getWidth() * 0.1);
@@ -230,29 +142,14 @@ public class Jiracli {
         window.setNewWindowListener(new Runnable() {
             @Override
             public void run() {
-                openNewWindow(webServiceFactory, window);
+                openNewWindow(window);
             }
         });
 
-        Consumer<String> appendText = new Consumer<String>() {
-            @Override
-            public void accept(String str) {
-                window.appendText(str);
-            }
-        };
-
-        Supplier<String> readLine = new Supplier<String>() {
-            @Override
-            public String get() {
-                return window.readLine();
-            }
-        };
-
-        Console console = new DelegateConsole(appendText, readLine);
-
-        final WebService webService = webServiceFactory.createWebService();
+        final Console console = window.getConsole();
+        final WebService webService = new DefaultWebService(console);
         final JavaScriptEngine javaScriptEngine = new DefaultJavaScriptEngine(console);
-        final Context context = new DefaultContext(console, webService, javaScriptEngine);
+        final Context context = new DefaultContext(configuration, console, webService, javaScriptEngine);
 
         context.onClose(new Runnable() {
             @Override

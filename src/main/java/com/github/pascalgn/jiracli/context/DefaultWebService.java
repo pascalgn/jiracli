@@ -42,6 +42,7 @@ import com.github.pascalgn.jiracli.model.IssueType;
 import com.github.pascalgn.jiracli.model.Project;
 import com.github.pascalgn.jiracli.model.Sprint;
 import com.github.pascalgn.jiracli.model.Value;
+import com.github.pascalgn.jiracli.util.Credentials;
 import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.LoadingCache;
 import com.github.pascalgn.jiracli.util.LoadingList;
@@ -74,8 +75,8 @@ public class DefaultWebService implements WebService {
     private final Supplier<Map<String, JSONObject>> fieldDataCache;
     private final LoadingCache<String, IssueData> issueCache;
 
-    public DefaultWebService(String baseUrl, String username, char[] password) {
-        this.httpClient = new HttpClient(baseUrl, username, password);
+    public DefaultWebService(Console console) {
+        this.httpClient = createHttpClient(console);
         this.cache = new HashMap<String, String>();
         this.fieldDataCache = new MemoizingSupplier<>(new Supplier<Map<String, JSONObject>>() {
             @Override
@@ -89,6 +90,22 @@ public class DefaultWebService implements WebService {
                 return new IssueData(key);
             }
         });
+    }
+
+    private static HttpClient createHttpClient(final Console console) {
+        Supplier<String> baseUrl = new Supplier<String>() {
+            @Override
+            public String get() {
+                return console.getBaseUrl();
+            }
+        };
+        Function<String, Credentials> credentials = new Function<String, Credentials>() {
+            @Override
+            public Credentials apply(String url) {
+                return console.getCredentials(url);
+            }
+        };
+        return new HttpClient(baseUrl, credentials);
     }
 
     @Override

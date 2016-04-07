@@ -48,6 +48,15 @@ class Shell {
 
     public void start() {
         Console console = context.getConsole();
+
+        console.println(Constants.getTitle());
+
+        String baseUrl = context.getConfiguration().getBaseUrl();
+        if (baseUrl != null) {
+            console.println("Base URL: " + baseUrl);
+            console.println("You can change the base URL with the 'config' command");
+        }
+
         while (true) {
             console.print(PROMPT);
 

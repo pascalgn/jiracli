@@ -41,7 +41,7 @@ public class Sprint extends Data {
 
     @Override
     public Text toText() {
-        return new Text(toString());
+        return new Text(getName());
     }
 
     @Override

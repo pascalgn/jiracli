@@ -19,8 +19,10 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import com.github.pascalgn.jiracli.ShellHelper;
+import com.github.pascalgn.jiracli.context.Configuration;
 import com.github.pascalgn.jiracli.context.Console;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.context.DefaultContext;
@@ -72,10 +74,11 @@ public class IntegrationTest {
     }
 
     private Context createContext() {
-        Console console = new MockConsole();
-        WebService webService = new DefaultWebService(testServerRule.getRootUrl(), null, null);
+        Configuration configuration = Mockito.mock(Configuration.class);
+        Console console = new MockConsole(testServerRule.getRootUrl());
+        WebService webService = new DefaultWebService(console);
         JavaScriptEngine javaScriptEngine = new DefaultJavaScriptEngine(console);
-        return new DefaultContext(console, webService, javaScriptEngine);
+        return new DefaultContext(configuration, console, webService, javaScriptEngine);
     }
 
     private static String toString(TextList textList) {

@@ -20,14 +20,18 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.github.pascalgn.jiracli.context.Console;
+import com.github.pascalgn.jiracli.util.Credentials;
 
 public class MockConsole implements Console {
+    private final String baseUrl;
+
     private final List<String> input;
     private final StringBuilder output;
 
     private int index;
 
-    public MockConsole(String... input) {
+    public MockConsole(String baseUrl, String... input) {
+        this.baseUrl = baseUrl;
         this.input = Arrays.asList(input);
         this.output = new StringBuilder();
     }
@@ -53,9 +57,13 @@ public class MockConsole implements Console {
     }
 
     @Override
-    public char[] readPassword() {
-        String str = readLine();
-        return (str == null ? null : str.toCharArray());
+    public String getBaseUrl() {
+        return baseUrl;
+    }
+
+    @Override
+    public Credentials getCredentials(String url) {
+        return new Credentials("", "".toCharArray());
     }
 
     @Override

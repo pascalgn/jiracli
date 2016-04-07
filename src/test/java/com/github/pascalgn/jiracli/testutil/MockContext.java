@@ -20,6 +20,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import com.github.pascalgn.jiracli.context.AbstractContext;
+import com.github.pascalgn.jiracli.context.Configuration;
 import com.github.pascalgn.jiracli.context.DefaultJavaScriptEngine;
 import com.github.pascalgn.jiracli.context.JavaScriptEngine;
 import com.github.pascalgn.jiracli.context.WebService;
@@ -31,7 +32,7 @@ public class MockContext extends AbstractContext {
     private JavaScriptEngine javaScriptEngine;
 
     public MockContext() {
-        console = new MockConsole();
+        console = new MockConsole("http://localhost");
         webService = Mockito.mock(WebService.class);
         Mockito.when(webService.getIssue(Mockito.anyString())).thenAnswer(new Answer<Issue>() {
             @Override
@@ -40,6 +41,11 @@ public class MockContext extends AbstractContext {
             }
         });
         javaScriptEngine = new DefaultJavaScriptEngine(console);
+    }
+
+    @Override
+    public Configuration getConfiguration() {
+        return null;
     }
 
     @Override
