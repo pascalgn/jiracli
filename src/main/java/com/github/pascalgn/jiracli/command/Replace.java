@@ -62,7 +62,7 @@ class Replace implements Command {
         }
         final Pattern pattern = Pattern.compile(search, flags);
         IssueList issueList = input.toIssueListOrFail();
-        return issueList.toIssueList(new Function<Issue, Issue>() {
+        return new IssueList(issueList.convertingSupplier(new Function<Issue, Issue>() {
             @Override
             public Issue apply(Issue issue) {
                 FieldMap fieldMap = issue.getFieldMap();
@@ -85,6 +85,6 @@ class Replace implements Command {
                 }
                 return issue;
             }
-        });
+        }));
     }
 }

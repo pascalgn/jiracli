@@ -154,7 +154,7 @@ public class ConsoleWindow extends JFrame {
 
         @Override
         protected Credentials provideCredentials(String username, String url) {
-            return CredentialsPanel.getCredentials(ConsoleWindow.this, url);
+            return CredentialsPanel.getCredentials(ConsoleWindow.this, username, url);
         }
 
         @Override

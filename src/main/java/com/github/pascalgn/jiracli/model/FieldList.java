@@ -40,22 +40,12 @@ public class FieldList extends List<Field> {
 
     @Override
     public IssueList toIssueList() {
-        return toIssueList(new Function<Field, Issue>() {
+        return new IssueList(convertingSupplier(new Function<Field, Issue>() {
             @Override
             public Issue apply(Field field) {
                 return field.toIssue();
             }
-        });
-    }
-
-    @Override
-    public TextList toTextList() {
-        return toTextList(new Function<Field, Text>() {
-            @Override
-            public Text apply(Field field) {
-                return field.toText();
-            }
-        });
+        }));
     }
 
     @Override

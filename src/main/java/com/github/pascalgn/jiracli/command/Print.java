@@ -47,7 +47,7 @@ class Print implements Command {
     @Override
     public TextList execute(final Context context, Data input) {
         IssueList issueList = input.toIssueListOrFail();
-        return issueList.toTextList(new Function<Issue, Text>() {
+        return new TextList(issueList.convertingSupplier(new Function<Issue, Text>() {
             @Override
             public Text apply(Issue issue) {
                 String str;
@@ -59,6 +59,6 @@ class Print implements Command {
                 }
                 return new Text(str);
             }
-        });
+        }));
     }
 }

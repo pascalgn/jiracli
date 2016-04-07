@@ -15,14 +15,18 @@
  */
 package com.github.pascalgn.jiracli.context;
 
+import java.io.InputStream;
+import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import com.github.pascalgn.jiracli.model.Attachment;
 import com.github.pascalgn.jiracli.model.Board;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.Project;
 import com.github.pascalgn.jiracli.model.Sprint;
+import com.github.pascalgn.jiracli.util.Consumer;
 
 public interface WebService extends AutoCloseable {
     enum Method {
@@ -35,15 +39,21 @@ public interface WebService extends AutoCloseable {
 
     String execute(Method method, String path, String body);
 
+    void download(URI uri, Consumer<InputStream> consumer);
+
     Issue getIssue(String key);
 
     List<Issue> getIssues(Issue epic);
+
+    List<Issue> getLinks(Issue issue);
 
     List<Issue> searchIssues(String jql);
 
     void updateIssue(Issue issue);
 
     void rankIssues(List<Issue> issues);
+
+    List<Attachment> getAttachments(Issue issue);
 
     Project getProject(String key);
 

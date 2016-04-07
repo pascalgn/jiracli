@@ -67,22 +67,26 @@ class LoadableFieldMap implements FieldMap {
                 continue;
             }
 
-            JSONObject data = fieldData.get().get(id);
-            String name;
-            JSONObject schema;
-            if (data == null) {
-                LOGGER.debug("Unknown field: {} (issue {})", id, issue);
-                name = id;
-                schema = null;
-            } else {
-                name = data.optString("name");
-                if (name == null || name.isEmpty()) {
+            try {
+                JSONObject data = fieldData.get().get(id);
+                String name;
+                JSONObject schema;
+                if (data == null) {
+                    LOGGER.debug("Unknown field: {} (issue {})", id, issue);
                     name = id;
+                    schema = null;
+                } else {
+                    name = data.optString("name");
+                    if (name == null || name.isEmpty()) {
+                        name = id;
+                    }
+                    schema = data.optJSONObject("schema");
                 }
-                schema = data.optJSONObject("schema");
+                Value value = ValueFactory.createValue(json.get(id), schema);
+                fields.put(id, new Field(issue, id, name, value));
+            } catch (RuntimeException e) {
+                throw new IllegalStateException("Error creating field: " + issue + ": " + id, e);
             }
-            Value value = ValueFactory.createValue(json.get(id), schema);
-            fields.put(id, new Field(issue, id, name, value));
         }
     }
 

@@ -20,30 +20,30 @@ import java.util.Iterator;
 
 import com.github.pascalgn.jiracli.util.Supplier;
 
-public class BoardList extends List<Board> {
-    public BoardList() {
+public class AttachmentList extends List<Attachment> {
+    public AttachmentList() {
         super();
     }
 
-    public BoardList(Board... boards) {
-        super(Arrays.asList(boards).iterator());
+    public AttachmentList(Attachment... attachments) {
+        super(Arrays.asList(attachments).iterator());
     }
 
-    public BoardList(Iterator<Board> iterator) {
+    public AttachmentList(Iterator<Attachment> iterator) {
         super(iterator);
     }
 
-    public BoardList(Supplier<Board> supplier) {
+    public AttachmentList(Supplier<Attachment> supplier) {
         super(supplier);
     }
 
     @Override
-    public BoardList toBoardList() {
+    public AttachmentList toAttachmentList() {
         return this;
     }
 
     @Override
-    public BoardList filteredList(Filter<Board> filter) {
-        return new BoardList(new FilteredSupplier<>(getSupplier(), filter));
+    public AttachmentList filteredList(Filter<Attachment> filter) {
+        return new AttachmentList(new FilteredSupplier<>(getSupplier(), filter));
     }
 }

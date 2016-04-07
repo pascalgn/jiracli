@@ -18,7 +18,6 @@ package com.github.pascalgn.jiracli.model;
 import java.util.Arrays;
 import java.util.Iterator;
 
-import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.Supplier;
 
 public class ProjectList extends List<Project> {
@@ -36,16 +35,6 @@ public class ProjectList extends List<Project> {
 
     public ProjectList(Supplier<Project> supplier) {
         super(supplier);
-    }
-
-    @Override
-    public TextList toTextList() {
-        return toTextList(new Function<Project, Text>() {
-            @Override
-            public Text apply(Project project) {
-                return project.toText();
-            }
-        });
     }
 
     @Override

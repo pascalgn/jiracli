@@ -34,7 +34,7 @@ class ValueFactory {
         try {
             result = doCreateValue(value, schema);
         } catch (RuntimeException e) {
-            LOGGER.info("Error creating value: {} (type: {}, schema: {})", value, valueType, schema, e);
+            LOGGER.trace("Error creating value: {} (type: {}, schema: {})", value, valueType, schema, e);
             return new UnknownValue(value);
         }
 

@@ -18,7 +18,6 @@ package com.github.pascalgn.jiracli.model;
 import java.util.Arrays;
 import java.util.Iterator;
 
-import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.Supplier;
 
 public class SprintList extends List<Sprint> {
@@ -36,16 +35,6 @@ public class SprintList extends List<Sprint> {
 
     public SprintList(Supplier<Sprint> supplier) {
         super(supplier);
-    }
-
-    @Override
-    public TextList toTextList() {
-        return toTextList(new Function<Sprint, Text>() {
-            @Override
-            public Text apply(Sprint sprint) {
-                return sprint.toText();
-            }
-        });
     }
 
     @Override

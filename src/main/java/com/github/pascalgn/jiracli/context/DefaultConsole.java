@@ -58,6 +58,8 @@ public class DefaultConsole extends AbstractConsole {
 
     @Override
     protected Credentials provideCredentials(String username, String url) {
+        println("Please enter the credentials for " + url);
+
         String user = username;
         if (user == null) {
             print("Username: ");

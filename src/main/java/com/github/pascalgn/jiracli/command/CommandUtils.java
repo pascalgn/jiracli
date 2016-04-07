@@ -100,9 +100,9 @@ class CommandUtils {
             subname = "";
         }
 
-        Field field = issue.getFieldMap().getFieldByName(fieldNameOrId);
+        Field field = issue.getFieldMap().getFieldById(fieldNameOrId);
         if (field == null) {
-            field = issue.getFieldMap().getFieldById(fieldNameOrId);
+            field = issue.getFieldMap().getFieldByName(fieldNameOrId);
         }
         if (field == null) {
             throw new IllegalStateException("No such field: " + fieldNameOrId + ": " + issue);

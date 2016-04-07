@@ -26,10 +26,9 @@ import com.github.pascalgn.jiracli.command.CommandFactory.UsageException;
 import com.github.pascalgn.jiracli.context.Console;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
-import com.github.pascalgn.jiracli.model.Text;
+import com.github.pascalgn.jiracli.model.None;
 import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.parser.CommandReference;
-import com.github.pascalgn.jiracli.util.Supplier;
 
 class Shell {
     private static final Logger LOGGER = LoggerFactory.getLogger(Shell.class);
@@ -82,9 +81,9 @@ class Shell {
             try {
                 TextList textList = result.toTextList();
                 if (textList != null) {
-                    Text text;
-                    while ((text = textList.next()) != null) {
-                        console.println(text.getText());
+                    String str = textList.toText().getText();
+                    if (!str.isEmpty()) {
+                        console.println(str);
                     }
                 }
             } catch (RuntimeException e) {
@@ -104,10 +103,7 @@ class Shell {
             }
 
             Pipeline pipeline = pipelineBuilder.build();
-
-            TextList input = new TextList(new ConsoleTextSupplier(console));
-
-            return pipeline.execute(context, input);
+            return pipeline.execute(context, None.getInstance());
         } catch (UsageException e) {
             console.println(e.getLocalizedMessage());
             return null;
@@ -123,24 +119,6 @@ class Shell {
             console.println("error!");
         } else {
             console.println(e.getLocalizedMessage());
-        }
-    }
-
-    private static class ConsoleTextSupplier implements Supplier<Text> {
-        private final Console console;
-
-        public ConsoleTextSupplier(Console console) {
-            this.console = console;
-        }
-
-        @Override
-        public Text get() {
-            String raw = console.readLine();
-            if (raw == null) {
-                return null;
-            }
-            String line = raw.trim();
-            return (line.isEmpty() ? null : new Text(line));
         }
     }
 }

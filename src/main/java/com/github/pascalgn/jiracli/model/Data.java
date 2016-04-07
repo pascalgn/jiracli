@@ -72,6 +72,14 @@ public abstract class Data {
         return convertOrFail(toFieldList(), FieldList.class);
     }
 
+    public AttachmentList toAttachmentList() {
+        return null;
+    }
+
+    public final AttachmentList toAttachmentListOrFail() {
+        return convertOrFail(toAttachmentList(), AttachmentList.class);
+    }
+
     public BoardList toBoardList() {
         return null;
     }

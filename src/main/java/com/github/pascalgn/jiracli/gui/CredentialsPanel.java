@@ -16,6 +16,7 @@
 package com.github.pascalgn.jiracli.gui;
 
 import java.awt.Window;
+import java.util.Objects;
 
 import javax.swing.GroupLayout;
 import javax.swing.JLabel;
@@ -23,6 +24,8 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
+import javax.swing.event.AncestorEvent;
+import javax.swing.event.AncestorListener;
 
 import com.github.pascalgn.jiracli.Constants;
 import com.github.pascalgn.jiracli.util.Credentials;
@@ -30,17 +33,17 @@ import com.github.pascalgn.jiracli.util.Credentials;
 class CredentialsPanel extends JPanel {
     private static final long serialVersionUID = -7726038259989558546L;
 
-    public static Credentials getCredentials(Window parent, String url) {
-        CredentialsPanel credentialsPanel = new CredentialsPanel(url);
+    public static Credentials getCredentials(Window parent, String username, String url) {
+        CredentialsPanel credentialsPanel = new CredentialsPanel(username, url);
         int result = JOptionPane.showConfirmDialog(parent, credentialsPanel, Constants.getTitle(),
                 JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
         if (result == JOptionPane.OK_OPTION) {
-            String username = credentialsPanel.getUsername();
+            String user = credentialsPanel.getUsername();
             char[] password = credentialsPanel.getPassword();
-            if (username.trim().isEmpty()) {
+            if (user.trim().isEmpty()) {
                 return null;
             } else {
-                return new Credentials(username.trim(), password);
+                return new Credentials(user.trim(), password);
             }
         } else {
             return null;
@@ -52,15 +55,20 @@ class CredentialsPanel extends JPanel {
     private final JTextField username;
     private final JPasswordField password;
 
-    private CredentialsPanel(String url) {
+    private CredentialsPanel(String username, String url) {
         this.url = url;
-        username = new JTextField(20);
-        password = new JPasswordField(20);
+        this.username = new JTextField(Objects.toString(username, ""), 20);
+        this.password = new JPasswordField(20);
+        if (username == null || username.isEmpty()) {
+            this.username.addAncestorListener(new RequestFocusListener());
+        } else {
+            this.password.addAncestorListener(new RequestFocusListener());
+        }
         layoutComponents();
     }
 
     private void layoutComponents() {
-        JLabel titleLabel = new JLabel("<html>Please enter the credentials for <b>" + url + "</b>");
+        JLabel titleLabel = new JLabel("Please enter the credentials for " + url);
 
         JLabel usernameLabel = new JLabel("Username:");
         JLabel passwordLabel = new JLabel("Password:");
@@ -89,5 +97,20 @@ class CredentialsPanel extends JPanel {
 
     private char[] getPassword() {
         return password.getPassword();
+    }
+
+    private static class RequestFocusListener implements AncestorListener {
+        @Override
+        public void ancestorAdded(AncestorEvent evt) {
+            evt.getComponent().requestFocusInWindow();
+        }
+
+        @Override
+        public void ancestorRemoved(AncestorEvent evt) {
+        }
+
+        @Override
+        public void ancestorMoved(AncestorEvent evt) {
+        }
     }
 }

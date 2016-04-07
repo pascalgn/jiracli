@@ -53,6 +53,7 @@ public abstract class AbstractConsole implements Console {
             if (c == null) {
                 throw new IllegalStateException("No credentials provided!");
             }
+            configuration.setUsername(c.getUsername());
         }
         return c;
     }

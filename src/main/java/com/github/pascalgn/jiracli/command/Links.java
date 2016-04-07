@@ -15,25 +15,24 @@
  */
 package com.github.pascalgn.jiracli.command;
 
-import java.util.List;
+import java.util.Collection;
 
-import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
-import com.github.pascalgn.jiracli.model.Text;
-import com.github.pascalgn.jiracli.model.TextList;
+import com.github.pascalgn.jiracli.model.Issue;
+import com.github.pascalgn.jiracli.model.IssueList;
+import com.github.pascalgn.jiracli.util.Function;
 
-@CommandDescription(names = "echo", description = "Print the given text")
-class Echo implements Command {
-    @Argument(parameters = Parameters.ZERO_OR_MORE, variable = "<text>", description = "the text")
-    private List<String> text;
-
+@CommandDescription(names = "links", description = "Show all issues linked with the given issues")
+class Links implements Command {
     @Override
-    public TextList execute(Context context, Data input) {
-        if (text == null || text.isEmpty()) {
-            return new TextList();
-        } else {
-            return new TextList(new Text(CommandUtils.join(text, " ")));
-        }
+    public Data execute(final Context context, Data input) {
+        IssueList issueList = input.toIssueListOrFail();
+        return new IssueList(issueList.loadingSupplier(new Function<Issue, Collection<Issue>>() {
+            @Override
+            public Collection<Issue> apply(Issue issue) {
+                return context.getWebService().getLinks(issue);
+            }
+        }));
     }
 }

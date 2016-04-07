@@ -15,6 +15,7 @@
  */
 package com.github.pascalgn.jiracli.context;
 
+import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
@@ -22,6 +23,7 @@ import java.net.URI;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +36,7 @@ import org.json.JSONTokener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.pascalgn.jiracli.model.Attachment;
 import com.github.pascalgn.jiracli.model.Board;
 import com.github.pascalgn.jiracli.model.Board.Type;
 import com.github.pascalgn.jiracli.model.Field;
@@ -42,6 +45,7 @@ import com.github.pascalgn.jiracli.model.IssueType;
 import com.github.pascalgn.jiracli.model.Project;
 import com.github.pascalgn.jiracli.model.Sprint;
 import com.github.pascalgn.jiracli.model.Value;
+import com.github.pascalgn.jiracli.util.Consumer;
 import com.github.pascalgn.jiracli.util.Credentials;
 import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.LoadingCache;
@@ -122,6 +126,11 @@ public class DefaultWebService implements WebService {
     }
 
     @Override
+    public void download(URI uri, Consumer<InputStream> consumer) {
+        httpClient.get(uri, consumer);
+    }
+
+    @Override
     public Issue getIssue(String key) {
         URI uri = URI.create(httpClient.getBaseUrl() + "/browse/" + key);
         IssueData issueData = issueCache.get(key);
@@ -131,9 +140,43 @@ public class DefaultWebService implements WebService {
         return issue;
     }
 
+    private Issue getIssue(String key, JSONObject fields) {
+        if (fields != null) {
+            IssueData issueData = new IssueData(key, fields);
+            issueCache.putIfAbsent(key, issueData);
+        }
+        return getIssue(key);
+    }
+
     @Override
     public List<Issue> getIssues(Issue epic) {
         return searchIssues("'Epic Link' = " + epic.getKey() + " ORDER BY Rank");
+    }
+
+    @Override
+    public List<Issue> getLinks(Issue issue) {
+        Field field = issue.getFieldMap().getFieldById("issuelinks");
+        if (field != null) {
+            Object value = field.getValue().getValue();
+            if (value instanceof JSONArray) {
+                JSONArray array = (JSONArray) value;
+                List<Issue> links = new ArrayList<Issue>();
+                for (Object obj : array) {
+                    JSONObject json = (JSONObject) obj;
+                    JSONObject linked = json.optJSONObject("outwardIssue");
+                    if (linked == null) {
+                        linked = json.optJSONObject("inwardIssue");
+                    }
+                    if (linked != null) {
+                        String key = linked.getString("key");
+                        JSONObject fields = linked.optJSONObject("fields");
+                        links.add(getIssue(key, fields));
+                    }
+                }
+                return links;
+            }
+        }
+        return Collections.emptyList();
     }
 
     @Override
@@ -149,11 +192,7 @@ public class DefaultWebService implements WebService {
             JSONObject issue = (JSONObject) obj;
             String key = issue.getString("key");
             JSONObject fields = issue.optJSONObject("fields");
-            if (fields != null) {
-                IssueData issueData = new IssueData(key, fields);
-                issueCache.putIfAbsent(key, issueData);
-            }
-            issues.add(getIssue(key));
+            issues.add(getIssue(key, fields));
         }
         return issues;
     }
@@ -208,6 +247,29 @@ public class DefaultWebService implements WebService {
         if (response != null) {
             LOGGER.warn("Unexpected response received: {}", response);
         }
+    }
+
+    @Override
+    public List<Attachment> getAttachments(Issue issue) {
+        Field field = issue.getFieldMap().getFieldById("attachment");
+        if (field != null) {
+            Object value = field.getValue().getValue();
+            if (value instanceof JSONArray) {
+                JSONArray array = (JSONArray) value;
+                List<Attachment> attachments = new ArrayList<Attachment>();
+                for (Object obj : array) {
+                    JSONObject json = (JSONObject) obj;
+                    int id = json.getInt("id");
+                    String filename = json.getString("filename");
+                    String mimeType = json.getString("mimeType");
+                    long size = json.getLong("size");
+                    URI content = URI.create(json.getString("content"));
+                    attachments.add(new Attachment(issue, id, filename, mimeType, size, content));
+                }
+                return attachments;
+            }
+        }
+        return Collections.emptyList();
     }
 
     @Override

@@ -20,6 +20,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.nio.charset.Charset;
 import java.security.GeneralSecurityException;
 import java.util.NoSuchElementException;
@@ -52,6 +53,7 @@ import org.apache.http.ssl.SSLContexts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.pascalgn.jiracli.util.Consumer;
 import com.github.pascalgn.jiracli.util.Credentials;
 import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.IOUtils;
@@ -161,6 +163,19 @@ class HttpClient implements AutoCloseable {
         return execute(new HttpGet(getUrl(path)), function);
     }
 
+    public void get(URI uri, Consumer<InputStream> consumer) {
+        HttpEntity entity = execute(new HttpGet(uri));
+        if (entity == null) {
+            throw new IllegalStateException("No response!");
+        } else {
+            try (InputStream input = entity.getContent()) {
+                consumer.accept(input);
+            } catch (IOException e) {
+                throw new IllegalStateException("Could not read response for URL: " + uri, e);
+            }
+        }
+    }
+
     public String post(String path, String body) {
         return post(path, body, TO_STRING);
     }
@@ -189,6 +204,11 @@ class HttpClient implements AutoCloseable {
     }
 
     private <T> T execute(HttpUriRequest request, Function<Reader, T> function) {
+        HttpEntity entity = execute(request);
+        return (entity == null ? null : readResponse(request, entity, function));
+    }
+
+    private HttpEntity execute(HttpUriRequest request) {
         LOGGER.debug("Calling URL: {} [{}]", request.getURI(), request.getMethod());
 
         HttpResponse response;
@@ -204,11 +224,7 @@ class HttpClient implements AutoCloseable {
 
         int statusCode = response.getStatusLine().getStatusCode();
         if (isSuccess(statusCode)) {
-            if (entity == null) {
-                return null;
-            } else {
-                return readResponse(request, entity, function);
-            }
+            return entity;
         } else {
             if (statusCode == HttpURLConnection.HTTP_UNAUTHORIZED) {
                 throw new IllegalStateException("Unauthorized!");

@@ -23,10 +23,12 @@ import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
+import com.github.pascalgn.jiracli.model.None;
 import com.github.pascalgn.jiracli.model.Text;
+import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.util.Function;
 
-@CommandDescription(names = "browse", description = "Open the given JIRA issues in the system's default browser")
+@CommandDescription(names = "browse", description = "Open the given Jira issues in the system's default browser")
 class Browse implements Command {
     @Argument(names = "-n", description = "only print the URLs, don't open a browser")
     private boolean dryRun = false;
@@ -35,13 +37,13 @@ class Browse implements Command {
     public Data execute(final Context context, Data input) {
         IssueList issueList = input.toIssueListOrFail();
         if (dryRun) {
-            return issueList.toTextList(new Function<Issue, Text>() {
+            return new TextList(issueList.convertingSupplier(new Function<Issue, Text>() {
                 @Override
                 public Text apply(Issue issue) {
                     URI uri = issue.getUri();
                     return new Text(uri.toString());
                 }
-            });
+            }));
         } else {
             Desktop desktop = Desktop.getDesktop();
 
@@ -54,7 +56,8 @@ class Browse implements Command {
                     throw new IllegalStateException("Cannot open URL: " + uri, e);
                 }
             }
-            return input;
+
+            return None.getInstance();
         }
     }
 }

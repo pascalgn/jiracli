@@ -22,7 +22,9 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
@@ -32,6 +34,8 @@ import java.nio.charset.StandardCharsets;
 
 public class IOUtils {
     private static final Charset CHARSET = StandardCharsets.UTF_8;
+
+    private static final int BUFFER_SIZE = 4096;
 
     public static Reader createReader(File file) throws FileNotFoundException {
         return new InputStreamReader(new FileInputStream(file), CHARSET);
@@ -50,16 +54,16 @@ public class IOUtils {
     }
 
     public static String toString(File file) {
-        try {
-            return toString0(createReader(file));
+        try (Reader reader = createReader(file)) {
+            return toString0(reader);
         } catch (IOException e) {
             throw new IllegalStateException("Cannot read from file: " + file, e);
         }
     }
 
     public static String toString(URL url) {
-        try {
-            return toString0(new InputStreamReader(url.openStream(), CHARSET));
+        try (Reader reader = new InputStreamReader(url.openStream(), CHARSET)) {
+            return toString0(reader);
         } catch (IOException e) {
             throw new IllegalStateException("Cannot read from URL: " + url, e);
         }
@@ -75,11 +79,23 @@ public class IOUtils {
 
     private static String toString0(Reader reader) throws IOException {
         StringBuilder str = new StringBuilder();
-        char[] buf = new char[2048];
+        char[] buf = new char[BUFFER_SIZE];
         int len;
         while ((len = reader.read(buf)) != -1) {
             str.append(buf, 0, len);
         }
         return str.toString();
+    }
+
+    public static void copy(InputStream input, OutputStream output) {
+        byte[] buf = new byte[BUFFER_SIZE];
+        try {
+            int len;
+            while ((len = input.read(buf)) != -1) {
+                output.write(buf, 0, len);
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
     }
 }

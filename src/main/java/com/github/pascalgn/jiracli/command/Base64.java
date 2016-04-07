@@ -36,7 +36,7 @@ class Base64 implements Command {
     @Override
     public TextList execute(Context context, Data input) {
         TextList textList = input.toTextListOrFail();
-        return textList.toTextList(new Function<Text, Text>() {
+        return new TextList(textList.convertingSupplier(new Function<Text, Text>() {
             @Override
             public Text apply(Text text) {
                 if (decode) {
@@ -47,6 +47,6 @@ class Base64 implements Command {
                     return new Text(base64);
                 }
             }
-        });
+        }));
     }
 }

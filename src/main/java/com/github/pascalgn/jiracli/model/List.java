@@ -72,37 +72,27 @@ abstract class List<T extends Data> extends Data {
         return (List<Data>) filteredList((Filter<T>) filter);
     }
 
-    public IssueList toIssueList(final Function<T, Issue> function) {
-        return new IssueList(new Supplier<Issue>() {
+    @Override
+    public TextList toTextList() {
+        return new TextList(convertingSupplier(new Function<T, Text>() {
             @Override
-            public Issue get() {
-                T next = next();
-                return (next == null ? null : function.apply(next));
+            public Text apply(T project) {
+                return project.toText();
             }
-        });
-    }
-
-    public TextList toTextList(final Function<T, Text> function) {
-        return new TextList(new Supplier<Text>() {
-            @Override
-            public Text get() {
-                T next = next();
-                return (next == null ? null : function.apply(next));
-            }
-        });
-    }
-
-    public FieldList toFieldList(final Function<T, Field> function) {
-        return new FieldList(new Supplier<Field>() {
-            @Override
-            public Field get() {
-                T next = next();
-                return (next == null ? null : function.apply(next));
-            }
-        });
+        }));
     }
 
     public abstract List<T> filteredList(Filter<T> filter);
+
+    public <R> Supplier<R> convertingSupplier(final Function<T, R> function) {
+        return new Supplier<R>() {
+            @Override
+            public R get() {
+                T next = next();
+                return (next == null ? null : function.apply(next));
+            }
+        };
+    }
 
     public <R> Supplier<R> loadingSupplier(final Function<T, Collection<R>> function) {
         final Deque<R> deque = new ArrayDeque<>();

@@ -16,6 +16,7 @@
 package com.github.pascalgn.jiracli.model;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 
 import com.github.pascalgn.jiracli.util.Function;
@@ -44,23 +45,13 @@ public class IssueList extends List<Issue> {
     }
 
     @Override
-    public TextList toTextList() {
-        return toTextList(new Function<Issue, Text>() {
-            @Override
-            public Text apply(Issue issue) {
-                return issue.toText();
-            }
-        });
-    }
-
-    @Override
     public FieldList toFieldList() {
-        return toFieldList(new Function<Issue, Field>() {
+        return new FieldList(loadingSupplier(new Function<Issue, Collection<Field>>() {
             @Override
-            public Field apply(Issue issue) {
-                return null;
+            public Collection<Field> apply(Issue issue) {
+                return issue.getFieldMap().getFields();
             }
-        });
+        }));
     }
 
     @Override
