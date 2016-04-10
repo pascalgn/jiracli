@@ -19,10 +19,8 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -155,7 +153,7 @@ class ConverterProvider {
 
         @Override
         public Object fromString(String str) {
-            JSONArray array = toJsonArray(str);
+            JSONArray array = JsonUtils.toJsonArray(str);
             if (array == null) {
                 array = new JSONArray();
                 List<String> split = StringUtils.split(str, ",");
@@ -193,7 +191,7 @@ class ConverterProvider {
 
         @Override
         public Object fromString(String str) {
-            JSONObject object = toJsonObject(str);
+            JSONObject object = JsonUtils.toJsonObject(str);
             if (object == null) {
                 return new JSONObject().put(name, str);
             } else {
@@ -215,11 +213,11 @@ class ConverterProvider {
             if (str.isEmpty()) {
                 return "";
             }
-            JSONObject object = toJsonObject(str);
+            JSONObject object = JsonUtils.toJsonObject(str);
             if (object != null) {
                 return object;
             }
-            JSONArray array = toJsonArray(str);
+            JSONArray array = JsonUtils.toJsonArray(str);
             if (array != null) {
                 return array;
             }
@@ -228,9 +226,6 @@ class ConverterProvider {
     }
 
     private abstract static class AbstractConverter implements Converter {
-        private static final Pattern JSON_OBJECT = Pattern.compile("^\\s*\\{");
-        private static final Pattern JSON_ARRAY = Pattern.compile("^\\s*\\[");
-
         @Override
         public String toString(Object value) {
             if (value == null || value == JSONObject.NULL) {
@@ -238,28 +233,6 @@ class ConverterProvider {
             } else {
                 return value.toString();
             }
-        }
-
-        protected static JSONObject toJsonObject(String str) {
-            if (JSON_OBJECT.matcher(str).find()) {
-                try {
-                    return new JSONObject(str);
-                } catch (JSONException e) {
-                    // ignore!
-                }
-            }
-            return null;
-        }
-
-        protected static JSONArray toJsonArray(String str) {
-            if (JSON_ARRAY.matcher(str).find()) {
-                try {
-                    return new JSONArray(str);
-                } catch (JSONException e) {
-                    // ignore!
-                }
-            }
-            return null;
         }
     }
 }

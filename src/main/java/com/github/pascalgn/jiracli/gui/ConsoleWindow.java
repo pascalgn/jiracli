@@ -16,11 +16,13 @@
 package com.github.pascalgn.jiracli.gui;
 
 import java.awt.BorderLayout;
+import java.awt.EventQueue;
 import java.awt.event.ActionEvent;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.prefs.Preferences;
 
@@ -39,6 +41,7 @@ import com.github.pascalgn.jiracli.context.AbstractConsole;
 import com.github.pascalgn.jiracli.context.Configuration;
 import com.github.pascalgn.jiracli.context.Console;
 import com.github.pascalgn.jiracli.util.Credentials;
+import com.github.pascalgn.jiracli.util.RuntimeInterruptedException;
 import com.github.pascalgn.jiracli.util.Supplier;
 
 /**
@@ -151,8 +154,18 @@ public class ConsoleWindow extends JFrame {
         }
 
         @Override
+        public String readCommand() {
+            return consoleTextArea.readCommand();
+        }
+
+        @Override
         public String readLine() {
             return consoleTextArea.readLine();
+        }
+
+        @Override
+        public List<String> readLines() {
+            return consoleTextArea.readLines();
         }
 
         @Override
@@ -160,7 +173,7 @@ public class ConsoleWindow extends JFrame {
             return invokeAndWait(new Supplier<String>() {
                 @Override
                 public String get() {
-                    return JOptionPane.showInputDialog(ConsoleWindow.this, "Please enter the base URL: ",
+                    return JOptionPane.showInputDialog(ConsoleWindow.this, "Please enter the base URL:",
                             Constants.getTitle(), JOptionPane.PLAIN_MESSAGE);
                 }
             });
@@ -190,17 +203,21 @@ public class ConsoleWindow extends JFrame {
                 Throwable cause = e.getCause();
                 if (cause instanceof RuntimeException) {
                     throw (RuntimeException) cause;
+                } else if (cause instanceof InterruptedException) {
+                    throw new RuntimeInterruptedException((InterruptedException) cause);
                 } else {
                     throw new IllegalStateException(e);
                 }
             } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new IllegalStateException(e);
+                throw new RuntimeInterruptedException(e);
             }
         }
 
         @Override
         public boolean editFile(File file) {
+            if (EventQueue.isDispatchThread()) {
+                throw new IllegalStateException("Method must not be called on EDT!");
+            }
             return editFile(file, true);
         }
     }

@@ -16,7 +16,7 @@
 package com.github.pascalgn.jiracli.testutil;
 
 import java.io.File;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import com.github.pascalgn.jiracli.context.Console;
@@ -24,15 +24,10 @@ import com.github.pascalgn.jiracli.util.Credentials;
 
 public class MockConsole implements Console {
     private final String baseUrl;
-
-    private final List<String> input;
     private final StringBuilder output;
 
-    private int index;
-
-    public MockConsole(String baseUrl, String... input) {
+    public MockConsole(String baseUrl) {
         this.baseUrl = baseUrl;
-        this.input = Arrays.asList(input);
         this.output = new StringBuilder();
     }
 
@@ -52,8 +47,18 @@ public class MockConsole implements Console {
     }
 
     @Override
+    public List<String> readLines() {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public String readCommand() {
+        return null;
+    }
+
+    @Override
     public String readLine() {
-        return (index < input.size() ? input.get(index++) : null);
+        return null;
     }
 
     @Override
@@ -68,6 +73,6 @@ public class MockConsole implements Console {
 
     @Override
     public boolean editFile(File file) {
-        return false;
+        return true;
     }
 }

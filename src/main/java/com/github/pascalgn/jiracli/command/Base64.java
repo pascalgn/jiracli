@@ -35,7 +35,15 @@ class Base64 implements Command {
 
     @Override
     public TextList execute(Context context, Data input) {
-        TextList textList = input.toTextListOrFail();
+        TextList textList = input.toTextList();
+        if (textList == null) {
+            String line = context.getConsole().readLine();
+            if (line == null) {
+                textList = new TextList();
+            } else {
+                textList = new Text(line).toTextList();
+            }
+        }
         return new TextList(textList.convertingSupplier(new Function<Text, Text>() {
             @Override
             public Text apply(Text text) {

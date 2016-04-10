@@ -15,6 +15,7 @@
  */
 package com.github.pascalgn.jiracli.command;
 
+import java.util.Iterator;
 import java.util.List;
 
 import com.github.pascalgn.jiracli.command.Argument.Parameters;
@@ -46,8 +47,7 @@ class Search implements Command {
         private Context context;
         private String jql;
 
-        private List<Issue> issues;
-        private int issuesIndex;
+        private Iterator<Issue> issues;
 
         public IssueSupplier(Context context, String jql) {
             this.context = context;
@@ -57,10 +57,10 @@ class Search implements Command {
         @Override
         public synchronized Issue get() {
             if (issues == null) {
-                issues = context.getWebService().searchIssues(jql);
-                issuesIndex = 0;
+                List<Issue> list = context.getWebService().searchIssues(jql);
+                issues = list.iterator();
             }
-            return (issuesIndex < issues.size() ? issues.get(issuesIndex++) : null);
+            return (issues.hasNext() ? issues.next() : null);
         }
     }
 }

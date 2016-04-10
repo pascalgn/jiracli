@@ -30,8 +30,8 @@ public class CommandFactoryTest {
     }
 
     @Test
-    public void testReadExcel() throws Exception {
-        checkUsage("usage: readexcel [-c <col>] [-h] [--] <file>", "re");
+    public void testRead() throws Exception {
+        checkUsage("usage: read [-c <col>] [-h] [--] <file>", "read");
     }
 
     @Test
@@ -56,8 +56,8 @@ public class CommandFactoryTest {
     }
 
     @Test
-    public void testParseReadExcel() throws Exception {
-        Command readExcel = parse("re", "-c", "ABC", "-");
+    public void testParseRead() throws Exception {
+        Command readExcel = parse("read", "-c", "ABC", "-");
         assertEquals("ABC", getFieldValue(readExcel, "column"));
     }
 

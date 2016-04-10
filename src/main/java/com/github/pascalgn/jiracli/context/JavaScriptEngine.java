@@ -15,23 +15,18 @@
  */
 package com.github.pascalgn.jiracli.context;
 
-import com.github.pascalgn.jiracli.model.Issue;
+import java.util.List;
+
+import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.IssueList;
-import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
 
 public interface JavaScriptEngine {
-    Text evaluate(String js, Text input);
+    Data evaluate(String js);
 
-    TextList evaluate(String js, TextList input);
+    Data evaluate(String js, TextList input);
 
-    Issue evaluate(String js, Issue input);
+    Data evaluate(String js, IssueList input);
 
-    IssueList evaluate(String js, IssueList input);
-
-    @Deprecated
-    Object evaluate(String js);
-
-    @Deprecated
-    Object evaluate(String js, Object input);
+    Data evaluate(String js, IssueList input, List<String> fields);
 }

@@ -21,10 +21,10 @@ import java.util.List;
 final class CommandList {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private static final List<Class<Command>> COMMANDS = (List) Arrays.asList(Base64.class, Browse.class, Filter.class,
-            Get.class, Help.class, JavaScript.class, Print.class, Read.class, ReadExcel.class, Search.class,
-            Issues.class, Echo.class, Sort.class, Join.class, Split.class, Labels.class, Edit.class, Call.class,
-            Update.class, Replace.class, Boards.class, Sprints.class, Head.class, Projects.class, Create.class,
-            Rank.class, Epics.class, Config.class, Fields.class, Attachments.class, Download.class, Links.class);
+            Get.class, Help.class, JavaScript.class, Print.class, Read.class, Search.class, Issues.class, Echo.class,
+            Sort.class, Join.class, Split.class, Labels.class, Edit.class, Call.class, Update.class, Replace.class,
+            Boards.class, Sprints.class, Head.class, Projects.class, Create.class, Rank.class, Epics.class,
+            Config.class, Fields.class, Attachments.class, Download.class, Links.class);
 
     private CommandList() {
         // don't allow instances

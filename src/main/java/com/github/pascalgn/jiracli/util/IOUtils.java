@@ -128,4 +128,12 @@ public class IOUtils {
             throw new IllegalStateException(e);
         }
     }
+
+    public static void write(File file, String content) {
+        try (Writer writer = createWriter(file)) {
+            writer.write(content);
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
 }

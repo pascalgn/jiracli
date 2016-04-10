@@ -30,6 +30,7 @@ import com.github.pascalgn.jiracli.model.None;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.parser.CommandReference;
+import com.github.pascalgn.jiracli.util.RuntimeInterruptedException;
 
 class Shell {
     private static final Logger LOGGER = LoggerFactory.getLogger(Shell.class);
@@ -60,7 +61,13 @@ class Shell {
         while (true) {
             console.print(PROMPT);
 
-            String raw = console.readLine();
+            String raw;
+            try {
+                raw = console.readCommand();
+            } catch (RuntimeInterruptedException e) {
+                console.println("");
+                continue;
+            }
             if (raw == null) {
                 break;
             }
@@ -93,6 +100,9 @@ class Shell {
             result = pipeline.execute(context, None.getInstance());
         } catch (UsageException e) {
             console.println(e.getLocalizedMessage());
+            return;
+        } catch (RuntimeInterruptedException e) {
+            console.println("interrupted");
             return;
         } catch (RuntimeException e) {
             logException(console, e);

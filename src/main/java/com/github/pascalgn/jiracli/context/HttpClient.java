@@ -37,11 +37,9 @@ import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
-import org.apache.http.auth.AuthScheme;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.AuthState;
 import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.AuthCache;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
@@ -142,30 +140,7 @@ class HttpClient implements AutoCloseable {
             public void clear() {
             }
         };
-
-        final AuthScheme authScheme = new BasicScheme();
-        AuthCache authCache = new AuthCache() {
-            @Override
-            public void remove(HttpHost host) {
-            }
-
-            @Override
-            public void put(HttpHost host, AuthScheme authScheme) {
-            }
-
-            @Override
-            public AuthScheme get(HttpHost host) {
-                return authScheme;
-            }
-
-            @Override
-            public void clear() {
-            }
-        };
-
         context.setCredentialsProvider(credentialsProvider);
-        context.setAuthCache(authCache);
-
         return context;
     }
 
@@ -189,7 +164,7 @@ class HttpClient implements AutoCloseable {
     }
 
     public void get(final URI uri, final Consumer<InputStream> consumer) {
-        execute0(new HttpGet(uri), true, new Function<HttpEntity, Void>() {
+        doExecute(new HttpGet(uri), true, new Function<HttpEntity, Void>() {
             @Override
             public Void apply(HttpEntity entity) {
                 if (entity == null) {
@@ -234,7 +209,7 @@ class HttpClient implements AutoCloseable {
     }
 
     private <T> T execute(final HttpUriRequest request, final Function<Reader, T> function) {
-        return execute0(request, true, new Function<HttpEntity, T>() {
+        return doExecute(request, true, new Function<HttpEntity, T>() {
             @Override
             public T apply(HttpEntity entity) {
                 return (entity == null ? null : readResponse(request.getURI(), entity, function));
@@ -242,7 +217,7 @@ class HttpClient implements AutoCloseable {
         });
     }
 
-    private <T> T execute0(HttpUriRequest request, boolean retry, Function<HttpEntity, T> function) {
+    private <T> T doExecute(HttpUriRequest request, boolean retry, Function<HttpEntity, T> function) {
         LOGGER.debug("Calling URL: {} [{}]", request.getURI(), request.getMethod());
 
         HttpResponse response;
@@ -263,7 +238,8 @@ class HttpClient implements AutoCloseable {
                 if (statusCode == HttpURLConnection.HTTP_UNAUTHORIZED) {
                     resetAuthentication();
                     if (retry) {
-                        return execute0(request, false, function);
+                        setCredentials();
+                        return doExecute(request, false, function);
                     } else {
                         throw new AccessControlException("Unauthorized [401]: " + request.getURI());
                     }
@@ -271,7 +247,8 @@ class HttpClient implements AutoCloseable {
                     resetAuthentication();
                     checkAccountLocked(response);
                     if (retry) {
-                        return execute0(request, false, function);
+                        setCredentials();
+                        return doExecute(request, false, function);
                     } else {
                         throw new AccessControlException("Forbidden [403]: " + request.getURI());
                     }
@@ -335,6 +312,18 @@ class HttpClient implements AutoCloseable {
         AuthState authState = httpClientContext.getTargetAuthState();
         if (authState != null) {
             authState.reset();
+        }
+    }
+
+    private void setCredentials() {
+        AuthState authState = httpClientContext.getTargetAuthState();
+        if (authState != null) {
+            CredentialsProvider credentialsProvider = httpClientContext.getCredentialsProvider();
+            AuthScope authScope = new AuthScope(HttpHost.create(getBaseUrl()));
+            org.apache.http.auth.Credentials credentials = credentialsProvider.getCredentials(authScope);
+            if (credentials != null) {
+                authState.update(new BasicScheme(), credentials);
+            }
         }
     }
 

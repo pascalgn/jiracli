@@ -20,12 +20,14 @@ import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseWheelEvent;
-import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.prefs.Preferences;
 
 import javax.swing.AbstractAction;
+import javax.swing.Action;
 import javax.swing.JComponent;
 import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
@@ -42,6 +44,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.pascalgn.jiracli.Constants;
+import com.github.pascalgn.jiracli.command.CommandFactory;
+import com.github.pascalgn.jiracli.util.RuntimeInterruptedException;
 
 class ConsoleTextArea extends JTextArea {
     private static final long serialVersionUID = -8193770562227282747L;
@@ -52,12 +56,21 @@ class ConsoleTextArea extends JTextArea {
     private static final int MIN_FONT_SIZE = 6;
     private static final int MAX_FONT_SIZE = 72;
 
-    private final BlockingQueue<String> input;
+    private static final Object EOF = new Object();
+    private static final Object INTERRUPT = new Object();
+
+    private final BlockingQueue<Object> input;
     private final ContextMenu contextMenu;
 
     private final Preferences preferences;
 
+    private final List<String> commands;
+
     private transient Integer editStart;
+
+    private transient volatile boolean readCommand;
+    private transient volatile int commandIndex;
+    private transient volatile String currentLine;
 
     public ConsoleTextArea() {
         this(0, 0);
@@ -65,11 +78,13 @@ class ConsoleTextArea extends JTextArea {
 
     public ConsoleTextArea(int rows, int columns) {
         super(rows, columns);
-        input = new LinkedBlockingQueue<String>();
+        input = new LinkedBlockingQueue<>();
 
         contextMenu = new ContextMenu();
 
         preferences = Constants.getPreferences();
+
+        commands = new ArrayList<String>();
 
         int size = normalize(preferences.getInt(FONT_SIZE, getFont().getSize()));
 
@@ -84,9 +99,12 @@ class ConsoleTextArea extends JTextArea {
         Object enterActionKey = getInputMap(JComponent.WHEN_FOCUSED).get(KeyStroke.getKeyStroke("ENTER"));
         getActionMap().put(enterActionKey, new EnterAction());
 
-        Object escapeActionKey = "escape-action";
-        getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke("ESCAPE"), escapeActionKey);
-        getActionMap().put(escapeActionKey, new EscapeAction());
+        registerAction("escape-action", KeyStroke.getKeyStroke("ESCAPE"), new EscapeAction());
+        registerAction("up-action", KeyStroke.getKeyStroke("UP"), new UpAction());
+        registerAction("down-action", KeyStroke.getKeyStroke("DOWN"), new DownAction());
+        registerAction("tab-action", KeyStroke.getKeyStroke("TAB"), new TabAction());
+        registerAction("eof-action", KeyStroke.getKeyStroke("control D"), new EofAction());
+        registerAction("interrupt-action", KeyStroke.getKeyStroke("control G"), new InterruptAction());
 
         addMouseWheelListener(new ZoomListener());
 
@@ -94,6 +112,11 @@ class ConsoleTextArea extends JTextArea {
         if (doc instanceof AbstractDocument) {
             ((AbstractDocument) doc).setDocumentFilter(new DocFilter());
         }
+    }
+
+    private void registerAction(Object actionKey, KeyStroke keyStroke, Action action) {
+        getInputMap(JComponent.WHEN_FOCUSED).put(keyStroke, actionKey);
+        getActionMap().put(actionKey, action);
     }
 
     private static int normalize(int size) {
@@ -106,6 +129,10 @@ class ConsoleTextArea extends JTextArea {
     }
 
     public void appendText(final String str) {
+        if (!EventQueue.isDispatchThread()) {
+            throw new IllegalStateException("Method must be called on EDT!");
+        }
+
         final JScrollBar scrollBar;
         JScrollPane scrollPane = (JScrollPane) SwingUtilities.getAncestorOfClass(JScrollPane.class, this);
         if (scrollPane == null) {
@@ -118,38 +145,33 @@ class ConsoleTextArea extends JTextArea {
                 scrollBar = null;
             }
         }
-
-        if (EventQueue.isDispatchThread()) {
-            append(str);
-            if (scrollBar != null) {
-                scrollBar.setValue(scrollBar.getMaximum());
-            }
-        } else {
-            try {
-                EventQueue.invokeAndWait(new Runnable() {
-                    @Override
-                    public void run() {
-                        append(str);
-                        if (scrollBar != null) {
-                            scrollBar.setValue(scrollBar.getMaximum());
-                        }
-                    }
-                });
-            } catch (InvocationTargetException e) {
-                throw new IllegalStateException(e);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return;
-            }
+        append(str);
+        if (scrollBar != null) {
+            scrollBar.setValue(scrollBar.getMaximum());
         }
+    }
+
+    public String readCommand() {
+        String command;
+        readCommand = true;
+        try {
+            commandIndex = commands.size();
+            command = readLine();
+        } finally {
+            readCommand = false;
+        }
+        if (command != null && !command.isEmpty()) {
+            commands.add(command);
+        }
+        return command;
     }
 
     public String readLine() {
         if (EventQueue.isDispatchThread()) {
             throw new IllegalStateException("Method must not be called on EDT!");
         }
-        String str = input.poll();
-        if (str == null) {
+        Object obj = input.poll();
+        if (obj == null) {
             EventQueue.invokeLater(new Runnable() {
                 @Override
                 public void run() {
@@ -157,13 +179,32 @@ class ConsoleTextArea extends JTextArea {
                 }
             });
             try {
-                str = input.take();
+                obj = input.take();
             } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return null;
+                throw new RuntimeInterruptedException(e);
             }
         }
-        return str;
+        if (obj == EOF) {
+            return null;
+        } else if (obj == INTERRUPT) {
+            throw new RuntimeInterruptedException(new InterruptedException());
+        }
+        return obj.toString();
+    }
+
+    public List<String> readLines() {
+        List<String> lines = new ArrayList<String>();
+        String line;
+        while ((line = readLine()) != null) {
+            if (line.equals(".")) {
+                break;
+            } else if (line.startsWith(".")) {
+                lines.add(line.substring(1));
+            } else {
+                lines.add(line);
+            }
+        }
+        return lines;
     }
 
     public void setNewWindowListener(Runnable newWindowListener) {
@@ -196,13 +237,13 @@ class ConsoleTextArea extends JTextArea {
 
         @Override
         public void actionPerformed(ActionEvent evt) {
-            if (editStart != null) {
+            if (isEditable()) {
                 Document doc = getDocument();
                 String str;
                 try {
                     str = doc.getText(editStart, doc.getLength() - editStart);
-                    input.add(str);
                     doc.insertString(doc.getLength(), "\n", null);
+                    input.add(str);
                 } catch (BadLocationException e) {
                     LOGGER.trace("Invalid location!", e);
                 }
@@ -218,6 +259,140 @@ class ConsoleTextArea extends JTextArea {
         public void actionPerformed(ActionEvent e) {
             if (isEditable()) {
                 setCaretPosition(getDocument().getLength());
+            }
+        }
+    }
+
+    private class UpAction extends AbstractAction {
+        private static final long serialVersionUID = 4165357229398455227L;
+
+        @Override
+        public void actionPerformed(ActionEvent evt) {
+            if (isEditable() && readCommand && !commands.isEmpty()) {
+                AbstractDocument doc = (AbstractDocument) getDocument();
+                if (commandIndex > 0) {
+                    if (commandIndex == commands.size()) {
+                        try {
+                            currentLine = doc.getText(editStart, doc.getLength() - editStart);
+                        } catch (BadLocationException e) {
+                            LOGGER.trace("BadLocationException", e);
+                        }
+                    }
+                    --commandIndex;
+                    String command = commands.get(commandIndex);
+                    try {
+                        doc.replace(editStart, doc.getLength() - editStart, command, null);
+                    } catch (BadLocationException e) {
+                        LOGGER.trace("BadLocationException", e);
+                    }
+                }
+            }
+        }
+    }
+
+    private class DownAction extends AbstractAction {
+        private static final long serialVersionUID = -4836920021641673079L;
+
+        @Override
+        public void actionPerformed(ActionEvent evt) {
+            if (isEditable() && readCommand && !commands.isEmpty()) {
+                AbstractDocument doc = (AbstractDocument) getDocument();
+                if (commandIndex < commands.size()) {
+                    ++commandIndex;
+                    String command;
+                    if (commandIndex == commands.size()) {
+                        command = currentLine;
+                    } else {
+                        command = commands.get(commandIndex);
+                    }
+                    try {
+                        doc.replace(editStart, doc.getLength() - editStart, command, null);
+                    } catch (BadLocationException e) {
+                        LOGGER.trace("BadLocationException", e);
+                    }
+                }
+            }
+        }
+    }
+
+    private class TabAction extends AbstractAction {
+        private static final long serialVersionUID = 8588600080225765686L;
+
+        @Override
+        public void actionPerformed(ActionEvent evt) {
+            if (isEditable() && readCommand) {
+                AbstractDocument doc = (AbstractDocument) getDocument();
+                String current;
+                try {
+                    current = doc.getText(editStart, doc.getLength() - editStart);
+                } catch (BadLocationException e) {
+                    LOGGER.trace("BadLocationException", e);
+                    return;
+                }
+                int index = current.lastIndexOf("|");
+                if (index >= 0 && index < current.length()) {
+                    current = current.substring(index + 1);
+                }
+                current = current.trim();
+                List<String> commands = CommandFactory.getInstance().getCommandNames();
+                String match = null;
+                for (String commandName : commands) {
+                    if (commandName.startsWith(current)) {
+                        if (match == null) {
+                            match = commandName;
+                        } else {
+                            // ambiguous command
+                            match = null;
+                            break;
+                        }
+                    }
+                }
+                if (match != null) {
+                    try {
+                        doc.insertString(doc.getLength(), match.substring(current.length()) + " ", null);
+                    } catch (BadLocationException e) {
+                        LOGGER.trace("BadLocationException", e);
+                    }
+                }
+            }
+        }
+    }
+
+    private class EofAction extends AbstractAction {
+        private static final long serialVersionUID = -7067756446670990814L;
+
+        @Override
+        public void actionPerformed(ActionEvent evt) {
+            if (isEditable()) {
+                AbstractDocument doc = (AbstractDocument) getDocument();
+                String line;
+                try {
+                    line = doc.getText(editStart, doc.getLength() - editStart);
+                } catch (BadLocationException e) {
+                    LOGGER.trace("BadLocationException", e);
+                    return;
+                }
+                if (line.isEmpty()) {
+                    try {
+                        doc.insertString(doc.getLength(), "\n", null);
+                    } catch (BadLocationException e) {
+                        LOGGER.trace("BadLocationException", e);
+                    }
+                    setEditable(false);
+                    input.add(EOF);
+                }
+            }
+        }
+    }
+
+    private class InterruptAction extends AbstractAction {
+        private static final long serialVersionUID = -4180083511703828311L;
+
+        @Override
+        public void actionPerformed(ActionEvent evt) {
+            if (isEditable()) {
+                setEditable(false);
+                input.add(INTERRUPT);
             }
         }
     }

@@ -82,6 +82,14 @@ public class CommandFactory {
         return commandDescriptors;
     }
 
+    public List<String> getCommandNames() {
+        List<String> names = new ArrayList<String>();
+        for (CommandDescriptor commandDescriptor : commandDescriptors) {
+            names.addAll(commandDescriptor.getNames());
+        }
+        return names;
+    }
+
     public Command parseCommand(String commandName, List<String> args) {
         CommandDescriptor commandDescriptor = getCommandDescriptor(commandName);
         if (commandDescriptor == null) {

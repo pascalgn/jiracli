@@ -37,7 +37,7 @@ import com.github.pascalgn.jiracli.model.None;
 import com.github.pascalgn.jiracli.testutil.ExcelUtils;
 import com.github.pascalgn.jiracli.testutil.MockContext;
 
-public class ReadExcelTest {
+public class ReadTest {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
 
@@ -56,7 +56,7 @@ public class ReadExcelTest {
 
         Context context = new MockContext();
 
-        ReadExcel re = new ReadExcel("U", file.getAbsolutePath());
+        Read re = new Read(file.getAbsolutePath(), "U");
         IssueList list = re.execute(context, None.getInstance());
         assertNotNull(list);
 

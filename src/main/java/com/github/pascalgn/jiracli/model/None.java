@@ -27,7 +27,7 @@ public class None extends Data {
     }
 
     @Override
-    public TextList toTextList() {
-        return new TextList();
+    public String toString() {
+        return getClass().getSimpleName();
     }
 }

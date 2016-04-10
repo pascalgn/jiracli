@@ -21,11 +21,13 @@ import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLEncoder;
+import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -160,9 +162,8 @@ public class DefaultWebService implements WebService {
         LoadingFieldMap fieldMap = new LoadingFieldMap();
         final Issue issue = new Issue(key, fieldMap);
         if (fields != null) {
-            if (!fieldCache.containsKey(key)) {
-                fieldCache.put(key, fields);
-            }
+            cacheFields(key, fields);
+            cacheIssueLinks(fields);
             List<Field> fieldList = toFields(issue, fields);
             for (Field field : fieldList) {
                 fieldMap.addField(field);
@@ -173,10 +174,55 @@ public class DefaultWebService implements WebService {
             public List<Field> get() {
                 JSONObject response = DefaultWebService.this.get("/rest/api/latest/issue/" + issue, TO_OBJECT);
                 JSONObject all = response.getJSONObject("fields");
+                cacheIssueLinks(all);
                 return toFields(issue, all);
             }
         });
         return issue;
+    }
+
+    private Function<JSONObject, Issue> toIssue() {
+        return new Function<JSONObject, Issue>() {
+            @Override
+            public Issue apply(JSONObject obj) {
+                String key = obj.getString("key");
+                JSONObject fields = obj.optJSONObject("fields");
+                return getIssue(key, fields);
+            }
+        };
+    }
+
+    private void cacheFields(String key, JSONObject fields) {
+        JSONObject cached = fieldCache.get(key);
+        if (cached == null) {
+            fieldCache.put(key, fields);
+        } else {
+            for (String id : fields.keySet()) {
+                if (!cached.has(id)) {
+                    cached.put(id, fields.get(id));
+                }
+            }
+        }
+    }
+
+    private void cacheIssueLinks(JSONObject fields) {
+        JSONArray issuelinks = fields.optJSONArray("issuelinks");
+        if (issuelinks != null) {
+            for (Object obj : issuelinks) {
+                JSONObject json = (JSONObject) obj;
+                JSONObject issue = json.optJSONObject("inwardIssue");
+                if (issue == null) {
+                    issue = json.optJSONObject("outwardIssue");
+                }
+                if (issue != null) {
+                    String k = json.optString("key");
+                    JSONObject f = json.optJSONObject("fields");
+                    if (k != null && f != null) {
+                        cacheFields(k, f);
+                    }
+                }
+            }
+        }
     }
 
     private static List<Field> toFields(Issue issue, JSONObject json) {
@@ -257,19 +303,7 @@ public class DefaultWebService implements WebService {
     @Override
     public List<Issue> searchIssues(String jql) {
         String path = "/rest/api/latest/search?jql=" + urlEncode(jql.trim()) + "&fields=" + INITIAL_FIELDS;
-        JSONObject response = get(path, TO_OBJECT);
-        return getIssues(response.getJSONArray("issues"));
-    }
-
-    private List<Issue> getIssues(JSONArray issueArray) {
-        List<Issue> issues = new ArrayList<Issue>();
-        for (Object obj : issueArray) {
-            JSONObject issue = (JSONObject) obj;
-            String key = issue.getString("key");
-            JSONObject fields = issue.optJSONObject("fields");
-            issues.add(getIssue(key, fields));
-        }
-        return issues;
+        return new PaginationList<Issue>(path, "issues", toIssue());
     }
 
     @Override
@@ -423,66 +457,60 @@ public class DefaultWebService implements WebService {
         if (name != null) {
             path += "?name=" + urlEncode(name);
         }
-        JSONObject response = get(path, TO_OBJECT);
-        JSONArray boardArray = response.getJSONArray("values");
-        List<Board> boards = new ArrayList<Board>();
-        for (Object obj : boardArray) {
-            JSONObject json = (JSONObject) obj;
-            int id = json.getInt("id");
-            String boardName = json.getString("name");
-            Type type = toType(json.optString("type"));
-            boards.add(new Board(id, boardName, type));
-        }
-        return boards;
+        return new PaginationList<Board>(path, "values", new Function<JSONObject, Board>() {
+            @Override
+            public Board apply(JSONObject json) {
+                int id = json.getInt("id");
+                String boardName = json.getString("name");
+                Type type = toType(json.optString("type"));
+                return new Board(id, boardName, type);
+            }
+        });
     }
 
     private static Type toType(String str) {
         String s = Objects.toString(str, "").trim().toLowerCase();
         switch (s) {
-        case "scrum":
-            return Type.SCRUM;
+            case "scrum":
+                return Type.SCRUM;
 
-        case "kanban":
-            return Type.KANBAN;
+            case "kanban":
+                return Type.KANBAN;
 
-        default:
-            return Type.UNKNOWN;
+            default:
+                return Type.UNKNOWN;
         }
     }
 
     @Override
     public List<Issue> getIssues(Board board) {
         String path = "/rest/agile/latest/board/" + board.getId() + "/issue?fields=" + INITIAL_FIELDS;
-        JSONObject response = get(path, TO_OBJECT);
-        return getIssues(response.getJSONArray("issues"));
+        return new PaginationList<Issue>(path, "issues", toIssue());
     }
 
     @Override
     public List<Issue> getEpics(Board board) {
         String path = "/rest/agile/latest/board/" + board.getId() + "/epic";
-        JSONObject response = get(path, TO_OBJECT);
-        return getIssues(response.getJSONArray("values"));
+        return new PaginationList<Issue>(path, "values", toIssue());
     }
 
     @Override
-    public List<Sprint> getSprints(Board board) {
-        JSONObject response = get("/rest/agile/latest/board/" + board.getId() + "/sprint", TO_OBJECT);
-        JSONArray array = response.getJSONArray("values");
-        List<Sprint> sprints = new ArrayList<Sprint>();
-        for (Object obj : array) {
-            JSONObject json = (JSONObject) obj;
-            int id = json.getInt("id");
-            String name = json.getString("name");
-            sprints.add(new Sprint(board, id, name));
-        }
-        return sprints;
+    public List<Sprint> getSprints(final Board board) {
+        String path = "/rest/agile/latest/board/" + board.getId() + "/sprint";
+        return new PaginationList<Sprint>(path, "values", new Function<JSONObject, Sprint>() {
+            @Override
+            public Sprint apply(JSONObject json) {
+                int id = json.getInt("id");
+                String name = json.getString("name");
+                return new Sprint(board, id, name);
+            }
+        });
     }
 
     @Override
     public List<Issue> getIssues(Sprint sprint) {
         String path = "/rest/agile/latest/sprint/" + sprint.getId() + "/issue?fields=" + INITIAL_FIELDS;
-        JSONObject response = get(path, TO_OBJECT);
-        return getIssues(response.getJSONArray("issues"));
+        return new PaginationList<Issue>(path, "issues", toIssue());
     }
 
     @Override
@@ -531,34 +559,139 @@ public class DefaultWebService implements WebService {
 
     private synchronized <T> T get(String path, Function<Reader, T> function) {
         String response = cache.get(path);
+        boolean cacheResponse = false;
         if (response == null) {
             response = httpClient.get(path);
+            cacheResponse = true;
+        }
+        T result;
+        try (StringReader reader = new StringReader(response)) {
+            result = function.apply(reader);
+        }
+        if (cacheResponse) {
+            // response could be converted, so it's probably safe to cache now:
             cache.put(path, response);
         }
-        try (StringReader reader = new StringReader(response)) {
-            return function.apply(reader);
-        }
+        return result;
     }
 
     private String post(String path, String body) {
-        cache.clear();
-        fieldCache.clear();
+        clearCache();
         return httpClient.post(path, body);
     }
 
     private String put(String path, String body) {
+        clearCache();
+        return httpClient.put(path, body);
+    }
+
+    private void clearCache() {
         cache.clear();
         fieldCache.clear();
-        return httpClient.put(path, body);
     }
 
     @Override
     public void close() {
         try {
-            cache.clear();
-            fieldCache.clear();
+            clearCache();
         } finally {
             httpClient.close();
+        }
+    }
+
+    private class PaginationList<E> extends AbstractList<E> {
+        private final List<E> fetched;
+
+        private final String path;
+        private final String field;
+        private final Function<JSONObject, E> function;
+
+        private boolean fetchedAll;
+
+        private int size;
+
+        public PaginationList(String path, String field, Function<JSONObject, E> function) {
+            this.path = path;
+            this.field = field;
+            this.function = function;
+            this.fetched = new ArrayList<E>();
+            this.size = -1;
+        }
+
+        @Override
+        public E get(int index) {
+            while (!fetchedAll && index >= fetched.size()) {
+                fetchMore();
+            }
+            return fetched.get(index);
+        }
+
+        @Override
+        public int size() {
+            while (!fetchedAll && size == -1) {
+                fetchMore();
+            }
+            return size;
+        }
+
+        @Override
+        public Iterator<E> iterator() {
+            return new Iterator<E>() {
+                private int index = 0;
+
+                @Override
+                public boolean hasNext() {
+                    while (!fetchedAll && index >= fetched.size()) {
+                        fetchMore();
+                    }
+                    return index < fetched.size();
+                }
+
+                @Override
+                public E next() {
+                    return get(index++);
+                }
+
+                @Override
+                public void remove() {
+                    throw new UnsupportedOperationException();
+                }
+            };
+        }
+
+        private void fetchMore() {
+            if (fetchedAll) {
+                throw new IllegalStateException();
+            }
+            String p = path;
+            if (!fetched.isEmpty()) {
+                p += (p.contains("?") ? "&" : "?") + "startAt=" + fetched.size();
+            }
+            JSONObject object = DefaultWebService.this.get(p, TO_OBJECT);
+            JSONArray values = object.getJSONArray(field);
+            for (Object obj : values) {
+                JSONObject json = (JSONObject) obj;
+                E element = function.apply(json);
+                if (element == null) {
+                    throw new NullPointerException("Element cannot be null!");
+                }
+                fetched.add(element);
+            }
+            boolean isLast = object.optBoolean("isLast", false);
+            if (isLast) {
+                fetchedAll = true;
+                if (size == -1) {
+                    size = fetched.size();
+                }
+            } else {
+                int total = object.optInt("total", -1);
+                if (total != -1) {
+                    size = total;
+                    if (size == fetched.size()) {
+                        fetchedAll = true;
+                    }
+                }
+            }
         }
     }
 

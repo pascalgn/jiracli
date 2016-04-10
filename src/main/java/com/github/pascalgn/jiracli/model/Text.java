@@ -35,7 +35,7 @@ public class Text extends Data {
 
     @Override
     public TextList toTextList() {
-        return new TextList(this);
+        return (text.isEmpty() ? new TextList() : new TextList(this));
     }
 
     @Override

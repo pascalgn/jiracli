@@ -15,10 +15,8 @@
  */
 package com.github.pascalgn.jiracli.model;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Deque;
 import java.util.Iterator;
 
 import com.github.pascalgn.jiracli.util.Function;
@@ -95,18 +93,19 @@ abstract class List<T extends Data> extends Data {
     }
 
     public <R> Supplier<R> loadingSupplier(final Function<T, Collection<R>> function) {
-        final Deque<R> deque = new ArrayDeque<>();
         return new Supplier<R>() {
+            private Iterator<R> iterator;
+
             @Override
             public R get() {
-                if (deque.isEmpty()) {
+                if (iterator == null || !iterator.hasNext()) {
                     T next = next();
                     if (next != null) {
                         Collection<R> collection = function.apply(next);
-                        deque.addAll(collection);
+                        iterator = collection.iterator();
                     }
                 }
-                return (deque.isEmpty() ? null : deque.removeFirst());
+                return (iterator.hasNext() ? iterator.next() : null);
             }
         };
     }

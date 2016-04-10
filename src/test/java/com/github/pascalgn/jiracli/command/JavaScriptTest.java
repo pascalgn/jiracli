@@ -38,7 +38,7 @@ public class JavaScriptTest {
         Issue issue1 = IssueFactory.create("ISSUE-1");
         Issue issue2 = IssueFactory.create("ISSUE-2");
 
-        JavaScript javaScript = new JavaScript(true, "input");
+        JavaScript javaScript = new JavaScript("input");
         Data result = javaScript.execute(context, new IssueList(issue1, issue2));
 
         assertNotNull(result);
@@ -52,15 +52,10 @@ public class JavaScriptTest {
         Issue issue1 = IssueFactory.create("ISSUE-1", "author", new JSONObject("{name:'Author-Name'}"));
 
         String js = "forEach.call(input, function(issue) { print(issue.key + ': ' + issue.fields.author.name); });";
-        JavaScript javaScript = new JavaScript(true, js);
+        JavaScript javaScript = new JavaScript(js);
         Data result = javaScript.execute(context, new IssueList(issue1));
 
         assertNotNull(result);
-        assertEquals("", context.getConsole().getOutput().trim());
-
-        // Lazy evaluation!
-        result.toTextList().toText();
-
         assertEquals("ISSUE-1: Author-Name", context.getConsole().getOutput().trim());
     }
 

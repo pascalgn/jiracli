@@ -13,27 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.pascalgn.jiracli.context;
+package com.github.pascalgn.jiracli.util;
 
-import java.io.File;
-import java.util.List;
+public class RuntimeInterruptedException extends RuntimeException {
+    private static final long serialVersionUID = -7534848921188103912L;
 
-import com.github.pascalgn.jiracli.util.Credentials;
-
-public interface Console {
-    void print(String str);
-
-    void println(String str);
-
-    String readCommand();
-
-    String readLine();
-
-    List<String> readLines();
-
-    String getBaseUrl();
-
-    Credentials getCredentials(String url);
-
-    boolean editFile(File file);
+    public RuntimeInterruptedException(InterruptedException cause) {
+        super(cause);
+    }
 }

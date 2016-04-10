@@ -58,6 +58,10 @@ class LoadingFieldMap extends AbstractFieldMap {
         return getFields(true);
     }
 
+    public Collection<Field> getLoadedFields() {
+        return getFields(false);
+    }
+
     @Override
     public Field getFieldById(String id) {
         Field field = getFieldById(getFields(false), id);

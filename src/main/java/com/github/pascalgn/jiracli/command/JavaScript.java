@@ -22,11 +22,8 @@ import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.command.CommandFactory.UsageException;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
-import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
-import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
-import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.IOUtils;
 
 @CommandDescription(names = { "javascript", "js" }, description = "Execute JavaScript code for the given issues")
@@ -36,11 +33,8 @@ class JavaScript implements Command {
     private String file;
 
     @Argument(names = { "-f", "--fields" }, variable = "<fields>", parameters = Parameters.ONE_OR_MORE,
-            description = "the fields available to javascript (by default, all fields will be available)")
+            description = "the fields available to javascript (by default, all loaded fields will be available)")
     private List<String> fields;
-
-    @Argument(names = { "-l", "--list" }, description = "provide the full list as input instead of single elements")
-    private boolean list;
 
     @Argument(variable = "<javascript>", description = "the javascript code", parameters = Parameters.ZERO_OR_ONE)
     private String js;
@@ -50,11 +44,6 @@ class JavaScript implements Command {
     }
 
     JavaScript(String js) {
-        this.js = js;
-    }
-
-    JavaScript(boolean list, String js) {
-        this.list = list;
         this.js = js;
     }
 
@@ -85,34 +74,12 @@ class JavaScript implements Command {
         if (issueList == null) {
             TextList textList = data.toTextList();
             if (textList == null) {
-                Text text = data.toTextOrFail();
-                if (list) {
-                    throw new UsageException("Input is not a list!");
-                }
-                return context.getJavaScriptEngine().evaluate(script, text);
+                return context.getJavaScriptEngine().evaluate(script);
             } else {
-                if (list) {
-                    return context.getJavaScriptEngine().evaluate(script, textList);
-                } else {
-                    return new TextList(textList.convertingSupplier(new Function<Text, Text>() {
-                        @Override
-                        public Text apply(Text text) {
-                            return context.getJavaScriptEngine().evaluate(script, text);
-                        }
-                    }));
-                }
+                return context.getJavaScriptEngine().evaluate(script, textList);
             }
         } else {
-            if (list) {
-                return context.getJavaScriptEngine().evaluate(script, issueList);
-            } else {
-                return new IssueList(issueList.convertingSupplier(new Function<Issue, Issue>() {
-                    @Override
-                    public Issue apply(Issue issue) {
-                        return context.getJavaScriptEngine().evaluate(script, issue);
-                    }
-                }));
-            }
+            return context.getJavaScriptEngine().evaluate(script, issueList);
         }
     }
 }

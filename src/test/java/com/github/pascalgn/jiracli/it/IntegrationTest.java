@@ -16,6 +16,7 @@
 package com.github.pascalgn.jiracli.it;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -56,7 +57,7 @@ public class IntegrationTest {
     public void testJavaScript1() throws Exception {
         try (Context context = createContext()) {
             ShellHelper.execute(context, "get JRA-123 | "
-                    + "js -l \"forEach.call(input, function(issue) { println(issue.fields.issuetype.name); })\"");
+                    + "js \"forEach.call(input, function(issue) { println(issue.fields.issuetype.name); })\"");
             assertEquals("Change request", getOutput(context));
         }
     }
@@ -66,6 +67,23 @@ public class IntegrationTest {
         try (Context context = createContext()) {
             ShellHelper.execute(context, "get JRA-123 | browse -n");
             assertEquals(testServerRule.getRootUrl() + "/browse/JRA-123", getOutput(context));
+        }
+    }
+
+    @Test
+    public void testEdit1() throws Exception {
+        try (Context context = createContext()) {
+            ShellHelper.execute(context, "get JRA-123 | edit | p");
+            assertEquals("JRA-123 - A simple Jira issue", getOutput(context));
+        }
+    }
+
+    @Test
+    public void testExecute1() throws Exception {
+        try (Context context = createContext()) {
+            ShellHelper.execute(context, "js \"webService.execute('GET', '/rest/api/latest/field', null);\"");
+            String output = getOutput(context);
+            assertFalse(output.isEmpty());
         }
     }
 

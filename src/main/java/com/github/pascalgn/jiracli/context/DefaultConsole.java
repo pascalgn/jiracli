@@ -19,6 +19,8 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 import com.github.pascalgn.jiracli.util.Credentials;
@@ -43,7 +45,33 @@ public class DefaultConsole extends AbstractConsole {
     }
 
     @Override
+    public List<String> readLines() {
+        println("End the input with a single .");
+        List<String> lines = new ArrayList<String>();
+        String line;
+        while ((line = doReadLine()) != null) {
+            if (line.equals(".")) {
+                break;
+            } else if (line.startsWith(".")) {
+                lines.add(line.substring(1));
+            } else {
+                lines.add(line);
+            }
+        }
+        return lines;
+    }
+
+    @Override
+    public String readCommand() {
+        return doReadLine();
+    }
+
+    @Override
     public String readLine() {
+        return doReadLine();
+    }
+
+    private String doReadLine() {
         try {
             return reader.readLine();
         } catch (IOException e) {
@@ -54,7 +82,7 @@ public class DefaultConsole extends AbstractConsole {
     @Override
     protected String provideBaseUrl() {
         print("Base URL: ");
-        return readLine();
+        return doReadLine();
     }
 
     @Override
@@ -64,7 +92,7 @@ public class DefaultConsole extends AbstractConsole {
         String user = username;
         if (user == null) {
             print("Username: ");
-            user = Objects.toString(readLine(), "").trim();
+            user = Objects.toString(doReadLine(), "").trim();
         } else {
             user = user.trim();
             println("Username: " + user);
@@ -73,7 +101,7 @@ public class DefaultConsole extends AbstractConsole {
         print("Password: ");
         char[] password = readPassword();
 
-        if (username.isEmpty() && password.length == 0) {
+        if (user.isEmpty() && password.length == 0) {
             return Credentials.getAnonymous();
         } else {
             return Credentials.create(user, password);
@@ -83,7 +111,7 @@ public class DefaultConsole extends AbstractConsole {
     private char[] readPassword() {
         java.io.Console console = System.console();
         if (console == null) {
-            String str = readLine();
+            String str = doReadLine();
             return (str == null ? null : str.toCharArray());
         } else {
             return console.readPassword();

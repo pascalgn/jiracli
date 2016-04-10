@@ -2,35 +2,34 @@
 
 ## Usage
 
-Initialization and command chaining: 
+Initialization and command chaining:
 
     $ java -jar jiracli.jar -c
-    Root URL: https://jira.atlassian.com/
-    Username:
     jiracli> read | print ${summary}/${status.name}
+    End the input with a single .
     JRA-123
+    .
+    Base URL: https://jira.atlassian.com
     New Report: Voted Issues/Closed
-    
     jiracli> exit
 
 JavaScript evaluation: 
 
     jiracli> get JRA-123 | js "forEach.call(input, function(issue) { println(issue.fields.issuetype.name); })"
     Suggestion
-    jiracli> exit
+
+    jiracli> js "webService.getIssue('JRA-123')"
+    JRA-123
 
 Search and issue filtering:
 
     jiracli> s "project=JRA and text~'new report'" | filter summary '^New report' | p
     JRA-2020 - New reports tab + report
-    jiracli> exit
 
 Issue browsing:
 
     jiracli> get JRA-123 | browse -n
     https://jira.atlassian.com/browse/JRA-123
-    jiracli> get JRA-123 | browse
-    jiracli> exit
 
 ## License
 

@@ -24,6 +24,8 @@ import java.util.Locale;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.pascalgn.jiracli.util.RuntimeInterruptedException;
+
 class EditorProvider {
     private static final Logger LOGGER = LoggerFactory.getLogger(EditorProvider.class);
 
@@ -179,8 +181,7 @@ class EditorProvider {
             try {
                 process.waitFor();
             } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return false;
+                throw new RuntimeInterruptedException(e);
             }
 
             return true;

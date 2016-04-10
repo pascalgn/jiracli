@@ -25,7 +25,7 @@ public abstract class LoadingList<T> extends AbstractList<T> {
         if (delegate == null) {
             delegate = loadList();
             if (delegate == null) {
-                throw new NullPointerException();
+                throw new NullPointerException("Implementation: " + getClass());
             }
         }
         return delegate;

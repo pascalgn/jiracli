@@ -33,7 +33,13 @@ public class DefaultConfiguration implements Configuration {
     public DefaultConfiguration() {
         preferences = Constants.getPreferences();
         baseUrl = emptyToNull(preferences.get(BASE_URL, null));
+        if (baseUrl != null) {
+            baseUrl = StringUtils.stripEnd(baseUrl.trim(), "/");
+        }
         username = emptyToNull(preferences.get(USERNAME, null));
+        if (username != null) {
+            username = username.trim();
+        }
     }
 
     private static String emptyToNull(String str) {

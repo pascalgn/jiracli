@@ -20,28 +20,41 @@ import java.io.Closeable;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.List;
 
+import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
+import com.github.pascalgn.jiracli.util.ExcelHelper;
+import com.github.pascalgn.jiracli.util.ExcelHelper.CellHandler;
+import com.github.pascalgn.jiracli.util.ExcelHelperFactory;
 import com.github.pascalgn.jiracli.util.Supplier;
 
 @CommandDescription(names = { "read", "r" }, description = "Read issue keys from standard input")
 class Read implements Command {
     private static final String STDIN_FILENAME = "-";
 
-    private final String filename;
+    @Argument(parameters = Parameters.ONE, variable = "<file>", description = "the file to read")
+    private String filename = STDIN_FILENAME;
+
+    @Argument(names = { "-c", "--col" }, parameters = Parameters.ONE, variable = "<col>",
+            description = "the column to read, only used when reading Excel files")
+    private String column;
 
     public Read() {
-        this(STDIN_FILENAME);
+        // default constructor
     }
 
-    public Read(String filename) {
+    Read(String filename, String column) {
         this.filename = filename;
+        this.column = column;
     }
 
     @Override
@@ -50,7 +63,11 @@ class Read implements Command {
     }
 
     private Supplier<Issue> getSupplier(Context context) {
-        return new TextReader(context, filename);
+        if (filename.toLowerCase().endsWith(".xlsx")) {
+            return new ExcelReader(context, filename, column);
+        } else {
+            return new TextReader(context, filename);
+        }
     }
 
     private static class TextReader implements Supplier<Issue> {
@@ -70,12 +87,15 @@ class Read implements Command {
         @Override
         public Issue get() {
             if (issues.isEmpty()) {
-                String line = getStringSupplier().get();
-                if (line == null) {
-                    return null;
-                }
-                for (String key : CommandUtils.findIssues(line)) {
-                    issues.add(context.getWebService().getIssue(key));
+                String line;
+                Supplier<String> supplier = getStringSupplier();
+                while ((line = supplier.get()) != null) {
+                    for (String key : CommandUtils.findIssues(line)) {
+                        issues.add(context.getWebService().getIssue(key));
+                    }
+                    if (!issues.isEmpty()) {
+                        break;
+                    }
                 }
             }
             return (issues.isEmpty() ? null : issues.removeFirst());
@@ -84,10 +104,11 @@ class Read implements Command {
         private synchronized Supplier<String> getStringSupplier() {
             if (stringSupplier == null) {
                 if (filename.equals(STDIN_FILENAME)) {
+                    final List<String> lines = context.getConsole().readLines();
                     stringSupplier = new Supplier<String>() {
                         @Override
                         public String get() {
-                            return context.getConsole().readLine();
+                            return (lines.isEmpty() ? null : lines.remove(0));
                         }
                     };
                 } else {
@@ -116,6 +137,55 @@ class Read implements Command {
                 }
             }
             return stringSupplier;
+        }
+    }
+
+    private static class ExcelReader implements Supplier<Issue> {
+        private final Context context;
+        private final String filename;
+        private final String column;
+
+        private transient List<Issue> issues;
+        private transient int index;
+
+        public ExcelReader(Context context, String filename, String column) {
+            this.context = context;
+            this.filename = filename;
+            this.column = column;
+        }
+
+        @Override
+        public Issue get() {
+            init();
+            if (index < issues.size()) {
+                return issues.get(index++);
+            } else {
+                return null;
+            }
+        }
+
+        private synchronized void init() {
+            if (issues == null) {
+                issues = new ArrayList<Issue>();
+                ExcelHelper excelHelper = ExcelHelperFactory.createExcelHelper();
+                try (InputStream input = new FileInputStream(filename)) {
+                    excelHelper.parseWorkbook(input, new CellHandler() {
+                        @Override
+                        public void handleCell(int row, String column, String value) {
+                            if (ExcelReader.this.column != null) {
+                                if (!ExcelReader.this.column.equals(column)) {
+                                    return;
+                                }
+                            }
+                            for (String key : CommandUtils.findIssues(value)) {
+                                issues.add(context.getWebService().getIssue(key));
+                            }
+                        }
+                    });
+                } catch (IOException e) {
+                    throw new IllegalStateException("Error reading from file: " + filename, e);
+                }
+            }
         }
     }
 
