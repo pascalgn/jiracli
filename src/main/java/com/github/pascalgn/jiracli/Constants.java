@@ -22,7 +22,7 @@ import java.util.prefs.Preferences;
  */
 public class Constants {
     public static String getTitle() {
-        return "Jiracli 1.1.2-SNAPSHOT";
+        return "Jiracli 1.2.0";
     }
 
     public static Preferences getPreferences() {
