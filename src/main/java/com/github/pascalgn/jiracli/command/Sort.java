@@ -183,7 +183,7 @@ class Sort implements Command {
     private List<String> values(Issue issue, Schema schema) {
         List<String> values = new ArrayList<String>();
         for (String field : fields) {
-            Object value = CommandUtils.getFieldValue(issue, schema, field);
+            Object value = CommandUtils.getFieldValue(issue, schema, field, "");
             values.add(Objects.toString(value, ""));
         }
         return values;

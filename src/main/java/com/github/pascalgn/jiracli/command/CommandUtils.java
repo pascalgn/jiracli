@@ -39,9 +39,9 @@ class CommandUtils {
     private static final Logger LOGGER = LoggerFactory.getLogger(CommandUtils.class);
 
     private static final Pattern ISSUE_KEY_PATTERN = Pattern.compile("[A-Z][A-Z0-9]*-[0-9]+");
-    private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\$\\{([^}]+)\\}|\\$([a-zA-Z]+[a-zA-Z0-9]*)");
+    private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\$\\{([^}]+)\\}|\\$([a-zA-Z]+[a-zA-Z0-9\\.]*)");
 
-    public static String toString(Issue issue, Schema schema, String pattern) {
+    public static String toString(Issue issue, Schema schema, String pattern, String defaultValue) {
         StringBuilder str = new StringBuilder();
         Matcher m = VARIABLE_PATTERN.matcher(pattern);
         int end = 0;
@@ -50,9 +50,9 @@ class CommandUtils {
             end = m.end();
 
             String name = (m.group(1) == null ? m.group(2) : m.group(1));
-            Object value = CommandUtils.getFieldValue(issue, schema, name);
+            Object value = CommandUtils.getFieldValue(issue, schema, name, defaultValue);
             if (value instanceof JSONArray) {
-                return StringUtils.join((JSONArray) value, ", ");
+                str.append(StringUtils.join((JSONArray) value, ", "));
             } else {
                 str.append(value);
             }
@@ -63,7 +63,7 @@ class CommandUtils {
         return str.toString();
     }
 
-    public static Object getFieldValue(Issue issue, final Schema schema, String name) {
+    public static Object getFieldValue(Issue issue, final Schema schema, String name, String defaultValue) {
         if (name.equalsIgnoreCase("key")) {
             return issue.getKey();
         }
@@ -85,12 +85,17 @@ class CommandUtils {
             field = fieldMap.getFieldByName(fieldNameOrId, new Function<Field, String>() {
                 @Override
                 public String apply(Field field) {
-                    return schema.getName(field);
+                    return schema.getName(field.getId());
                 }
             });
         }
+
         if (field == null) {
-            throw new IllegalArgumentException("No such field: " + fieldNameOrId);
+            if (defaultValue == null) {
+                throw new IllegalArgumentException("No such field: " + fieldNameOrId);
+            } else {
+                return defaultValue;
+            }
         }
 
         Object value = field.getValue().get();

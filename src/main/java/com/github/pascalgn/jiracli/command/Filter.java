@@ -24,45 +24,86 @@ import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.Schema;
+import com.github.pascalgn.jiracli.model.Text;
+import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.util.Supplier;
 
 @CommandDescription(names = "filter", description = "Filter issues by the given field value")
 class Filter implements Command {
-    @Argument(parameters = Parameters.ONE, variable = "<field>", order = 1, description = "issue's field name")
+    @Argument(names = { "-e", "--regexp" }, description = "Use regular expressions")
+    private boolean regexp;
+
+    @Argument(names = { "-i", "--ignore" }, description = "Ignore case")
+    private boolean ignoreCase;
+
+    @Argument(names = { "-f", "--field" }, parameters = Parameters.ONE, variable = "<field>",
+            description = "issue's field name")
     private String field;
 
     @Argument(parameters = Parameters.ONE, variable = "<value>", order = 2, description = "the filter value")
-    private Pattern pattern;
+    private String search;
 
     public Filter() {
         // default constructor
     }
 
-    Filter(String field, String value) {
+    Filter(String field, String search) {
         this.field = field;
-        this.pattern = Pattern.compile(value);
+        this.search = search;
+    }
+
+    Filter(boolean regexp, boolean ignoreCase, String field, String search) {
+        this.regexp = regexp;
+        this.ignoreCase = ignoreCase;
+        this.field = field;
+        this.search = search;
     }
 
     @Override
-    public IssueList execute(final Context context, final Data input) {
-        final IssueList issueList = input.toIssueList();
-        return new IssueList(new Supplier<Issue>() {
-            @Override
-            public Issue get() {
-                Issue issue;
-                while ((issue = issueList.next()) != null) {
-                    if (matches(context, issue)) {
-                        break;
+    public Data execute(final Context context, final Data input) {
+        int flags = 0;
+        if (!regexp) {
+            flags |= Pattern.LITERAL;
+        }
+        if (ignoreCase) {
+            flags |= Pattern.CASE_INSENSITIVE;
+        }
+        final Pattern pattern = Pattern.compile(search, flags);
+        if (field == null) {
+            final TextList textList = input.toTextListOrFail();
+            return new TextList(new Supplier<Text>() {
+                @Override
+                public Text get() {
+                    Text text;
+                    while ((text = textList.next()) != null) {
+                        String str = text.getText();
+                        if (pattern.matcher(str).find()) {
+                            return text;
+                        }
                     }
+                    return null;
                 }
-                return issue;
-            }
-        });
+            });
+        } else {
+            final IssueList issueList = input.toIssueListOrFail();
+            return new IssueList(new Supplier<Issue>() {
+                @Override
+                public Issue get() {
+                    Issue issue;
+                    while ((issue = issueList.next()) != null) {
+                        if (matches(context, issue, pattern)) {
+                            return issue;
+                        }
+                    }
+                    return null;
+                }
+            });
+        }
     }
 
-    boolean matches(Context context, Issue issue) {
+    private boolean matches(Context context, Issue issue, Pattern pattern) {
         Schema schema = context.getWebService().getSchema();
-        Object obj = CommandUtils.getFieldValue(issue, schema, field);
+        Object obj = CommandUtils.getFieldValue(issue, schema, field, "");
         String fieldValue = Objects.toString(obj, "");
         return pattern.matcher(fieldValue).find();
     }

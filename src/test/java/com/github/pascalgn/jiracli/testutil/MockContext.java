@@ -15,6 +15,9 @@
  */
 package com.github.pascalgn.jiracli.testutil;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -34,10 +37,16 @@ public class MockContext extends AbstractContext {
     public MockContext() {
         console = new MockConsole("http://localhost");
         webService = Mockito.mock(WebService.class);
-        Mockito.when(webService.getIssue(Mockito.anyString())).thenAnswer(new Answer<Issue>() {
+        Mockito.when(webService.getIssues(Mockito.anyListOf(String.class))).thenAnswer(new Answer<List<Issue>>() {
             @Override
-            public Issue answer(InvocationOnMock invocation) throws Throwable {
-                return IssueFactory.create(invocation.getArgumentAt(0, String.class));
+            public List<Issue> answer(InvocationOnMock invocation) throws Throwable {
+                @SuppressWarnings("unchecked")
+                List<String> keys = invocation.getArgumentAt(0, List.class);
+                List<Issue> result = new ArrayList<Issue>();
+                for (String key : keys) {
+                    result.add(IssueFactory.create(key));
+                }
+                return result;
             }
         });
         javaScriptEngine = new DefaultJavaScriptEngine(console, webService);

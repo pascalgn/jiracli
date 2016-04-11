@@ -66,6 +66,8 @@ class ConsoleTextArea extends JTextArea {
 
     private final List<String> commands;
 
+    private transient Runnable interruptListener;
+
     private transient Integer editStart;
 
     private transient volatile boolean readCommand;
@@ -209,6 +211,10 @@ class ConsoleTextArea extends JTextArea {
 
     public void setNewWindowListener(Runnable newWindowListener) {
         contextMenu.setNewWindowListener(newWindowListener);
+    }
+
+    public void setInterruptListener(Runnable interruptListener) {
+        this.interruptListener = interruptListener;
     }
 
     @Override
@@ -393,6 +399,14 @@ class ConsoleTextArea extends JTextArea {
             if (isEditable()) {
                 setEditable(false);
                 input.add(INTERRUPT);
+            } else {
+                Runnable listener = interruptListener;
+                if (listener != null) {
+                    Thread t = new Thread(listener);
+                    t.setName("call-interrupt-listener");
+                    t.setDaemon(true);
+                    t.start();
+                }
             }
         }
     }

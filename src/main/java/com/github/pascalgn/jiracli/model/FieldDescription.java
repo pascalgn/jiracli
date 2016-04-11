@@ -15,22 +15,18 @@
  */
 package com.github.pascalgn.jiracli.model;
 
-public class Sprint extends Data {
-    public enum State {
-        CLOSED, ACTIVE, FUTURE, UNKNOWN;
-    }
-
-    private final int id;
+public class FieldDescription {
+    private final String id;
     private final String name;
-    private final State state;
+    private final boolean required;
 
-    public Sprint(int id, String name, State state) {
+    public FieldDescription(String id, String name, boolean required) {
         this.id = id;
         this.name = name;
-        this.state = state;
+        this.required = required;
     }
 
-    public int getId() {
+    public String getId() {
         return id;
     }
 
@@ -38,27 +34,12 @@ public class Sprint extends Data {
         return name;
     }
 
-    public State getState() {
-        return state;
-    }
-
-    @Override
-    public SprintList toSprintList() {
-        return new SprintList(this);
-    }
-
-    @Override
-    public Text toText() {
-        return new Text(getName());
-    }
-
-    @Override
-    public TextList toTextList() {
-        return new TextList(toText());
+    public boolean isRequired() {
+        return required;
     }
 
     @Override
     public String toString() {
-        return "Sprint[id=" + id + ", name=" + name + "]";
+        return "FieldDescription[id=" + id + ", name=" + name + ", required=" + required + "]";
     }
 }

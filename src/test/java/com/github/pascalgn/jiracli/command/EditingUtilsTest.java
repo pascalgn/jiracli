@@ -23,8 +23,10 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -128,12 +130,17 @@ public class EditingUtilsTest {
 
     private static class SchemaImpl implements Schema {
         @Override
-        public String getName(Field field) {
-            return field.getId();
+        public Set<String> getFields() {
+            return Collections.emptySet();
         }
 
         @Override
-        public Converter getConverter(Field field) {
+        public String getName(String field) {
+            return field;
+        }
+
+        @Override
+        public Converter getConverter(String field) {
             return new Converter() {
                 @Override
                 public String toString(Object value) {

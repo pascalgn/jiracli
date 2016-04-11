@@ -60,4 +60,9 @@ public abstract class AbstractConsole implements Console {
     protected boolean editFile(File file, boolean gui) {
         return EditorProvider.getEditor(gui).editFile(file);
     }
+
+    @Override
+    public void onInterrupt(Runnable runnable) {
+        // not supported
+    }
 }

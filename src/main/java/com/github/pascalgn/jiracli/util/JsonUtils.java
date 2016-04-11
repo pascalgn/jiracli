@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.pascalgn.jiracli.context;
+package com.github.pascalgn.jiracli.util;
 
 import java.util.regex.Pattern;
 
@@ -21,7 +21,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-class JsonUtils {
+public class JsonUtils {
     private static final Pattern JSON_OBJECT = Pattern.compile("^\\s*\\{");
     private static final Pattern JSON_ARRAY = Pattern.compile("^\\s*\\[");
 

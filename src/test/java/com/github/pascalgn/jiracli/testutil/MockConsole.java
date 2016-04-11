@@ -75,4 +75,9 @@ public class MockConsole implements Console {
     public boolean editFile(File file) {
         return true;
     }
+
+    @Override
+    public void onInterrupt(Runnable runnable) {
+        // not supported
+    }
 }

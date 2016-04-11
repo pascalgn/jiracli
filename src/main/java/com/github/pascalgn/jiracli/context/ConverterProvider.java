@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.pascalgn.jiracli.model.Converter;
+import com.github.pascalgn.jiracli.util.JsonUtils;
 import com.github.pascalgn.jiracli.util.StringUtils;
 
 class ConverterProvider {
@@ -65,7 +66,7 @@ class ConverterProvider {
         mappedBySystem.put("issuetype", named);
         mappedBySystem.put("resolution", object);
         mappedBySystem.put("project", project);
-        mappedBySystem.put("status", object);
+        mappedBySystem.put("status", named);
         mappedBySystem.put("summary", string);
         mappedBySystem.put("description", string);
         mappedBySystem.put("duedate", string);

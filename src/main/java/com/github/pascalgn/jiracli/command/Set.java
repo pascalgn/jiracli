@@ -23,30 +23,30 @@ import com.github.pascalgn.jiracli.model.Field;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.Schema;
-import com.github.pascalgn.jiracli.model.Text;
-import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.util.Function;
 
-@CommandDescription(names = "get", description = "Return the field value for the given field")
-class Get implements Command {
-    @Argument(parameters = Parameters.ONE, variable = "<field>", description = "the field ID")
+@CommandDescription(names = "set", description = "Set field values")
+class Set implements Command {
+    @Argument(order = 1, parameters = Parameters.ONE, variable = "<field>", description = "The field")
     private String field;
 
+    @Argument(order = 2, parameters = Parameters.ONE, variable = "<value>", description = "The value to set")
+    private String value;
+
     @Override
-    public TextList execute(final Context context, Data input) {
+    public IssueList execute(Context context, Data input) {
         Schema schema = context.getWebService().getSchema();
         final Converter converter = schema.getConverter(field);
-        IssueList issueList = input.toIssueListOrFail();
-        return new TextList(issueList.convertingSupplier(new Function<Issue, Text>() {
+        return new IssueList(input.toIssueListOrFail().convertingSupplier(new Function<Issue, Issue>() {
             @Override
-            public Text apply(Issue issue) {
+            public Issue apply(Issue issue) {
                 Field f = issue.getFieldMap().getFieldById(field);
                 if (f == null) {
                     throw new IllegalArgumentException("Unknown field: " + field);
                 }
-                Object val = f.getValue().get();
-                String str = converter.toString(val);
-                return new Text(str);
+                Object val = converter.fromString(value);
+                f.getValue().set(val);
+                return issue;
             }
         }));
     }

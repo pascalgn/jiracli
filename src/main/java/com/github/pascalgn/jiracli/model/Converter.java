@@ -16,7 +16,13 @@
 package com.github.pascalgn.jiracli.model;
 
 public interface Converter {
+    /**
+     * @return The string value, never null
+     */
     String toString(Object value);
 
+    /**
+     * @param str The string to convert, never null
+     */
     Object fromString(String str);
 }

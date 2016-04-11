@@ -15,15 +15,15 @@
  */
 package com.github.pascalgn.jiracli.command;
 
-import java.io.BufferedReader;
-import java.io.Closeable;
+import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.RandomAccessFile;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
 
@@ -32,6 +32,9 @@ import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
+import com.github.pascalgn.jiracli.model.Text;
+import com.github.pascalgn.jiracli.model.TextList;
+import com.github.pascalgn.jiracli.util.CollectingSupplier;
 import com.github.pascalgn.jiracli.util.ExcelHelper;
 import com.github.pascalgn.jiracli.util.ExcelHelper.CellHandler;
 import com.github.pascalgn.jiracli.util.ExcelHelperFactory;
@@ -44,6 +47,10 @@ class Read implements Command {
     @Argument(parameters = Parameters.ONE, variable = "<file>", description = "the file to read")
     private String filename = STDIN_FILENAME;
 
+    @Argument(names = { "-s", "--sheet" }, parameters = Parameters.ONE, variable = "<sheet>",
+            description = "the sheet to read, only used when reading Excel files")
+    private String sheet;
+
     @Argument(names = { "-c", "--col" }, parameters = Parameters.ONE, variable = "<col>",
             description = "the column to read, only used when reading Excel files")
     private String column;
@@ -52,124 +59,138 @@ class Read implements Command {
         // default constructor
     }
 
-    Read(String filename, String column) {
+    Read(String filename, String sheet, String column) {
         this.filename = filename;
+        this.sheet = sheet;
         this.column = column;
     }
 
     @Override
-    public IssueList execute(Context context, Data input) {
-        return new IssueList(getSupplier(context));
-    }
-
-    private Supplier<Issue> getSupplier(Context context) {
-        if (filename.toLowerCase().endsWith(".xlsx")) {
-            return new ExcelReader(context, filename, column);
-        } else {
-            return new TextReader(context, filename);
-        }
-    }
-
-    private static class TextReader implements Supplier<Issue> {
-        private final Context context;
-        private final String filename;
-
-        private final Deque<Issue> issues;
-
-        private transient Supplier<String> stringSupplier;
-
-        public TextReader(Context context, String filename) {
-            this.context = context;
-            this.filename = filename;
-            this.issues = new ArrayDeque<Issue>();
-        }
-
-        @Override
-        public Issue get() {
-            if (issues.isEmpty()) {
-                String line;
-                Supplier<String> supplier = getStringSupplier();
-                while ((line = supplier.get()) != null) {
-                    for (String key : CommandUtils.findIssues(line)) {
-                        issues.add(context.getWebService().getIssue(key));
+    public IssueList execute(final Context context, Data input) {
+        final Supplier<String> supplier;
+        if (filename.equals(STDIN_FILENAME)) {
+            final TextList textList = input.toTextList();
+            if (textList == null) {
+                final List<String> lines = context.getConsole().readLines();
+                supplier = new CollectingSupplier<String>() {
+                    @Override
+                    protected Collection<String> nextItems() {
+                        return (lines.isEmpty() ? null : CommandUtils.findIssues(lines.remove(0)));
                     }
-                    if (!issues.isEmpty()) {
+                };
+            } else {
+                supplier = new CollectingSupplier<String>() {
+                    @Override
+                    protected Collection<String> nextItems() {
+                        Text text = textList.next();
+                        return (text == null ? null : CommandUtils.findIssues(text.getText()));
+                    }
+                };
+            }
+        } else {
+            File file = new File(filename);
+            if (filename.toLowerCase().endsWith(".xlsx")) {
+                supplier = new ExcelReader(file, sheet, column);
+            } else {
+                supplier = new TextFileReader(file);
+            }
+        }
+        return new IssueList(new CollectingSupplier<Issue>() {
+            private static final int ISSUE_FETCH_SIZE = 10;
+
+            @Override
+            protected Collection<Issue> nextItems() {
+                // Fetch multiple issues at once to reduce server requests
+                List<String> keys = new ArrayList<String>();
+                String key;
+                while ((key = supplier.get()) != null) {
+                    keys.add(key);
+                    if (keys.size() >= ISSUE_FETCH_SIZE) {
                         break;
                     }
                 }
+                return (keys.isEmpty() ? null : context.getWebService().getIssues(keys));
             }
-            return (issues.isEmpty() ? null : issues.removeFirst());
+        });
+    }
+
+    static class TextFileReader implements Supplier<String> {
+        private static final int READ_SIZE = 8 * 1024;
+
+        private final File file;
+        private long offset;
+
+        private final Deque<String> keys;
+
+        public TextFileReader(File file) {
+            this.file = file;
+            this.keys = new ArrayDeque<>();
         }
 
-        private synchronized Supplier<String> getStringSupplier() {
-            if (stringSupplier == null) {
-                if (filename.equals(STDIN_FILENAME)) {
-                    final List<String> lines = context.getConsole().readLines();
-                    stringSupplier = new Supplier<String>() {
-                        @Override
-                        public String get() {
-                            return (lines.isEmpty() ? null : lines.remove(0));
-                        }
-                    };
-                } else {
-                    final BufferedReader bufferedReader;
-                    try {
-                        bufferedReader = new BufferedReader(new InputStreamReader(new FileInputStream(filename)));
-                    } catch (FileNotFoundException e) {
-                        throw new IllegalArgumentException("File not found: " + filename);
-                    }
-                    context.onClose(new Runnable() {
-                        @Override
-                        public void run() {
-                            closeUnchecked(bufferedReader);
-                        }
-                    });
-                    stringSupplier = new Supplier<String>() {
-                        @Override
-                        public String get() {
-                            try {
-                                return bufferedReader.readLine();
-                            } catch (IOException e) {
-                                throw new IllegalStateException("Error reading from " + filename, e);
-                            }
-                        }
-                    };
+        @Override
+        public String get() {
+            if (keys.isEmpty()) {
+                try {
+                    readNext();
+                } catch (IOException e) {
+                    throw new IllegalStateException(e);
                 }
             }
-            return stringSupplier;
+            return (keys.isEmpty() ? null : keys.removeFirst());
+        }
+
+        private void readNext() throws IOException {
+            if (offset != -1) {
+                try (RandomAccessFile f = new RandomAccessFile(file, "r")) {
+                    f.seek(offset);
+                    while (true) {
+                        String line = f.readLine();
+                        if (line == null) {
+                            offset = -1;
+                            break;
+                        } else {
+                            keys.addAll(CommandUtils.findIssues(line));
+                            if (f.getFilePointer() - offset > READ_SIZE) {
+                                offset = f.getFilePointer();
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
-    private static class ExcelReader implements Supplier<Issue> {
-        private final Context context;
-        private final String filename;
+    private static class ExcelReader implements Supplier<String> {
+        private final File file;
+        private final String sheet;
         private final String column;
 
-        private transient List<Issue> issues;
+        private transient List<String> keys;
         private transient int index;
 
-        public ExcelReader(Context context, String filename, String column) {
-            this.context = context;
-            this.filename = filename;
+        public ExcelReader(File file, String sheet, String column) {
+            this.file = file;
+            this.sheet = sheet;
             this.column = column;
         }
 
         @Override
-        public Issue get() {
+        public String get() {
             init();
-            if (index < issues.size()) {
-                return issues.get(index++);
+            if (index < keys.size()) {
+                return keys.get(index++);
             } else {
                 return null;
             }
         }
 
         private synchronized void init() {
-            if (issues == null) {
-                issues = new ArrayList<Issue>();
+            if (keys == null) {
+                keys = new ArrayList<String>();
                 ExcelHelper excelHelper = ExcelHelperFactory.createExcelHelper();
-                try (InputStream input = new FileInputStream(filename)) {
-                    excelHelper.parseWorkbook(input, new CellHandler() {
+                try (InputStream input = new FileInputStream(file)) {
+                    CellHandler cellHandler = new CellHandler() {
                         @Override
                         public void handleCell(int row, String column, String value) {
                             if (ExcelReader.this.column != null) {
@@ -178,22 +199,19 @@ class Read implements Command {
                                 }
                             }
                             for (String key : CommandUtils.findIssues(value)) {
-                                issues.add(context.getWebService().getIssue(key));
+                                keys.add(key);
                             }
                         }
-                    });
+                    };
+                    if (sheet == null) {
+                        excelHelper.parseWorkbook(input, cellHandler);
+                    } else {
+                        excelHelper.parseWorkbook(input, Collections.singletonList(sheet), cellHandler);
+                    }
                 } catch (IOException e) {
-                    throw new IllegalStateException("Error reading from file: " + filename, e);
+                    throw new IllegalStateException("Error reading from file: " + file, e);
                 }
             }
-        }
-    }
-
-    private static void closeUnchecked(Closeable closeable) {
-        try {
-            closeable.close();
-        } catch (IOException e) {
-            throw new IllegalStateException("Exception while trying to close: " + closeable, e);
         }
     }
 }

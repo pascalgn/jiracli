@@ -13,33 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.pascalgn.jiracli.model;
+package com.github.pascalgn.jiracli.command;
 
-public class IssueType {
-    private final int id;
-    private final String name;
-    private final boolean subtask;
+import java.util.Iterator;
 
-    public IssueType(int id, String name, boolean subtask) {
-        this.id = id;
-        this.name = name;
-        this.subtask = subtask;
-    }
+import com.github.pascalgn.jiracli.context.Context;
+import com.github.pascalgn.jiracli.model.Data;
+import com.github.pascalgn.jiracli.model.Text;
 
-    public int getId() {
-        return id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public boolean isSubtask() {
-        return subtask;
-    }
-
+@CommandDescription(names = "count", description = "Count the given items")
+class Count implements Command {
     @Override
-    public String toString() {
-        return "IssueType[id=" + id + ", name=" + name + "]";
+    public Text execute(final Context context, Data input) {
+        int count = 0;
+        Iterator<Data> it = input.toIterator();
+        while (it.hasNext()) {
+            it.next();
+            ++count;
+        }
+        return new Text(Integer.toString(count));
     }
 }

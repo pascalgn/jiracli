@@ -54,7 +54,7 @@ class Print implements Command {
             public Text apply(Issue issue) {
                 String str;
                 try {
-                    str = CommandUtils.toString(issue, schema, pattern);
+                    str = CommandUtils.toString(issue, schema, pattern, "");
                 } catch (IllegalArgumentException e) {
                     LOGGER.trace("Error while reading issue: {}", issue, e);
                     str = "[Error: " + issue + ": " + e.getLocalizedMessage() + "]";

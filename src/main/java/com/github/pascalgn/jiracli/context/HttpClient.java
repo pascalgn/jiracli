@@ -37,6 +37,7 @@ import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
+import org.apache.http.auth.AuthProtocolState;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.AuthState;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -64,6 +65,7 @@ import com.github.pascalgn.jiracli.util.Consumer;
 import com.github.pascalgn.jiracli.util.Credentials;
 import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.IOUtils;
+import com.github.pascalgn.jiracli.util.RuntimeInterruptedException;
 import com.github.pascalgn.jiracli.util.StringUtils;
 import com.github.pascalgn.jiracli.util.Supplier;
 
@@ -220,6 +222,11 @@ class HttpClient implements AutoCloseable {
     private <T> T doExecute(HttpUriRequest request, boolean retry, Function<HttpEntity, T> function) {
         LOGGER.debug("Calling URL: {} [{}]", request.getURI(), request.getMethod());
 
+        // disable XSRF check:
+        if (!request.containsHeader("X-Atlassian-Token")) {
+            request.addHeader("X-Atlassian-Token", "nocheck");
+        }
+
         HttpResponse response;
         try {
             response = httpClient.execute(request, httpClientContext);
@@ -231,9 +238,30 @@ class HttpClient implements AutoCloseable {
 
         HttpEntity entity = response.getEntity();
         try {
+            if (Thread.interrupted()) {
+                throw new RuntimeInterruptedException();
+            }
+
             int statusCode = response.getStatusLine().getStatusCode();
             if (isSuccess(statusCode)) {
-                return function.apply(entity);
+                T result;
+                try {
+                    result = function.apply(entity);
+                } catch (NotAuthenticatedException e) {
+                    if (retry) {
+                        resetAuthentication();
+                        setCredentials();
+                        return doExecute(request, false, function);
+                    } else {
+                        throw e.getCause();
+                    }
+                }
+
+                if (Thread.interrupted()) {
+                    throw new RuntimeInterruptedException();
+                }
+
+                return result;
             } else {
                 if (statusCode == HttpURLConnection.HTTP_UNAUTHORIZED) {
                     resetAuthentication();
@@ -252,8 +280,6 @@ class HttpClient implements AutoCloseable {
                     } else {
                         throw new AccessControlException("Forbidden [403]: " + request.getURI());
                     }
-                } else if (statusCode == HttpURLConnection.HTTP_NOT_FOUND) {
-                    throw new NoSuchElementException("Not found [404]: " + request.getURI());
                 } else {
                     String status = response.getStatusLine().toString().trim();
                     String message;
@@ -263,6 +289,11 @@ class HttpClient implements AutoCloseable {
                         String error = readErrorResponse(request.getURI(), entity);
                         message = status + (error.isEmpty() ? "" : ": " + error);
                     }
+
+                    if (Thread.interrupted()) {
+                        throw new RuntimeInterruptedException();
+                    }
+
                     if (statusCode == HttpURLConnection.HTTP_NOT_FOUND) {
                         throw new NoSuchElementException(message);
                     } else {
@@ -284,6 +315,8 @@ class HttpClient implements AutoCloseable {
             try (Reader reader = new InputStreamReader(input, getEncoding(entity))) {
                 return function.apply(reader);
             }
+        } catch (NotAuthenticatedException e) {
+            throw e;
         } catch (RuntimeException e) {
             throw new IllegalStateException("Could not read response for URL: " + uri, e);
         } catch (IOException e) {
@@ -323,6 +356,7 @@ class HttpClient implements AutoCloseable {
             org.apache.http.auth.Credentials credentials = credentialsProvider.getCredentials(authScope);
             if (credentials != null) {
                 authState.update(new BasicScheme(), credentials);
+                authState.setState(AuthProtocolState.CHALLENGED);
             }
         }
     }
@@ -370,6 +404,22 @@ class HttpClient implements AutoCloseable {
             httpClient.close();
         } catch (IOException e) {
             LOGGER.warn("Failed to close HTTP client!", e);
+        }
+    }
+
+    /**
+     * Can be thrown to indicate that the error might have been caused by an invalid/insufficient authentication
+     */
+    public static class NotAuthenticatedException extends RuntimeException {
+        private static final long serialVersionUID = 6132505794247992826L;
+
+        public NotAuthenticatedException(RuntimeException cause) {
+            super(cause);
+        }
+
+        @Override
+        public synchronized RuntimeException getCause() {
+            return (RuntimeException) super.getCause();
         }
     }
 }

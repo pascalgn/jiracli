@@ -58,6 +58,19 @@ class Shell {
             console.println("You can change the base URL with the 'config' command");
         }
 
+        final Thread shell = Thread.currentThread();
+        console.onInterrupt(new Runnable() {
+            @Override
+            public void run() {
+                LOGGER.trace("Interrupting thread: {}", shell.getName());
+                try {
+                    shell.interrupt();
+                } catch (RuntimeException e) {
+                    LOGGER.debug("Exception while interrupting {}", shell.getName(), e);
+                }
+            }
+        });
+
         while (true) {
             console.print(PROMPT);
 
@@ -68,6 +81,7 @@ class Shell {
                 console.println("");
                 continue;
             }
+
             if (raw == null) {
                 break;
             }
@@ -121,6 +135,9 @@ class Shell {
                     console.println(text.getText());
                 }
             }
+        } catch (RuntimeInterruptedException e) {
+            console.println("interrupted");
+            return;
         } catch (RuntimeException e) {
             logException(console, e);
         }

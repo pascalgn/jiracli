@@ -50,10 +50,12 @@ import com.github.pascalgn.jiracli.model.FieldMap;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.None;
+import com.github.pascalgn.jiracli.model.Schema;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.model.Value;
 import com.github.pascalgn.jiracli.util.IOUtils;
+import com.github.pascalgn.jiracli.util.JsonUtils;
 import com.github.pascalgn.jiracli.util.StringSupplierReader;
 import com.github.pascalgn.jiracli.util.StringUtils;
 import com.github.pascalgn.jiracli.util.Supplier;
@@ -185,6 +187,29 @@ public class DefaultJavaScriptEngine implements JavaScriptEngine {
     }
 
     private static String toJson(Issue issue, List<String> fields) {
+        Collection<Field> fieldList;
+        FieldMap fieldMap = issue.getFieldMap();
+        if (fields == null) {
+            if (fieldMap instanceof LoadingFieldMap) {
+                fieldList = ((LoadingFieldMap) fieldMap).getLoadedFields();
+                if (fieldList.isEmpty()) {
+                    fieldList = fieldMap.getFields();
+                }
+            } else {
+                fieldList = fieldMap.getFields();
+            }
+        } else if (fields.contains(ALL_FIELDS)) {
+            fieldList = fieldMap.getFields();
+        } else {
+            fieldList = new ArrayList<Field>();
+            for (String f : fields) {
+                Field field = fieldMap.getFieldById(f);
+                if (field != null) {
+                    fieldList.add(field);
+                }
+            }
+        }
+
         try (StringWriter stringWriter = new StringWriter()) {
             JSONWriter writer = new JSONWriter(stringWriter);
             writer.object();
@@ -192,28 +217,6 @@ public class DefaultJavaScriptEngine implements JavaScriptEngine {
             writer.value(issue.getKey());
             writer.key("fields");
             writer.object();
-            Collection<Field> fieldList;
-            FieldMap fieldMap = issue.getFieldMap();
-            if (fields == null) {
-                if (fieldMap instanceof LoadingFieldMap) {
-                    fieldList = ((LoadingFieldMap) fieldMap).getLoadedFields();
-                    if (fieldList.isEmpty()) {
-                        fieldList = fieldMap.getFields();
-                    }
-                } else {
-                    fieldList = fieldMap.getFields();
-                }
-            } else if (fields.contains(ALL_FIELDS)) {
-                fieldList = fieldMap.getFields();
-            } else {
-                fieldList = new ArrayList<Field>();
-                for (String f : fields) {
-                    Field field = fieldMap.getFieldById(f);
-                    if (field != null) {
-                        fieldList.add(field);
-                    }
-                }
-            }
             for (Field field : fieldList) {
                 writer.key(field.getId());
                 writer.value(field.getValue().get());
@@ -299,7 +302,8 @@ public class DefaultJavaScriptEngine implements JavaScriptEngine {
         if (key == null || key.isEmpty()) {
             return null;
         }
-        Issue issue = webService.getIssue(key);
+        List<Issue> issues = webService.getIssues(Collections.singletonList(key));
+        Issue issue = issues.get(0);
         JSONObject fields = json.optJSONObject("fields");
         if (fields != null) {
             FieldMap fieldMap = issue.getFieldMap();
@@ -367,8 +371,20 @@ public class DefaultJavaScriptEngine implements JavaScriptEngine {
     }
 
     public class JavaScriptWebService {
+        public String execute(String path) {
+            return execute("GET", path, null);
+        }
+
+        public String execute(String method, String path) {
+            return execute(method, path, null);
+        }
+
         public String execute(String method, String path, String body) {
             return webService.execute(Method.valueOf(method.toUpperCase()), path, body);
+        }
+
+        public Schema getSchema() {
+            return webService.getSchema();
         }
 
         public Object getIssue(String key) {
@@ -376,7 +392,8 @@ public class DefaultJavaScriptEngine implements JavaScriptEngine {
         }
 
         public Object getIssue(String key, List<String> fields) {
-            Issue issue = webService.getIssue(key);
+            List<Issue> issues = webService.getIssues(Collections.singletonList(key));
+            Issue issue = issues.get(0);
             String json = toJson(issue, fields);
             return toJsonObject(json);
         }

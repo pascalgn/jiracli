@@ -15,6 +15,8 @@
  */
 package com.github.pascalgn.jiracli.context;
 
+import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
@@ -28,10 +30,13 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -39,27 +44,34 @@ import org.json.JSONTokener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.pascalgn.jiracli.context.HttpClient.NotAuthenticatedException;
 import com.github.pascalgn.jiracli.model.Attachment;
 import com.github.pascalgn.jiracli.model.Board;
 import com.github.pascalgn.jiracli.model.Board.Type;
 import com.github.pascalgn.jiracli.model.Converter;
 import com.github.pascalgn.jiracli.model.Field;
+import com.github.pascalgn.jiracli.model.FieldDescription;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueType;
 import com.github.pascalgn.jiracli.model.Project;
 import com.github.pascalgn.jiracli.model.Schema;
 import com.github.pascalgn.jiracli.model.Sprint;
+import com.github.pascalgn.jiracli.model.Sprint.State;
+import com.github.pascalgn.jiracli.model.Status;
+import com.github.pascalgn.jiracli.model.Transition;
 import com.github.pascalgn.jiracli.model.Value;
+import com.github.pascalgn.jiracli.model.Workflow;
 import com.github.pascalgn.jiracli.util.Consumer;
 import com.github.pascalgn.jiracli.util.Credentials;
 import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.LoadingList;
+import com.github.pascalgn.jiracli.util.StringUtils;
 import com.github.pascalgn.jiracli.util.Supplier;
 
 public class DefaultWebService implements WebService {
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultWebService.class);
 
-    private static final String INITIAL_FIELDS = "summary";
+    private static final String INITIAL_FIELDS = "issuetype,summary,status";
 
     private static final Function<Reader, JSONObject> TO_OBJECT = new Function<Reader, JSONObject>() {
         @Override
@@ -76,16 +88,12 @@ public class DefaultWebService implements WebService {
     };
 
     private final HttpClient httpClient;
-
-    private final Map<String, String> cache;
-    private final Map<String, JSONObject> fieldCache;
-
+    private final DefaultWebServiceCache cache;
     private final LoadingSchema schema;
 
     public DefaultWebService(Console console) {
         this.httpClient = createHttpClient(console);
-        this.cache = new HashMap<String, String>();
-        this.fieldCache = new HashMap<String, JSONObject>();
+        this.cache = new DefaultWebServiceCache();
         this.schema = new LoadingSchema() {
             @Override
             protected Map<String, FieldInfo> loadMap() {
@@ -152,12 +160,6 @@ public class DefaultWebService implements WebService {
         return schema;
     }
 
-    @Override
-    public Issue getIssue(String key) {
-        JSONObject fields = fieldCache.get(key);
-        return getIssue(key, fields);
-    }
-
     private Issue getIssue(String key, JSONObject fields) {
         LoadingFieldMap fieldMap = new LoadingFieldMap();
         final Issue issue = new Issue(key, fieldMap);
@@ -193,9 +195,9 @@ public class DefaultWebService implements WebService {
     }
 
     private void cacheFields(String key, JSONObject fields) {
-        JSONObject cached = fieldCache.get(key);
+        JSONObject cached = cache.getFields(key);
         if (cached == null) {
-            fieldCache.put(key, fields);
+            cache.putFields(key, fields);
         } else {
             for (String id : fields.keySet()) {
                 if (!cached.has(id)) {
@@ -215,9 +217,13 @@ public class DefaultWebService implements WebService {
                     issue = json.optJSONObject("outwardIssue");
                 }
                 if (issue != null) {
-                    String k = json.optString("key");
-                    JSONObject f = json.optJSONObject("fields");
-                    if (k != null && f != null) {
+                    String k = issue.optString("key");
+                    if (k != null) {
+                        JSONObject f = issue.optJSONObject("fields");
+                        if (f == null) {
+                            // at least note that it is a valid issue
+                            f = new JSONObject();
+                        }
                         cacheFields(k, f);
                     }
                 }
@@ -232,6 +238,85 @@ public class DefaultWebService implements WebService {
             fields.add(new Field(issue, id, new Value(val)));
         }
         return fields;
+    }
+
+    @Override
+    public List<Issue> getIssues(List<String> keys) {
+        if (keys.isEmpty()) {
+            return Collections.emptyList();
+        } else if (keys.size() == 1) {
+            String key = keys.get(0);
+            JSONObject fields = cache.getFields(key);
+            if (fields == null) {
+                List<Issue> result = loadIssues(keys);
+                if (result.isEmpty()) {
+                    throw new IllegalArgumentException("Issue not found: " + key);
+                }
+                return result;
+            } else {
+                Issue issue = getIssue(key, fields);
+                return Collections.singletonList(issue);
+            }
+        } else {
+            // we will not request issues for which we already have cached fields:
+            Map<String, Issue> resolved = new LinkedHashMap<>();
+
+            Set<String> resolve = new LinkedHashSet<String>(keys);
+
+            Iterator<String> it = resolve.iterator();
+            while (it.hasNext()) {
+                String key = it.next();
+                JSONObject fields = cache.getFields(key);
+                if (fields != null) {
+                    Issue issue = getIssue(key, fields);
+                    resolved.put(key, issue);
+                    it.remove();
+                }
+            }
+
+            if (resolve.isEmpty()) {
+                // we already have a cached instance of every issue
+                return new ArrayList<Issue>(resolved.values());
+            }
+
+            List<Issue> result = new ArrayList<Issue>();
+
+            // key order doesn't matter when searching but improves caching:
+            List<Issue> searchResults = loadIssues(new TreeSet<String>(resolve));
+
+            // return the search results in the order the keys were given:
+            Set<String> set = new LinkedHashSet<String>(keys);
+            for (String key : set) {
+                Issue found = resolved.get(key);
+                if (found == null) {
+                    for (Issue issue : searchResults) {
+                        if (issue.getKey().equals(key)) {
+                            found = issue;
+                            break;
+                        }
+                    }
+                }
+                if (found == null) {
+                    throw new IllegalArgumentException("Issue not found: " + key);
+                }
+                result.add(found);
+            }
+
+            return result;
+        }
+    }
+
+    private List<Issue> loadIssues(Collection<String> keys) {
+        if (keys.isEmpty()) {
+            return Collections.emptyList();
+        } else if (keys.size() == 1) {
+            String key = keys.iterator().next();
+            JSONObject result = get("/rest/api/latest/issue/" + key, TO_OBJECT);
+            JSONObject fields = result.getJSONObject("fields");
+            return Collections.singletonList(getIssue(key, fields));
+        } else {
+            return searchIssues("key IN (" + StringUtils.join(keys, ",") + ")");
+        }
     }
 
     @Override
@@ -302,60 +387,48 @@ public class DefaultWebService implements WebService {
 
     @Override
     public List<Issue> searchIssues(String jql) {
-        String path = "/rest/api/latest/search?jql=" + urlEncode(jql.trim()) + "&fields=" + INITIAL_FIELDS;
+        return searchIssues(jql, Collections.<String> emptyList());
+    }
+
+    @Override
+    public List<Issue> searchIssues(String jql, List<String> fields) {
+        String fieldParam = INITIAL_FIELDS + (fields.isEmpty() ? "" : "," + StringUtils.join(fields, ","));
+        String path = "/rest/api/latest/search?jql=" + urlEncode(jql.trim()) + "&fields=" + fieldParam;
         return new PaginationList<Issue>(path, "issues", toIssue());
     }
 
     @Override
-    public void updateIssue(Issue issue) {
-        JSONObject update = new JSONObject();
-        Collection<Field> fields = getEditableFields(issue);
-        for (Field field : fields) {
-            Value value = field.getValue();
-            if (value.modified()) {
-                Object val = value.get();
-
-                Object set;
-                if (val instanceof JSONArray || val instanceof JSONObject || val instanceof String) {
-                    set = val;
-                } else if (val == null || val == JSONObject.NULL) {
-                    set = JSONObject.NULL;
-                } else {
-                    set = Objects.toString(value.get(), "");
+    public Workflow getWorkflow(final Issue issue) {
+        Workflow workflow = cache.getWorkflow(issue.getKey());
+        if (workflow == null) {
+            // There is no REST API to get the workflow name, so we need to parse the HTML:
+            String workflowName = httpClient.get("/browse/" + issue.getKey(), new Function<Reader, String>() {
+                @Override
+                public String apply(Reader reader) {
+                    try (BufferedReader bufferedReader = new BufferedReader(reader)) {
+                        String line;
+                        while ((line = bufferedReader.readLine()) != null) {
+                            String workflowName = WorkflowHelper.getWorkflowName(line);
+                            if (workflowName != null) {
+                                return workflowName;
+                            }
+                        }
+                    } catch (IOException e) {
+                        throw new IllegalStateException(e);
+                    }
+                    String message = "Could not parse workflow name for issue: " + issue;
+                    throw new NotAuthenticatedException(new IllegalStateException(message));
                 }
+            });
 
-                LOGGER.debug("Updating field: {}/{}: New value: {}", issue, field.getId(), set);
+            String path = "/rest/workflowDesigner/latest/workflows?name=" + urlEncode(workflowName);
+            JSONObject response = get(path, TO_OBJECT);
 
-                update.put(field.getId(), new JSONArray().put(new JSONObject().put("set", set)));
-            }
-        }
-        if (!update.keySet().isEmpty()) {
-            JSONObject request = new JSONObject();
-            request.put("update", update);
-            String response = put("/rest/api/latest/issue/" + issue.getKey(), request.toString());
-            if (response != null) {
-                LOGGER.warn("Unexpected response received: {}", response);
-            }
-        }
-    }
+            workflow = WorkflowHelper.parseWorkflow(workflowName, response);
 
-    @Override
-    public void rankIssues(List<Issue> issues) {
-        if (issues.isEmpty() || issues.size() == 1) {
-            return;
+            cache.putWorkflow(issue.getKey(), workflow);
         }
-        Issue first = issues.get(0);
-        JSONArray issueArr = new JSONArray();
-        for (Issue issue : issues) {
-            issueArr.put(issue.getKey());
-        }
-        JSONObject request = new JSONObject();
-        request.put("issues", issueArr);
-        request.put("rankBeforeIssue", first.getKey());
-        String response = put("/rest/agile/latest/issue/rank", request.toString());
-        if (response != null) {
-            LOGGER.warn("Unexpected response received: {}", response);
-        }
+        return workflow;
     }
 
     @Override
@@ -382,19 +455,113 @@ public class DefaultWebService implements WebService {
     }
 
     @Override
-    public Project getProject(String key) {
-        try {
-            JSONObject response = get("/rest/api/latest/project/" + key, TO_OBJECT);
-            return toProject(response);
-        } catch (NoSuchElementException e) {
-            LOGGER.debug("Project not found: {}", key, e);
-            return null;
+    public Status getStatus(Issue issue) {
+        Field status = issue.getFieldMap().getFieldById("status");
+        if (status != null) {
+            Object value = status.getValue().get();
+            if (value instanceof JSONObject) {
+                return toStatus((JSONObject) value);
+            }
+        }
+        throw new IllegalStateException("No status set for issue: " + issue);
+    }
+
+    @Override
+    public void updateIssue(Issue issue, boolean notifyUsers) {
+        JSONObject update = new JSONObject();
+        Collection<Field> fields = getEditableFields(issue);
+        for (Field field : fields) {
+            Value value = field.getValue();
+            if (value.modified()) {
+                Object val = value.get();
+
+                Object set;
+                if (val instanceof JSONArray || val instanceof JSONObject || val instanceof String) {
+                    set = val;
+                } else if (val == null || val == JSONObject.NULL) {
+                    set = JSONObject.NULL;
+                } else {
+                    set = Objects.toString(value.get(), "");
+                }
+
+                LOGGER.debug("Updating field: {}/{}: New value: {}", issue, field.getId(), set);
+
+                update.put(field.getId(), new JSONArray().put(new JSONObject().put("set", set)));
+            }
+        }
+        if (!update.keySet().isEmpty()) {
+            JSONObject request = new JSONObject();
+            request.put("update", update);
+            String path = "/rest/api/latest/issue/" + issue.getKey() + "?notifyUsers=" + notifyUsers;
+            String response = put(path, request.toString());
+            if (response != null) {
+                LOGGER.warn("Unexpected response received: {}", response);
+            }
         }
     }
 
     @Override
+    public void transitionIssue(Issue issue, Transition transition) {
+        JSONObject request = new JSONObject().put("transition", new JSONObject().put("id", transition.getId()));
+        String response = post("/rest/api/latest/issue/" + issue.getKey() + "/transitions", request.toString());
+        if (response != null) {
+            LOGGER.warn("Unexpected response received: {}", response);
+        }
+    }
+
+    @Override
+    public void rankIssues(List<Issue> issues) {
+        if (issues.isEmpty() || issues.size() == 1) {
+            return;
+        }
+        Issue first = issues.get(0);
+        JSONArray issueArr = new JSONArray();
+        for (Issue issue : issues) {
+            issueArr.put(issue.getKey());
+        }
+        JSONObject request = new JSONObject();
+        request.put("issues", issueArr);
+        request.put("rankBeforeIssue", first.getKey());
+        String response = put("/rest/agile/latest/issue/rank", request.toString());
+        if (response != null) {
+            LOGGER.warn("Unexpected response received: {}", response);
+        }
+    }
+
+    @Override
+    public Status getStatus(String name) {
+        JSONObject response = get("/rest/api/latest/status/" + urlEncode(name), TO_OBJECT);
+        return toStatus(response);
+    }
+
+    private static Status toStatus(JSONObject json) {
+        int id = json.getInt("id");
+        String name = json.getString("name");
+        return new Status(id, name);
+    }
+
+    @Override
+    public Project getProject(String key) {
+        JSONObject response = get("/rest/api/latest/project/" + key, TO_OBJECT);
+        return toProject(response);
+    }
+
+    @Override
     public List<Project> getProjects() {
-        JSONArray response = get("/rest/api/latest/project", TO_ARRAY);
+        String path = "/rest/api/latest/project";
+        JSONArray response = httpClient.get(path, new Function<Reader, JSONArray>() {
+            @Override
+            public JSONArray apply(Reader reader) {
+                JSONArray array = TO_ARRAY.apply(reader);
+                if (array.length() == 0) {
+                    throw new NotAuthenticatedException(new IllegalStateException("No projects found!"));
+                }
+                return array;
+            }
+        });
+
+        cache.putResponse(path, response.toString());
+
         List<Project> projects = new ArrayList<Project>();
         for (Object obj : response) {
             JSONObject json = (JSONObject) obj;
@@ -404,46 +571,96 @@ public class DefaultWebService implements WebService {
     }
 
     private Project toProject(JSONObject json) {
-        final int id = json.getInt("id");
-        String key = json.getString("key");
+        int id = json.getInt("id");
+        final String key = json.getString("key");
         String name = json.getString("name");
-        List<IssueType> issueTypes = new LoadingList<IssueType>() {
-            @Override
-            protected List<IssueType> loadList() {
-                return getIssueTypes(id);
-            }
-        };
+        List<IssueType> issueTypes;
+        JSONArray issueTypeArray = json.optJSONArray("issueTypes");
+        if (issueTypeArray == null) {
+            issueTypes = new LoadingList<IssueType>() {
+                @Override
+                protected List<IssueType> loadList() {
+                    return loadIssueTypes(key);
+                }
+            };
+        } else {
+            issueTypes = toIssueTypes(issueTypeArray);
+        }
         return new Project(id, key, name, issueTypes);
     }
 
-    private List<IssueType> getIssueTypes(int project) {
-        String path = "/rest/api/latest/issue/createmeta?expand=projects.issuetypes.fields&projectIds=" + project;
-        JSONObject response = get(path, TO_OBJECT);
-        JSONArray projectArr = response.getJSONArray("projects");
+    private List<IssueType> loadIssueTypes(String project) {
+        JSONObject response = get("/rest/api/latest/project/" + project, TO_OBJECT);
+        JSONArray issueTypes = response.getJSONArray("issueTypes");
+        return toIssueTypes(issueTypes);
+    }
+
+    private static List<IssueType> toIssueTypes(JSONArray json) {
         List<IssueType> issueTypes = new ArrayList<IssueType>();
+        for (Object issueTypeObj : json) {
+            JSONObject issueTypeJson = (JSONObject) issueTypeObj;
+            int id = issueTypeJson.getInt("id");
+            String name = issueTypeJson.getString("name");
+            boolean subtask = issueTypeJson.getBoolean("subtask");
+            issueTypes.add(new IssueType(id, name, subtask));
+        }
+        return issueTypes;
+    }
+
+    @Override
+    public List<FieldDescription> getFields(final Project project, IssueType issueType) {
+        String path = "/rest/api/latest/issue/createmeta?expand=projects.issuetypes.fields";
+        path += "&projectIds=" + project.getId();
+        path += "&issuetypeIds=" + issueType.getId();
+
+        JSONObject response = httpClient.get(path, new Function<Reader, JSONObject>() {
+            @Override
+            public JSONObject apply(Reader reader) {
+                JSONObject json = TO_OBJECT.apply(reader);
+                JSONArray projects = json.getJSONArray("projects");
+                if (projects.length() == 0) {
+                    String msg = "Project not found: " + project.getKey();
+                    throw new NotAuthenticatedException(new IllegalStateException(msg));
+                }
+                return json;
+            }
+        });
+
+        cache.putResponse(path, response.toString());
+
+        JSONArray projectArr = response.getJSONArray("projects");
         for (Object projectObj : projectArr) {
             JSONObject projectJson = (JSONObject) projectObj;
             int projectId = projectJson.getInt("id");
-            if (projectId != project) {
+            if (projectId != project.getId()) {
                 continue;
             }
             JSONArray issueTypeArr = projectJson.getJSONArray("issuetypes");
             for (Object issueTypeObj : issueTypeArr) {
                 JSONObject issueTypeJson = (JSONObject) issueTypeObj;
                 int id = issueTypeJson.getInt("id");
-                String name = issueTypeJson.getString("name");
+                if (id != issueType.getId()) {
+                    continue;
+                }
                 JSONObject fieldObj = issueTypeJson.getJSONObject("fields");
-                List<IssueType.Field> fields = new ArrayList<>();
+                List<FieldDescription> fields = new ArrayList<>();
                 for (String fieldId : fieldObj.keySet()) {
                     JSONObject fieldJson = fieldObj.getJSONObject(fieldId);
                     String fieldName = fieldJson.getString("name");
                     boolean required = fieldJson.getBoolean("required");
-                    fields.add(new IssueType.Field(fieldId, fieldName, required));
+                    fields.add(new FieldDescription(fieldId, fieldName, required));
                 }
-                issueTypes.add(new IssueType(id, name, fields));
+                return fields;
             }
         }
-        return issueTypes;
+
+        throw new IllegalStateException("No fields found: " + project + ", " + issueType);
+    }
+
+    @Override
+    public Board getBoard(int id) {
+        JSONObject json = get("/rest/agile/latest/board/" + id, TO_OBJECT);
+        return toBoard(json);
     }
 
     @Override
@@ -460,12 +677,16 @@ public class DefaultWebService implements WebService {
         return new PaginationList<Board>(path, "values", new Function<JSONObject, Board>() {
             @Override
             public Board apply(JSONObject json) {
-                int id = json.getInt("id");
-                String boardName = json.getString("name");
-                Type type = toType(json.optString("type"));
-                return new Board(id, boardName, type);
+                return toBoard(json);
             }
         });
+    }
+
+    private static Board toBoard(JSONObject json) {
+        int id = json.getInt("id");
+        String boardName = json.getString("name");
+        Type type = toType(json.optString("type"));
+        return new Board(id, boardName, type);
     }
 
     private static Type toType(String str) {
@@ -495,16 +716,44 @@ public class DefaultWebService implements WebService {
     }
 
     @Override
+    public Sprint getSprint(int id) {
+        JSONObject json = get("/rest/agile/latest/sprint/" + id, TO_OBJECT);
+        return toSprint(json);
+    }
+
+    @Override
     public List<Sprint> getSprints(final Board board) {
         String path = "/rest/agile/latest/board/" + board.getId() + "/sprint";
         return new PaginationList<Sprint>(path, "values", new Function<JSONObject, Sprint>() {
             @Override
             public Sprint apply(JSONObject json) {
-                int id = json.getInt("id");
-                String name = json.getString("name");
-                return new Sprint(board, id, name);
+                return toSprint(json);
             }
         });
+    }
+
+    private static Sprint toSprint(JSONObject json) {
+        int id = json.getInt("id");
+        String name = json.getString("name");
+        State state = toState(json.optString("state"));
+        return new Sprint(id, name, state);
+    }
+
+    private static State toState(String str) {
+        String s = Objects.toString(str, "").trim().toLowerCase();
+        switch (s) {
+            case "closed":
+                return State.CLOSED;
+
+            case "active":
+                return State.ACTIVE;
+
+            case "future":
+                return State.FUTURE;
+
+            default:
+                return State.UNKNOWN;
+        }
     }
 
     @Override
@@ -540,25 +789,25 @@ public class DefaultWebService implements WebService {
 
         JSONObject responseObj = new JSONObject(response);
         JSONArray issueArr = responseObj.getJSONArray("issues");
-        List<Issue> issues = new ArrayList<Issue>();
-        for (Object issueObj : issueArr) {
-            JSONObject issueJson = (JSONObject) issueObj;
-            String key = issueJson.getString("key");
-            issues.add(getIssue(key));
+        List<String> keys = new ArrayList<String>();
+        for (Object obj : issueArr) {
+            JSONObject json = (JSONObject) obj;
+            String key = json.getString("key");
+            keys.add(key);
         }
-        return issues;
+        return getIssues(keys);
     }
 
     private static String urlEncode(String str) {
         try {
-            return URLEncoder.encode(str, "UTF-8");
+            return URLEncoder.encode(str, "UTF-8").replace("+", "%20");
         } catch (UnsupportedEncodingException e) {
             throw new IllegalStateException("Unsupported encoding!", e);
         }
     }
 
     private synchronized <T> T get(String path, Function<Reader, T> function) {
-        String response = cache.get(path);
+        String response = cache.getResponse(path);
         boolean cacheResponse = false;
         if (response == null) {
             response = httpClient.get(path);
@@ -570,7 +819,7 @@ public class DefaultWebService implements WebService {
         }
         if (cacheResponse) {
             // response could be converted, so it's probably safe to cache now:
-            cache.put(path, response);
+            cache.putResponse(path, response);
         }
         return result;
     }
@@ -587,7 +836,11 @@ public class DefaultWebService implements WebService {
 
     private void clearCache() {
         cache.clear();
-        fieldCache.clear();
+    }
+
+    @Override
+    public WebService.Cache getCache() {
+        return cache;
     }
 
     @Override
@@ -687,7 +940,7 @@ public class DefaultWebService implements WebService {
                 int total = object.optInt("total", -1);
                 if (total != -1) {
                     size = total;
-                    if (size == fetched.size()) {
+                    if (fetched.size() >= size) {
                         fetchedAll = true;
                     }
                 }

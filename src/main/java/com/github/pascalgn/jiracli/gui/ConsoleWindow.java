@@ -169,6 +169,11 @@ public class ConsoleWindow extends JFrame {
         }
 
         @Override
+        public void onInterrupt(Runnable runnable) {
+            consoleTextArea.setInterruptListener(runnable);
+        }
+
+        @Override
         protected String provideBaseUrl() {
             return invokeAndWait(new Supplier<String>() {
                 @Override

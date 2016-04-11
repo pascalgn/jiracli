@@ -21,6 +21,8 @@ import static org.junit.Assert.assertNotNull;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.poi.ss.usermodel.Sheet;
@@ -30,12 +32,14 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import com.github.pascalgn.jiracli.command.Read.TextFileReader;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.None;
 import com.github.pascalgn.jiracli.testutil.ExcelUtils;
 import com.github.pascalgn.jiracli.testutil.MockContext;
+import com.github.pascalgn.jiracli.util.IOUtils;
 
 public class ReadTest {
     @Rule
@@ -56,7 +60,7 @@ public class ReadTest {
 
         Context context = new MockContext();
 
-        Read re = new Read(file.getAbsolutePath(), "U");
+        Read re = new Read(file.getAbsolutePath(), "Sheet1", "U");
         IssueList list = re.execute(context, None.getInstance());
         assertNotNull(list);
 
@@ -65,5 +69,18 @@ public class ReadTest {
         assertEquals(101, issues.size());
         assertEquals("ISSUE-10", issues.get(0).getKey());
         assertEquals("ISSUE-110", issues.get(100).getKey());
+    }
+
+    @Test
+    public void test2() throws Exception {
+        File file = folder.newFile("temp.txt");
+        IOUtils.write(file, "ISSUE-1\nISSUE-2\n99ISSUE-3 ISSUE-4\r\nISSUE-5");
+        TextFileReader fileReader = new TextFileReader(file);
+        List<String> keys = new ArrayList<>();
+        String key;
+        while ((key = fileReader.get()) != null) {
+            keys.add(key);
+        }
+        assertEquals(Arrays.asList("ISSUE-1", "ISSUE-2", "ISSUE-3", "ISSUE-4", "ISSUE-5"), keys);
     }
 }

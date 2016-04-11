@@ -61,6 +61,11 @@ public class IssueFactory {
         }
 
         @Override
+        public Collection<Field> getLoadedFields() {
+            return fields;
+        }
+
+        @Override
         public void addField(Field field) {
             fields.add(field);
         }

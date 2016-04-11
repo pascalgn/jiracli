@@ -15,50 +15,27 @@
  */
 package com.github.pascalgn.jiracli.model;
 
-public class Sprint extends Data {
-    public enum State {
-        CLOSED, ACTIVE, FUTURE, UNKNOWN;
-    }
+import java.util.List;
 
-    private final int id;
+public class Workflow {
     private final String name;
-    private final State state;
+    private final List<Transition> transitions;
 
-    public Sprint(int id, String name, State state) {
-        this.id = id;
+    public Workflow(String name, List<Transition> transitions) {
         this.name = name;
-        this.state = state;
-    }
-
-    public int getId() {
-        return id;
+        this.transitions = transitions;
     }
 
     public String getName() {
         return name;
     }
 
-    public State getState() {
-        return state;
-    }
-
-    @Override
-    public SprintList toSprintList() {
-        return new SprintList(this);
-    }
-
-    @Override
-    public Text toText() {
-        return new Text(getName());
-    }
-
-    @Override
-    public TextList toTextList() {
-        return new TextList(toText());
+    public List<Transition> getTransitions() {
+        return transitions;
     }
 
     @Override
     public String toString() {
-        return "Sprint[id=" + id + ", name=" + name + "]";
+        return "Workflow[name=" + name + "]";
     }
 }

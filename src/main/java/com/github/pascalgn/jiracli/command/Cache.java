@@ -15,24 +15,21 @@
  */
 package com.github.pascalgn.jiracli.command;
 
-import java.util.Collection;
-
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
-import com.github.pascalgn.jiracli.model.Issue;
-import com.github.pascalgn.jiracli.model.IssueList;
-import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.model.None;
 
-@CommandDescription(names = { "links", "linked" }, description = "Show all issues linked with the given issues")
-class Links implements Command {
+@CommandDescription(names = "cache", description = "Clear the cached values")
+class Cache implements Command {
+    @Argument(names = { "-c", "--clear" }, description = "clear the cache")
+    private boolean clear = false;
+
     @Override
     public Data execute(final Context context, Data input) {
-        IssueList issueList = input.toIssueListOrFail();
-        return new IssueList(issueList.loadingSupplier(new Function<Issue, Collection<Issue>>() {
-            @Override
-            public Collection<Issue> apply(Issue issue) {
-                return context.getWebService().getLinks(issue);
-            }
-        }));
+        if (clear) {
+            context.getWebService().getCache().clear();
+            context.getConsole().println("Cache cleared.");
+        }
+        return None.getInstance();
     }
 }

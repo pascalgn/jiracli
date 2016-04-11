@@ -9,6 +9,13 @@
         "self": "http://localhost/rest/api/latest/issue/10123",
         "key": "JRA-123",
         "fields": {
+	        "issuetype": {
+	            "self": "http://localhost/rest/api/latest/issuetype/22",
+	            "id": "22",
+	            "description": "",
+	            "name": "Change request",
+	            "subtask": false
+	        },
             "summary": "A simple Jira issue"
         }
     }]

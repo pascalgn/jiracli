@@ -16,21 +16,17 @@
 package com.github.pascalgn.jiracli.command;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import org.json.JSONObject;
 import org.junit.Test;
 
 import com.github.pascalgn.jiracli.context.Context;
-import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
-import com.github.pascalgn.jiracli.testutil.IssueFactory;
 import com.github.pascalgn.jiracli.testutil.MockContext;
 
 public class SortTest {
@@ -77,12 +73,5 @@ public class SortTest {
         }
 
         return resultList;
-    }
-
-    @Test
-    public void test2() throws Exception {
-        Issue issue1 = IssueFactory.create("ISSUE-1", "author", new JSONObject("{name:'Test1'}"));
-        Filter filter = new Filter("author.name", "Test1");
-        assertTrue(filter.matches(new MockContext(), issue1));
     }
 }

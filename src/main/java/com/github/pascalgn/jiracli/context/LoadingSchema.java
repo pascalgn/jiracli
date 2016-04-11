@@ -15,11 +15,12 @@
  */
 package com.github.pascalgn.jiracli.context;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import com.github.pascalgn.jiracli.model.Converter;
-import com.github.pascalgn.jiracli.model.Field;
 import com.github.pascalgn.jiracli.model.Schema;
 
 abstract class LoadingSchema implements Schema {
@@ -39,17 +40,21 @@ abstract class LoadingSchema implements Schema {
     protected abstract Map<String, FieldInfo> loadMap();
 
     @Override
-    public String getName(Field field) {
-        return getFieldInfo(field.getId()).name;
+    public synchronized Set<String> getFields() {
+        if (map == null) {
+            map = loadMap();
+        }
+        return new HashSet<>(map.keySet());
     }
 
     @Override
-    public Converter getConverter(Field field) {
-        return getFieldInfo(field.getId()).converter;
+    public String getName(String field) {
+        return getFieldInfo(field).name;
     }
 
-    public Converter getConverter(String fieldId) {
-        return getFieldInfo(fieldId).converter;
+    @Override
+    public Converter getConverter(String field) {
+        return getFieldInfo(field).converter;
     }
 
     public static final class FieldInfo {

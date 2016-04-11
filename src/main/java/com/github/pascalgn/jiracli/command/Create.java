@@ -29,6 +29,7 @@ import com.github.pascalgn.jiracli.command.EditingUtils.EditingField;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.context.WebService.CreateRequest;
 import com.github.pascalgn.jiracli.model.Data;
+import com.github.pascalgn.jiracli.model.FieldDescription;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.IssueType;
@@ -56,9 +57,6 @@ class Create implements Command {
         final Project project;
         if (this.project != null) {
             project = context.getWebService().getProject(this.project);
-            if (project == null) {
-                throw new IllegalArgumentException("Project not found: " + this.project);
-            }
         } else {
             ProjectList projectList = input.toProjectList();
             if (projectList == null) {
@@ -136,7 +134,10 @@ class Create implements Command {
         }
         if (issueType != null) {
             fields.add(new EditingField("issuetype", "Issue type", issueType.getName()));
-            for (IssueType.Field field : issueType.getFields()) {
+        }
+        if (project != null && issueType != null) {
+            List<FieldDescription> descriptions = context.getWebService().getFields(project, issueType);
+            for (FieldDescription field : descriptions) {
                 if (field.isRequired()) {
                     if (field.getId().equals("project") || field.getId().equals("issuetype")) {
                         continue;

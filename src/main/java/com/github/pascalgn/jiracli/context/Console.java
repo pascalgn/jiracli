@@ -36,4 +36,6 @@ public interface Console {
     Credentials getCredentials(String url);
 
     boolean editFile(File file);
+
+    void onInterrupt(Runnable runnable);
 }

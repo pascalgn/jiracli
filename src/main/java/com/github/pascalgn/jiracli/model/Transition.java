@@ -15,19 +15,17 @@
  */
 package com.github.pascalgn.jiracli.model;
 
-public class Sprint extends Data {
-    public enum State {
-        CLOSED, ACTIVE, FUTURE, UNKNOWN;
-    }
-
+public final class Transition {
     private final int id;
     private final String name;
-    private final State state;
+    private final Step source;
+    private final Step target;
 
-    public Sprint(int id, String name, State state) {
+    public Transition(int id, String name, Step source, Step target) {
         this.id = id;
         this.name = name;
-        this.state = state;
+        this.source = source;
+        this.target = target;
     }
 
     public int getId() {
@@ -38,27 +36,20 @@ public class Sprint extends Data {
         return name;
     }
 
-    public State getState() {
-        return state;
+    public Step getSource() {
+        return source;
     }
 
-    @Override
-    public SprintList toSprintList() {
-        return new SprintList(this);
+    public Step getTarget() {
+        return target;
     }
 
-    @Override
-    public Text toText() {
-        return new Text(getName());
-    }
-
-    @Override
-    public TextList toTextList() {
-        return new TextList(toText());
+    public boolean isGlobal() {
+        return source.equals(target);
     }
 
     @Override
     public String toString() {
-        return "Sprint[id=" + id + ", name=" + name + "]";
+        return "Transition[id=" + id + ", name=" + name + "]";
     }
 }

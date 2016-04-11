@@ -25,18 +25,27 @@ import com.github.pascalgn.jiracli.model.Data;
 
 @CommandDescription(names = "boards", description = "Show the existing boards")
 class Boards implements Command {
-    @Argument(names = { "-n", "--name" }, parameters = Parameters.ONE,
+    @Argument(names = { "-b", "--board" }, parameters = Parameters.ONE, variable = "<board>",
+            description = "only show boards matching the given ID")
+    private Integer board;
+
+    @Argument(names = { "-n", "--name" }, parameters = Parameters.ONE, variable = "<name>",
             description = "only show boards matching the given name")
     private String name;
 
     @Override
     public BoardList execute(Context context, Data input) {
-        List<Board> boards;
-        if (name == null) {
-            boards = context.getWebService().getBoards();
+        if (board == null) {
+            List<Board> boards;
+            if (name == null) {
+                boards = context.getWebService().getBoards();
+            } else {
+                boards = context.getWebService().getBoards(name);
+            }
+            return new BoardList(boards.iterator());
         } else {
-            boards = context.getWebService().getBoards(name);
+            Board b = context.getWebService().getBoard(board.intValue());
+            return new BoardList(b);
         }
-        return new BoardList(boards.iterator());
     }
 }

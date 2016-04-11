@@ -66,9 +66,9 @@ class EditingUtils {
         Collection<EditingField> editingFields = new ArrayList<EditingField>(fields.size());
         for (Field field : fields) {
             Object value = field.getValue().get();
-            Converter converter = schema.getConverter(field);
+            Converter converter = schema.getConverter(field.getId());
             String str = converter.toString(value);
-            String fieldName = schema.getName(field);
+            String fieldName = schema.getName(field.getId());
             editingFields.add(new EditingField(field.getId(), fieldName, str));
         }
         return editingFields;
@@ -132,7 +132,7 @@ class EditingUtils {
     public static void writeSort(BufferedWriter writer, Collection<Issue> issues, Schema schema, String format)
             throws IOException {
         for (Issue issue : issues) {
-            String s = CommandUtils.toString(issue, schema, format);
+            String s = CommandUtils.toString(issue, schema, format, null);
             writer.write(issue.getKey() + (s.isEmpty() ? "" : " " + s));
             writer.newLine();
         }
@@ -285,7 +285,7 @@ class EditingUtils {
 
     private static void setFieldValue(Field field, String str, Schema schema) {
         Object value = field.getValue().get();
-        Converter converter = schema.getConverter(field);
+        Converter converter = schema.getConverter(field.getId());
         String original = converter.toString(value);
         if (!str.equals(original) && (original == null || !str.equals(original.trim()))) {
             Object newValue = converter.fromString(str);

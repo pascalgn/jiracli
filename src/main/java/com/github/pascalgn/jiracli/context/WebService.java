@@ -24,10 +24,15 @@ import java.util.Map;
 import com.github.pascalgn.jiracli.model.Attachment;
 import com.github.pascalgn.jiracli.model.Board;
 import com.github.pascalgn.jiracli.model.Field;
+import com.github.pascalgn.jiracli.model.FieldDescription;
 import com.github.pascalgn.jiracli.model.Issue;
+import com.github.pascalgn.jiracli.model.IssueType;
 import com.github.pascalgn.jiracli.model.Project;
 import com.github.pascalgn.jiracli.model.Schema;
 import com.github.pascalgn.jiracli.model.Sprint;
+import com.github.pascalgn.jiracli.model.Status;
+import com.github.pascalgn.jiracli.model.Transition;
+import com.github.pascalgn.jiracli.model.Workflow;
 import com.github.pascalgn.jiracli.util.Consumer;
 
 public interface WebService extends AutoCloseable {
@@ -39,13 +44,21 @@ public interface WebService extends AutoCloseable {
         Map<String, String> getFields();
     }
 
+    interface Cache {
+        void clear();
+    }
+
     String execute(Method method, String path, String body);
 
     void download(URI uri, Consumer<InputStream> consumer);
 
     Schema getSchema();
 
-    Issue getIssue(String key);
+    /**
+     * Resolves the issues for the given keys, throws an exception if one or
+     * more issues cannot be found.
+     */
+    List<Issue> getIssues(List<String> keys);
 
     /**
      * @return The URL of this issue, for example <code>https://jira.example.com/browse/ISSUE-123</code>
@@ -63,15 +76,29 @@ public interface WebService extends AutoCloseable {
 
     List<Issue> searchIssues(String jql);
 
-    void updateIssue(Issue issue);
+    List<Issue> searchIssues(String jql, List<String> fields);
+
+    Workflow getWorkflow(Issue issue);
+
+    List<Attachment> getAttachments(Issue issue);
+
+    Status getStatus(Issue issue);
+
+    void updateIssue(Issue issue, boolean notifyUsers);
+
+    void transitionIssue(Issue issue, Transition transition);
 
     void rankIssues(List<Issue> issues);
 
-    List<Attachment> getAttachments(Issue issue);
+    Status getStatus(String name);
 
     Project getProject(String key);
 
     List<Project> getProjects();
+
+    List<FieldDescription> getFields(Project project, IssueType issueType);
+
+    Board getBoard(int id);
 
     List<Board> getBoards();
 
@@ -81,11 +108,15 @@ public interface WebService extends AutoCloseable {
 
     List<Issue> getEpics(Board board);
 
+    Sprint getSprint(int id);
+
     List<Sprint> getSprints(Board board);
 
     List<Issue> getIssues(Sprint sprint);
 
     List<Issue> createIssues(Collection<CreateRequest> createRequests);
+
+    Cache getCache();
 
     @Override
     void close();

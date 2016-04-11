@@ -16,7 +16,9 @@
 package com.github.pascalgn.jiracli.command;
 
 import java.util.Collection;
+import java.util.List;
 
+import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Board;
 import com.github.pascalgn.jiracli.model.BoardList;
@@ -27,36 +29,45 @@ import com.github.pascalgn.jiracli.model.Sprint;
 import com.github.pascalgn.jiracli.model.SprintList;
 import com.github.pascalgn.jiracli.util.Function;
 
-@CommandDescription(names = "issues", description = "List all issues associated with the given epics or sprints")
+@CommandDescription(names = { "issues", "i" },
+        description = "List all given issues or the issues associated with the given epics or sprints")
 class Issues implements Command {
+    @Argument(parameters = Parameters.ZERO_OR_MORE, variable = "<issue>", description = "the issues")
+    private List<String> issues;
+
     @Override
     public IssueList execute(final Context context, Data input) {
-        SprintList sprintList = input.toSprintList();
-        if (sprintList == null) {
-            BoardList boardList = input.toBoardList();
-            if (boardList == null) {
-                IssueList issueList = input.toIssueListOrFail();
-                return new IssueList(issueList.loadingSupplier(new Function<Issue, Collection<Issue>>() {
-                    @Override
-                    public Collection<Issue> apply(Issue epic) {
-                        return context.getWebService().getIssues(epic);
-                    }
-                }));
+        if (issues == null) {
+            SprintList sprintList = input.toSprintList();
+            if (sprintList == null) {
+                BoardList boardList = input.toBoardList();
+                if (boardList == null) {
+                    IssueList issueList = input.toIssueListOrFail();
+                    return new IssueList(issueList.loadingSupplier(new Function<Issue, Collection<Issue>>() {
+                        @Override
+                        public Collection<Issue> apply(Issue epic) {
+                            return context.getWebService().getIssues(epic);
+                        }
+                    }));
+                } else {
+                    return new IssueList(boardList.loadingSupplier(new Function<Board, Collection<Issue>>() {
+                        @Override
+                        public Collection<Issue> apply(Board board) {
+                            return context.getWebService().getIssues(board);
+                        }
+                    }));
+                }
             } else {
-                return new IssueList(boardList.loadingSupplier(new Function<Board, Collection<Issue>>() {
+                return new IssueList(sprintList.loadingSupplier(new Function<Sprint, Collection<Issue>>() {
                     @Override
-                    public Collection<Issue> apply(Board board) {
-                        return context.getWebService().getIssues(board);
+                    public Collection<Issue> apply(Sprint sprint) {
+                        return context.getWebService().getIssues(sprint);
                     }
                 }));
             }
         } else {
-            return new IssueList(sprintList.loadingSupplier(new Function<Sprint, Collection<Issue>>() {
-                @Override
-                public Collection<Issue> apply(Sprint sprint) {
-                    return context.getWebService().getIssues(sprint);
-                }
-            }));
+            List<Issue> issues = context.getWebService().getIssues(this.issues);
+            return new IssueList(issues.iterator());
         }
     }
 }

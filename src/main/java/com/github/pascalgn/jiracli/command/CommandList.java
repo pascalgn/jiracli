@@ -24,7 +24,8 @@ final class CommandList {
             Get.class, Help.class, JavaScript.class, Print.class, Read.class, Search.class, Issues.class, Echo.class,
             Sort.class, Join.class, Split.class, Labels.class, Edit.class, Call.class, Update.class, Replace.class,
             Boards.class, Sprints.class, Head.class, Projects.class, Create.class, Rank.class, Epics.class,
-            Config.class, Fields.class, Attachments.class, Download.class, Links.class);
+            Config.class, Fields.class, Attachments.class, Download.class, Links.class, Set.class, Json.class,
+            Clipboard.class, Transitions.class, Cache.class, Count.class);
 
     private CommandList() {
         // don't allow instances

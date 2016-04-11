@@ -15,50 +15,48 @@
  */
 package com.github.pascalgn.jiracli.model;
 
-public class Sprint extends Data {
-    public enum State {
-        CLOSED, ACTIVE, FUTURE, UNKNOWN;
-    }
+public final class Step {
+    private final String id;
+    private final Status status;
 
-    private final int id;
-    private final String name;
-    private final State state;
-
-    public Sprint(int id, String name, State state) {
+    public Step(String id) {
         this.id = id;
-        this.name = name;
-        this.state = state;
+        this.status = null;
     }
 
-    public int getId() {
+    public Step(String id, Status status) {
+        this.id = id;
+        this.status = status;
+    }
+
+    public String getId() {
         return id;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public State getState() {
-        return state;
+    public Status getStatus() {
+        return status;
     }
 
     @Override
-    public SprintList toSprintList() {
-        return new SprintList(this);
+    public int hashCode() {
+        final int prime = 59;
+        return prime + id.hashCode();
     }
 
     @Override
-    public Text toText() {
-        return new Text(getName());
-    }
-
-    @Override
-    public TextList toTextList() {
-        return new TextList(toText());
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        Step other = (Step) obj;
+        return id.equals(other.id);
     }
 
     @Override
     public String toString() {
-        return "Sprint[id=" + id + ", name=" + name + "]";
+        return "Step[id=" + id + ", status=" + status + "]";
     }
 }

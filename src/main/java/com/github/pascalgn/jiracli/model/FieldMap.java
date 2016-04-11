@@ -26,6 +26,11 @@ public interface FieldMap {
     Collection<Field> getFields();
 
     /**
+     * @return All currently loaded fields, never null
+     */
+    Collection<Field> getLoadedFields();
+
+    /**
      * Add the field if it does not already exist in this map
      */
     void addField(Field field);

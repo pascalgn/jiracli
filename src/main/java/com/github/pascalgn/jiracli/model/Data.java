@@ -15,7 +15,50 @@
  */
 package com.github.pascalgn.jiracli.model;
 
+import java.util.Collections;
+import java.util.Iterator;
+
+import com.github.pascalgn.jiracli.util.Supplier;
+
 public abstract class Data {
+    private static final Filter<Data> ANY = new Filter<Data>() {
+        @Override
+        public Data get(Supplier<Data> supplier) {
+            return supplier.get();
+        }
+    };
+
+    public Iterator<Data> toIterator() {
+        final List<Data> list = toList(ANY);
+        if (list == null) {
+            return Collections.singleton(this).iterator();
+        } else {
+            return new Iterator<Data>() {
+                private Data next;
+
+                @Override
+                public boolean hasNext() {
+                    if (next == null) {
+                        next = list.next();
+                    }
+                    return (next != null);
+                }
+
+                @Override
+                public Data next() {
+                    Data result = next;
+                    next = null;
+                    return result;
+                }
+
+                @Override
+                public void remove() {
+                    throw new UnsupportedOperationException();
+                }
+            };
+        }
+    }
+
     public List<Data> toList(Filter<Data> filter) {
         return null;
     }

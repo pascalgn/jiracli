@@ -29,6 +29,7 @@ import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.Value;
+import com.github.pascalgn.jiracli.util.Function;
 
 @CommandDescription(names = "labels", description = "Add or remove labels of the given issues")
 class Labels implements Command {
@@ -42,43 +43,43 @@ class Labels implements Command {
 
     @Override
     public Data execute(Context context, Data input) {
-        IssueList issueList = input.toIssueList();
+        IssueList issueList = input.toIssueListOrFail();
         if (add == null && remove == null) {
             return issueList;
         } else {
-            List<Issue> issues = issueList.remaining();
+            final Collection<String> add = readLabels(this.add);
+            final Collection<String> remove = readLabels(this.remove);
 
-            Collection<String> add = readLabels(this.add);
-            if (!add.isEmpty()) {
-                for (Issue issue : issues) {
-                    Value value = getLabels(issue);
-                    JSONArray arr = (JSONArray) value.get();
-                    for (String label : add) {
-                        if (!contains(arr, label)) {
-                            arr.put(label);
+            return new IssueList(issueList.convertingSupplier(new Function<Issue, Issue>() {
+                @Override
+                public Issue apply(Issue issue) {
+                    if (!add.isEmpty()) {
+                        Value value = getLabels(issue);
+                        JSONArray arr = (JSONArray) value.get();
+                        for (String label : add) {
+                            if (!contains(arr, label)) {
+                                arr.put(label);
+                            }
                         }
+                        value.set(arr);
                     }
-                    value.set(arr);
-                }
-            }
 
-            Collection<String> remove = readLabels(this.remove);
-            if (!remove.isEmpty()) {
-                for (Issue issue : issues) {
-                    Value value = getLabels(issue);
-                    JSONArray arr = (JSONArray) value.get();
-                    Iterator<Object> it = arr.iterator();
-                    while (it.hasNext()) {
-                        Object obj = it.next();
-                        if (remove.contains(obj)) {
-                            it.remove();
+                    if (!remove.isEmpty()) {
+                        Value value = getLabels(issue);
+                        JSONArray arr = (JSONArray) value.get();
+                        Iterator<Object> it = arr.iterator();
+                        while (it.hasNext()) {
+                            Object obj = it.next();
+                            if (remove.contains(obj)) {
+                                it.remove();
+                            }
                         }
+                        value.set(arr);
                     }
-                    value.set(arr);
-                }
-            }
 
-            return new IssueList(issues.iterator());
+                    return issue;
+                }
+            }));
         }
     }
 

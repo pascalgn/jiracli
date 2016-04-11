@@ -74,7 +74,7 @@ class Replace implements Command {
                         field = fieldMap.getFieldByName(f, new Function<Field, String>() {
                             @Override
                             public String apply(Field field) {
-                                return schema.getName(field);
+                                return schema.getName(field.getId());
                             }
                         });
                     }
@@ -83,7 +83,7 @@ class Replace implements Command {
                         continue;
                     }
                     Object value = field.getValue().get();
-                    Converter converter = schema.getConverter(field);
+                    Converter converter = schema.getConverter(field.getId());
                     String original = converter.toString(value);
                     Matcher m = pattern.matcher(original);
                     String str = m.replaceAll(replace);

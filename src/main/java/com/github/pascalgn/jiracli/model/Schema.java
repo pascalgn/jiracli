@@ -15,8 +15,21 @@
  */
 package com.github.pascalgn.jiracli.model;
 
-public interface Schema {
-    String getName(Field field);
+import java.util.Set;
 
-    Converter getConverter(Field field);
+public interface Schema {
+    /**
+     * @return A list of field IDs, never null
+     */
+    Set<String> getFields();
+
+    /**
+     * @param field Field ID
+     */
+    String getName(String field);
+
+    /**
+     * @param field Field ID
+     */
+    Converter getConverter(String field);
 }

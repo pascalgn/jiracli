@@ -15,7 +15,7 @@ Initialization and command chaining:
 
 JavaScript evaluation: 
 
-    jiracli> get JRA-123 | js "forEach.call(input, function(issue) { println(issue.fields.issuetype.name); })"
+    jiracli> issues JRA-123 | js "forEach.call(input, function(issue) { println(issue.fields.issuetype.name); })"
     Suggestion
 
     jiracli> js "webService.getIssue('JRA-123')"
@@ -23,12 +23,12 @@ JavaScript evaluation:
 
 Search and issue filtering:
 
-    jiracli> s "project=JRA and text~'new report'" | filter summary '^New report' | p
+    jiracli> s "project=JRA and text~'new report'" | filter -f summary '^New report' | p
     JRA-2020 - New reports tab + report
 
 Issue browsing:
 
-    jiracli> get JRA-123 | browse -n
+    jiracli> issues JRA-123 | browse -n
     https://jira.atlassian.com/browse/JRA-123
 
 ## License

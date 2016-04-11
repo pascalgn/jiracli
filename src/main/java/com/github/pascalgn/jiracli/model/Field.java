@@ -51,7 +51,7 @@ public class Field extends Data {
 
     @Override
     public Text toText() {
-        return new Text(id + " = " + value);
+        return new Text(id + " = " + value.get());
     }
 
     @Override

@@ -19,19 +19,18 @@ import static org.junit.Assert.assertEquals;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
-import java.util.regex.Pattern;
 
 import org.junit.Test;
 
 public class CommandFactoryTest {
     @Test
-    public void testGet() throws Exception {
-        checkUsage("usage: get [-h] [--] <issue>...", "get");
+    public void testIssues() throws Exception {
+        checkUsage("usage: issues [-h] [--] [<issue>...]", "issues");
     }
 
     @Test
     public void testRead() throws Exception {
-        checkUsage("usage: read [-c <col>] [-h] [--] <file>", "read");
+        checkUsage("usage: read [-s <sheet>] [-c <col>] [-h] [--] <file>", "read");
     }
 
     @Test
@@ -63,9 +62,9 @@ public class CommandFactoryTest {
 
     @Test
     public void testParseFilter() throws Exception {
-        Command filter = parse("filter", "field1", "value1");
+        Command filter = parse("filter", "-f", "field1", "value1");
         assertEquals("field1", getFieldValue(filter, "field"));
-        assertEquals("value1", ((Pattern) getFieldValue(filter, "pattern")).pattern());
+        assertEquals("value1", getFieldValue(filter, "search"));
     }
 
     @Test
