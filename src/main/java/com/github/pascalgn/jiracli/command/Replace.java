@@ -71,12 +71,7 @@ class Replace implements Command {
                 for (String f : fields) {
                     Field field = fieldMap.getFieldById(f);
                     if (field == null) {
-                        field = fieldMap.getFieldByName(f, new Function<Field, String>() {
-                            @Override
-                            public String apply(Field field) {
-                                return schema.getName(field.getId());
-                            }
-                        });
+                        field = fieldMap.getFieldByName(f, schema);
                     }
                     if (field == null) {
                         LOGGER.debug("Field not found: {}: {}", issue, f);

@@ -15,6 +15,8 @@
  */
 package com.github.pascalgn.jiracli.model;
 
+import java.util.Objects;
+
 public class Field extends Data {
     private final transient Issue issue;
 
@@ -51,7 +53,7 @@ public class Field extends Data {
 
     @Override
     public Text toText() {
-        return new Text(id + " = " + value.get());
+        return new Text(fieldIdAndValue());
     }
 
     @Override
@@ -71,7 +73,11 @@ public class Field extends Data {
 
     @Override
     public String toString() {
-        return "Field[" + id + " = " + value + "]";
+        return "Field[" + fieldIdAndValue() + "]";
+    }
+
+    private String fieldIdAndValue() {
+        return id + " = " + Objects.toString(value.get(), "");
     }
 
     @Override

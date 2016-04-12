@@ -23,11 +23,14 @@ import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Board;
 import com.github.pascalgn.jiracli.model.BoardList;
 import com.github.pascalgn.jiracli.model.Data;
+import com.github.pascalgn.jiracli.model.Field;
+import com.github.pascalgn.jiracli.model.FieldList;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.Sprint;
 import com.github.pascalgn.jiracli.model.SprintList;
 import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.util.Supplier;
 
 @CommandDescription(names = { "issues", "i" },
         description = "List all given issues or the issues associated with the given epics or sprints")
@@ -42,13 +45,33 @@ class Issues implements Command {
             if (sprintList == null) {
                 BoardList boardList = input.toBoardList();
                 if (boardList == null) {
-                    IssueList issueList = input.toIssueListOrFail();
-                    return new IssueList(issueList.loadingSupplier(new Function<Issue, Collection<Issue>>() {
-                        @Override
-                        public Collection<Issue> apply(Issue epic) {
-                            return context.getWebService().getIssues(epic);
-                        }
-                    }));
+                    final FieldList fieldList = input.toFieldList();
+                    if (fieldList == null) {
+                        IssueList issueList = input.toIssueListOrFail();
+                        return new IssueList(issueList.loadingSupplier(new Function<Issue, Collection<Issue>>() {
+                            @Override
+                            public Collection<Issue> apply(Issue epic) {
+                                return context.getWebService().getIssues(epic);
+                            }
+                        }));
+                    } else {
+                        return new IssueList(new Supplier<Issue>() {
+                            private Issue last;
+
+                            @Override
+                            public Issue get() {
+                                Field field;
+                                while ((field = fieldList.next()) != null) {
+                                    Issue issue = field.getIssue();
+                                    if (last == null || !last.equals(issue)) {
+                                        last = issue;
+                                        return issue;
+                                    }
+                                }
+                                return null;
+                            }
+                        });
+                    }
                 } else {
                     return new IssueList(boardList.loadingSupplier(new Function<Board, Collection<Issue>>() {
                         @Override

@@ -15,14 +15,14 @@
  */
 package com.github.pascalgn.jiracli.util;
 
-public class RuntimeInterruptedException extends RuntimeException {
+public class InterruptedError extends Error {
     private static final long serialVersionUID = -7534848921188103912L;
 
-    public RuntimeInterruptedException() {
+    public InterruptedError() {
         super();
     }
 
-    public RuntimeInterruptedException(InterruptedException cause) {
+    public InterruptedError(InterruptedException cause) {
         super(cause);
     }
 }

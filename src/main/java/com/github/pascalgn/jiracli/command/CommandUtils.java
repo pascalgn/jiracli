@@ -82,12 +82,7 @@ class CommandUtils {
         FieldMap fieldMap = issue.getFieldMap();
         Field field = fieldMap.getFieldById(fieldNameOrId);
         if (field == null) {
-            field = fieldMap.getFieldByName(fieldNameOrId, new Function<Field, String>() {
-                @Override
-                public String apply(Field field) {
-                    return schema.getName(field.getId());
-                }
-            });
+            field = fieldMap.getFieldByName(fieldNameOrId, schema);
         }
 
         if (field == null) {

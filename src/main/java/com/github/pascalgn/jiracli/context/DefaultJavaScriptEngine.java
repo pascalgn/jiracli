@@ -190,12 +190,8 @@ public class DefaultJavaScriptEngine implements JavaScriptEngine {
         Collection<Field> fieldList;
         FieldMap fieldMap = issue.getFieldMap();
         if (fields == null) {
-            if (fieldMap instanceof LoadingFieldMap) {
-                fieldList = ((LoadingFieldMap) fieldMap).getLoadedFields();
-                if (fieldList.isEmpty()) {
-                    fieldList = fieldMap.getFields();
-                }
-            } else {
+            fieldList = fieldMap.getLoadedFields();
+            if (fieldList.isEmpty()) {
                 fieldList = fieldMap.getFields();
             }
         } else if (fields.contains(ALL_FIELDS)) {

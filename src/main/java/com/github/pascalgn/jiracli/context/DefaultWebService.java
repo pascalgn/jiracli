@@ -23,11 +23,15 @@ import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLEncoder;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -48,6 +52,8 @@ import com.github.pascalgn.jiracli.context.HttpClient.NotAuthenticatedException;
 import com.github.pascalgn.jiracli.model.Attachment;
 import com.github.pascalgn.jiracli.model.Board;
 import com.github.pascalgn.jiracli.model.Board.Type;
+import com.github.pascalgn.jiracli.model.Change;
+import com.github.pascalgn.jiracli.model.Change.Item;
 import com.github.pascalgn.jiracli.model.Converter;
 import com.github.pascalgn.jiracli.model.Field;
 import com.github.pascalgn.jiracli.model.FieldDescription;
@@ -59,6 +65,7 @@ import com.github.pascalgn.jiracli.model.Sprint;
 import com.github.pascalgn.jiracli.model.Sprint.State;
 import com.github.pascalgn.jiracli.model.Status;
 import com.github.pascalgn.jiracli.model.Transition;
+import com.github.pascalgn.jiracli.model.User;
 import com.github.pascalgn.jiracli.model.Value;
 import com.github.pascalgn.jiracli.model.Workflow;
 import com.github.pascalgn.jiracli.util.Consumer;
@@ -235,6 +242,9 @@ public class DefaultWebService implements WebService {
         List<Field> fields = new ArrayList<Field>();
         for (String id : json.keySet()) {
             Object val = json.get(id);
+            if (val == JSONObject.NULL) {
+                val = null;
+            }
             fields.add(new Field(issue, id, new Value(val)));
         }
         return fields;
@@ -467,10 +477,56 @@ public class DefaultWebService implements WebService {
     }
 
     @Override
+    public List<Change> getChanges(Issue issue) {
+        String fields = "creator,created";
+        String path = "/rest/api/latest/issue/" + issue.getKey() + "?fields=" + fields + "&expand=changelog";
+
+        JSONObject issueJson = get(path, TO_OBJECT);
+        cacheFields(issueJson.getString("key"), issueJson.getJSONObject("fields"));
+
+        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+
+        JSONObject changelog = issueJson.getJSONObject("changelog");
+        JSONArray histories = changelog.getJSONArray("histories");
+
+        List<Change> changes = new ArrayList<Change>();
+        for (Object obj : histories) {
+            JSONObject history = (JSONObject) obj;
+            int id = history.getInt("id");
+            JSONObject author = history.getJSONObject("author");
+            User user = new User(author.getString("key"), author.getString("displayName"));
+            Date date = parseDate(dateFormat, history.getString("created"));
+            List<Item> items = new ArrayList<Change.Item>();
+            JSONArray itemArray = history.getJSONArray("items");
+            for (Object item : itemArray) {
+                JSONObject itemJson = (JSONObject) item;
+                String field = itemJson.getString("field");
+                String from = toString(itemJson.get("fromString"));
+                String to = toString(itemJson.get("toString"));
+                items.add(new Item(field, from, to));
+            }
+            changes.add(new Change(id, user, date, items));
+        }
+
+        return changes;
+    }
+
+    private static String toString(Object obj) {
+        return (obj == null || obj == JSONObject.NULL ? "" : obj.toString());
+    }
+
+    private static Date parseDate(DateFormat dateFormat, String str) {
+        try {
+            return dateFormat.parse(str);
+        } catch (ParseException e) {
+            throw new IllegalStateException("Invalid date: " + str, e);
+        }
+    }
+
+    @Override
     public void updateIssue(Issue issue, boolean notifyUsers) {
         JSONObject update = new JSONObject();
-        Collection<Field> fields = getEditableFields(issue);
-        for (Field field : fields) {
+        for (Field field : issue.getFieldMap().getLoadedFields()) {
             Value value = field.getValue();
             if (value.modified()) {
                 Object val = value.get();
@@ -494,9 +550,7 @@ public class DefaultWebService implements WebService {
             request.put("update", update);
             String path = "/rest/api/latest/issue/" + issue.getKey() + "?notifyUsers=" + notifyUsers;
             String response = put(path, request.toString());
-            if (response != null) {
-                LOGGER.warn("Unexpected response received: {}", response);
-            }
+            checkResponseEmpty(response);
         }
     }
 
@@ -504,9 +558,7 @@ public class DefaultWebService implements WebService {
     public void transitionIssue(Issue issue, Transition transition) {
         JSONObject request = new JSONObject().put("transition", new JSONObject().put("id", transition.getId()));
         String response = post("/rest/api/latest/issue/" + issue.getKey() + "/transitions", request.toString());
-        if (response != null) {
-            LOGGER.warn("Unexpected response received: {}", response);
-        }
+        checkResponseEmpty(response);
     }
 
     @Override
@@ -523,7 +575,61 @@ public class DefaultWebService implements WebService {
         request.put("issues", issueArr);
         request.put("rankBeforeIssue", first.getKey());
         String response = put("/rest/agile/latest/issue/rank", request.toString());
-        if (response != null) {
+        checkResponseEmpty(response);
+    }
+
+    @Override
+    public void linkIssues(Issue inward, Issue outward, String name) {
+        JSONObject request = new JSONObject();
+        request.put("type", new JSONObject().put("name", name));
+        request.put("inwardIssue", new JSONObject().put("key", inward.getKey()));
+        request.put("outwardIssue", new JSONObject().put("key", outward.getKey()));
+        String response = post("/rest/api/latest/issueLink", request.toString());
+        checkResponseEmpty(response);
+    }
+
+    @Override
+    public void removeLink(Issue inward, Issue outward, String name) {
+        Integer forward = findIssueLink(inward, "outwardIssue", outward.getKey(), name);
+        if (forward != null) {
+            removeLink(forward);
+        }
+        Integer backward = findIssueLink(outward, "inwardIssue", inward.getKey(), name);
+        if (backward != null) {
+            removeLink(backward);
+        }
+        if (forward == null && backward == null) {
+            throw new IllegalArgumentException("No link between " + inward.getKey()
+                    + " and " + outward.getKey() + ": " + name);
+        }
+    }
+
+    private void removeLink(int id) {
+        String response = delete("/rest/api/latest/issueLink/" + id);
+        checkResponseEmpty(response);
+    }
+
+    private static Integer findIssueLink(Issue source, String targetField, String targetKey, String name) {
+        Field links = source.getFieldMap().getFieldById("issuelinks");
+        JSONArray linksJson = (JSONArray) links.getValue().get();
+        for (Object linkObj : linksJson) {
+            JSONObject linkJson = (JSONObject) linkObj;
+            JSONObject typeJson = linkJson.getJSONObject("type");
+            if (typeJson.getString("name").equals(name)) {
+                JSONObject targetJson = linkJson.optJSONObject(targetField);
+                if (targetJson != null) {
+                    String key = targetJson.getString("key");
+                    if (key.equals(targetKey)) {
+                        return linkJson.getInt("id");
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private static void checkResponseEmpty(String response) {
+        if (response != null && !response.isEmpty() && !response.trim().isEmpty()) {
             LOGGER.warn("Unexpected response received: {}", response);
         }
     }
@@ -832,6 +938,11 @@ public class DefaultWebService implements WebService {
     private String put(String path, String body) {
         clearCache();
         return httpClient.put(path, body);
+    }
+
+    private String delete(String path) {
+        clearCache();
+        return httpClient.delete(path);
     }
 
     private void clearCache() {

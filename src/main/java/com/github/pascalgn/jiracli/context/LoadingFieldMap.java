@@ -15,6 +15,7 @@
  */
 package com.github.pascalgn.jiracli.context;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -23,7 +24,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.github.pascalgn.jiracli.model.AbstractFieldMap;
 import com.github.pascalgn.jiracli.model.Field;
-import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.model.Schema;
 import com.github.pascalgn.jiracli.util.Supplier;
 
 class LoadingFieldMap extends AbstractFieldMap {
@@ -55,11 +56,12 @@ class LoadingFieldMap extends AbstractFieldMap {
 
     @Override
     public Collection<Field> getFields() {
-        return getFields(true);
+        return new ArrayList<Field>(getFields(true));
     }
 
+    @Override
     public Collection<Field> getLoadedFields() {
-        return getFields(false);
+        return new ArrayList<Field>(getFields(false));
     }
 
     @Override
@@ -72,10 +74,10 @@ class LoadingFieldMap extends AbstractFieldMap {
     }
 
     @Override
-    public Field getFieldByName(String name, Function<Field, String> function) {
-        Field field = getFieldByName(getFields(false), name, function);
+    public Field getFieldByName(String name, Schema schema) {
+        Field field = getFieldByName(getFields(false), name, schema);
         if (field == null) {
-            field = getFieldByName(getFields(true), name, function);
+            field = getFieldByName(getFields(true), name, schema);
         }
         return field;
     }

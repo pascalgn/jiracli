@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
 
 import com.github.pascalgn.jiracli.Constants;
 import com.github.pascalgn.jiracli.command.CommandFactory;
-import com.github.pascalgn.jiracli.util.RuntimeInterruptedException;
+import com.github.pascalgn.jiracli.util.InterruptedError;
 
 class ConsoleTextArea extends JTextArea {
     private static final long serialVersionUID = -8193770562227282747L;
@@ -59,12 +59,12 @@ class ConsoleTextArea extends JTextArea {
     private static final Object EOF = new Object();
     private static final Object INTERRUPT = new Object();
 
+    private final History history;
+
     private final BlockingQueue<Object> input;
     private final ContextMenu contextMenu;
 
     private final Preferences preferences;
-
-    private final List<String> commands;
 
     private transient Runnable interruptListener;
 
@@ -74,19 +74,18 @@ class ConsoleTextArea extends JTextArea {
     private transient volatile int commandIndex;
     private transient volatile String currentLine;
 
-    public ConsoleTextArea() {
-        this(0, 0);
+    public ConsoleTextArea(History history) {
+        this(history, 25, 80);
     }
 
-    public ConsoleTextArea(int rows, int columns) {
+    public ConsoleTextArea(History history, int rows, int columns) {
         super(rows, columns);
+
+        this.history = history;
+
         input = new LinkedBlockingQueue<>();
-
         contextMenu = new ContextMenu();
-
         preferences = Constants.getPreferences();
-
-        commands = new ArrayList<String>();
 
         int size = normalize(preferences.getInt(FONT_SIZE, getFont().getSize()));
 
@@ -157,13 +156,13 @@ class ConsoleTextArea extends JTextArea {
         String command;
         readCommand = true;
         try {
-            commandIndex = commands.size();
+            commandIndex = history.getCommands().size();
             command = readLine();
         } finally {
             readCommand = false;
         }
-        if (command != null && !command.isEmpty()) {
-            commands.add(command);
+        if (command != null && !command.isEmpty() && !command.trim().equals("history")) {
+            history.addCommand(command);
         }
         return command;
     }
@@ -183,13 +182,13 @@ class ConsoleTextArea extends JTextArea {
             try {
                 obj = input.take();
             } catch (InterruptedException e) {
-                throw new RuntimeInterruptedException(e);
+                throw new InterruptedError(e);
             }
         }
         if (obj == EOF) {
             return null;
         } else if (obj == INTERRUPT) {
-            throw new RuntimeInterruptedException(new InterruptedException());
+            throw new InterruptedError();
         }
         return obj.toString();
     }
@@ -274,6 +273,7 @@ class ConsoleTextArea extends JTextArea {
 
         @Override
         public void actionPerformed(ActionEvent evt) {
+            List<String> commands = history.getCommands();
             if (isEditable() && readCommand && !commands.isEmpty()) {
                 AbstractDocument doc = (AbstractDocument) getDocument();
                 if (commandIndex > 0) {
@@ -301,6 +301,7 @@ class ConsoleTextArea extends JTextArea {
 
         @Override
         public void actionPerformed(ActionEvent evt) {
+            List<String> commands = history.getCommands();
             if (isEditable() && readCommand && !commands.isEmpty()) {
                 AbstractDocument doc = (AbstractDocument) getDocument();
                 if (commandIndex < commands.size()) {
@@ -442,5 +443,11 @@ class ConsoleTextArea extends JTextArea {
                 evt.getComponent().getParent().dispatchEvent(evt);
             }
         }
+    }
+
+    public interface History {
+        List<String> getCommands();
+
+        void addCommand(String command);
     }
 }

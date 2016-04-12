@@ -40,8 +40,9 @@ import com.github.pascalgn.jiracli.Constants;
 import com.github.pascalgn.jiracli.context.AbstractConsole;
 import com.github.pascalgn.jiracli.context.Configuration;
 import com.github.pascalgn.jiracli.context.Console;
+import com.github.pascalgn.jiracli.gui.ConsoleTextArea.History;
 import com.github.pascalgn.jiracli.util.Credentials;
-import com.github.pascalgn.jiracli.util.RuntimeInterruptedException;
+import com.github.pascalgn.jiracli.util.InterruptedError;
 import com.github.pascalgn.jiracli.util.Supplier;
 
 /**
@@ -62,7 +63,7 @@ public class ConsoleWindow extends JFrame {
 
     private Runnable newWindowListener;
 
-    public ConsoleWindow(Configuration configuration) {
+    public ConsoleWindow(final Configuration configuration) {
         super(Constants.getTitle());
         setIconImages(Images.getIcons());
 
@@ -72,7 +73,21 @@ public class ConsoleWindow extends JFrame {
             }
         };
 
-        consoleTextArea = new ConsoleTextArea(25, 80);
+        History history = new History() {
+            @Override
+            public List<String> getCommands() {
+                return configuration.getHistory();
+            }
+
+            @Override
+            public void addCommand(String command) {
+                List<String> commands = configuration.getHistory();
+                commands.add(command);
+                configuration.setHistory(commands);
+            }
+        };
+
+        consoleTextArea = new ConsoleTextArea(history);
         consoleTextArea.setNewWindowListener(new Runnable() {
             @Override
             public void run() {
@@ -209,12 +224,12 @@ public class ConsoleWindow extends JFrame {
                 if (cause instanceof RuntimeException) {
                     throw (RuntimeException) cause;
                 } else if (cause instanceof InterruptedException) {
-                    throw new RuntimeInterruptedException((InterruptedException) cause);
+                    throw new InterruptedError((InterruptedException) cause);
                 } else {
                     throw new IllegalStateException(e);
                 }
             } catch (InterruptedException e) {
-                throw new RuntimeInterruptedException(e);
+                throw new InterruptedError(e);
             }
         }
 

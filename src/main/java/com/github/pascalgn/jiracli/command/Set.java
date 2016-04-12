@@ -35,15 +35,18 @@ class Set implements Command {
 
     @Override
     public IssueList execute(Context context, Data input) {
-        Schema schema = context.getWebService().getSchema();
-        final Converter converter = schema.getConverter(field);
+        final Schema schema = context.getWebService().getSchema();
         return new IssueList(input.toIssueListOrFail().convertingSupplier(new Function<Issue, Issue>() {
             @Override
             public Issue apply(Issue issue) {
                 Field f = issue.getFieldMap().getFieldById(field);
                 if (f == null) {
+                    f = issue.getFieldMap().getFieldByName(field, schema);
+                }
+                if (f == null) {
                     throw new IllegalArgumentException("Unknown field: " + field);
                 }
+                Converter converter = schema.getConverter(f.getId());
                 Object val = converter.fromString(value);
                 f.getValue().set(val);
                 return issue;

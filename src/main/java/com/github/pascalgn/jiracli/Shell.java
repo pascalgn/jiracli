@@ -30,7 +30,7 @@ import com.github.pascalgn.jiracli.model.None;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.parser.CommandReference;
-import com.github.pascalgn.jiracli.util.RuntimeInterruptedException;
+import com.github.pascalgn.jiracli.util.InterruptedError;
 
 class Shell {
     private static final Logger LOGGER = LoggerFactory.getLogger(Shell.class);
@@ -77,7 +77,7 @@ class Shell {
             String raw;
             try {
                 raw = console.readCommand();
-            } catch (RuntimeInterruptedException e) {
+            } catch (InterruptedError e) {
                 console.println("");
                 continue;
             }
@@ -115,7 +115,7 @@ class Shell {
         } catch (UsageException e) {
             console.println(e.getLocalizedMessage());
             return;
-        } catch (RuntimeInterruptedException e) {
+        } catch (InterruptedError e) {
             console.println("interrupted");
             return;
         } catch (RuntimeException e) {
@@ -135,7 +135,7 @@ class Shell {
                     console.println(text.getText());
                 }
             }
-        } catch (RuntimeInterruptedException e) {
+        } catch (InterruptedError e) {
             console.println("interrupted");
             return;
         } catch (RuntimeException e) {

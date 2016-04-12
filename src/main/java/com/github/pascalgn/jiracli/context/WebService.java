@@ -23,6 +23,7 @@ import java.util.Map;
 
 import com.github.pascalgn.jiracli.model.Attachment;
 import com.github.pascalgn.jiracli.model.Board;
+import com.github.pascalgn.jiracli.model.Change;
 import com.github.pascalgn.jiracli.model.Field;
 import com.github.pascalgn.jiracli.model.FieldDescription;
 import com.github.pascalgn.jiracli.model.Issue;
@@ -84,11 +85,27 @@ public interface WebService extends AutoCloseable {
 
     Status getStatus(Issue issue);
 
+    List<Change> getChanges(Issue issue);
+
     void updateIssue(Issue issue, boolean notifyUsers);
 
     void transitionIssue(Issue issue, Transition transition);
 
     void rankIssues(List<Issue> issues);
+
+    /**
+     * Links the first issue to the second issue
+     *
+     * @param inward The inward issue
+     * @param outward The outward issue
+     * @param name The link type name
+     */
+    void linkIssues(Issue inward, Issue outward, String name);
+
+    /**
+     * Removes the link between the first and the second issue
+     */
+    void removeLink(Issue inward, Issue outward, String name);
 
     Status getStatus(String name);
 

@@ -18,6 +18,8 @@ package com.github.pascalgn.jiracli.gui;
 import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 import javax.swing.GroupLayout;
@@ -30,6 +32,8 @@ import javax.swing.JSeparator;
 import javax.swing.JTextArea;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.WindowConstants;
+
+import com.github.pascalgn.jiracli.gui.ConsoleTextArea.History;
 
 public class ConsoleTextAreaDemo extends JFrame {
     private static final long serialVersionUID = -509073864020457352L;
@@ -61,7 +65,16 @@ public class ConsoleTextAreaDemo extends JFrame {
             readLine = new JButton("readLine");
             readLineOutput = new JTextArea(3, 40);
 
-            consoleText = new ConsoleTextArea(10, 40);
+            consoleText = new ConsoleTextArea(new History() {
+                @Override
+                public List<String> getCommands() {
+                    return Collections.emptyList();
+                }
+
+                @Override
+                public void addCommand(String command) {
+                }
+            });
 
             initComponents();
             layoutComponents();

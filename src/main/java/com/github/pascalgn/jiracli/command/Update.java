@@ -16,6 +16,8 @@
 package com.github.pascalgn.jiracli.command;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import com.github.pascalgn.jiracli.context.Context;
@@ -27,11 +29,20 @@ import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.model.Value;
 import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.util.StringUtils;
 
 @CommandDescription(names = "update", description = "Update the given issues on the server")
 class Update implements Command {
     @Argument(names = { "-n", "--dry" }, description = "only print modified fields")
     private boolean dry;
+
+    @Argument(names = { "-c", "--check" },
+            description = "check if the modified fields of the issue are editable by the current user before updating")
+    private boolean check;
+
+    @Argument(names = "--continue",
+            description = "continue with the other issues if there was an error updating an issue")
+    private boolean continueOnError;
 
     @Argument(names = { "-E", "--no-email" },
             description = "disable email notifications, requires project admin privileges")
@@ -41,26 +52,78 @@ class Update implements Command {
     public Data execute(final Context context, Data input) {
         IssueList issueList = input.toIssueListOrFail();
         if (dry) {
-            List<Text> texts = new ArrayList<>();
-            Issue issue;
-            while ((issue = issueList.next()) != null) {
-                for (Field field : issue.getFieldMap().getLoadedFields()) {
-                    Value value = field.getValue();
-                    if (value.modified()) {
-                        texts.add(new Text(field.getId() + " = " + value.get()));
+            return new TextList(issueList.convertingSupplier(new Function<Issue, Text>() {
+                @Override
+                public Text apply(Issue issue) {
+                    List<String> invalid;
+                    if (check) {
+                        invalid = getInvalidFields(context, issue);
+                    } else {
+                        invalid = Collections.emptyList();
                     }
+
+                    List<String> str = new ArrayList<String>();
+                    for (Field field : issue.getFieldMap().getLoadedFields()) {
+                        Value value = field.getValue();
+                        if (value.modified()) {
+                            if (invalid.contains(field.getId())) {
+                                str.add("Not editable: " + field.getId());
+                            } else {
+                                str.add(field.getId() + " = " + value.get());
+                            }
+                        }
+                    }
+
+                    return new Text(str);
                 }
-            }
-            return new TextList(texts.iterator());
+            }));
         } else {
             final boolean notifyUsers = !noEmail;
             return new IssueList(issueList.convertingSupplier(new Function<Issue, Issue>() {
                 @Override
                 public Issue apply(Issue issue) {
-                    context.getWebService().updateIssue(issue, notifyUsers);
+                    try {
+                        if (check) {
+                            checkFields(context, issue);
+                        }
+                        context.getWebService().updateIssue(issue, notifyUsers);
+                    } catch (RuntimeException e) {
+                        if (continueOnError) {
+                            context.getConsole().println(e.getLocalizedMessage());
+                        } else {
+                            throw e;
+                        }
+                    }
                     return issue;
                 }
             }));
         }
+    }
+
+    private static void checkFields(Context context, Issue issue) {
+        List<String> invalid = getInvalidFields(context, issue);
+        if (!invalid.isEmpty()) {
+            String str = StringUtils.join(invalid, ", ");
+            throw new IllegalStateException("Fields are not editable: " + issue.getKey() + ": " + str);
+        }
+    }
+
+    private static List<String> getInvalidFields(Context context, Issue issue) {
+        List<String> invalid = null;
+        Collection<Field> editable = null;
+        for (Field field : issue.getFieldMap().getLoadedFields()) {
+            if (field.getValue().modified()) {
+                if (editable == null) {
+                    editable = context.getWebService().getEditableFields(issue);
+                }
+                if (!editable.contains(field)) {
+                    if (invalid == null) {
+                        invalid = new ArrayList<String>();
+                    }
+                    invalid.add(field.getId());
+                }
+            }
+        }
+        return (invalid == null ? Collections.<String> emptyList() : invalid);
     }
 }

@@ -15,14 +15,31 @@
  */
 package com.github.pascalgn.jiracli.command;
 
+import java.util.Collection;
+
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
+import com.github.pascalgn.jiracli.model.Field;
 import com.github.pascalgn.jiracli.model.FieldList;
+import com.github.pascalgn.jiracli.model.Issue;
+import com.github.pascalgn.jiracli.util.Function;
 
 @CommandDescription(names = "fields", description = "Return the fields of the given issues")
 class Fields implements Command {
+    @Argument(names = { "-a", "--all" }, description = "return all fields, not only the loaded fields")
+    private boolean all;
+
     @Override
     public FieldList execute(Context context, Data input) {
-        return input.toIssueListOrFail().toFieldList();
+        return new FieldList(input.toIssueListOrFail().loadingSupplier(new Function<Issue, Collection<Field>>() {
+            @Override
+            public Collection<Field> apply(Issue issue) {
+                if (all) {
+                    return issue.getFieldMap().getFields();
+                } else {
+                    return issue.getFieldMap().getLoadedFields();
+                }
+            }
+        }));
     }
 }

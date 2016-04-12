@@ -15,14 +15,9 @@
  */
 package com.github.pascalgn.jiracli.command;
 
-import java.util.Objects;
-
-import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Converter;
 import com.github.pascalgn.jiracli.model.Data;
-import com.github.pascalgn.jiracli.model.Field;
-import com.github.pascalgn.jiracli.model.FieldMap;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.Schema;
@@ -30,41 +25,19 @@ import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.util.Function;
 
-@CommandDescription(names = "get", description = "Return the field value for the given field")
-class Get implements Command {
-    @Argument(names = { "-r", "--raw" }, description = "get the raw field value")
-    private boolean raw;
-
-    @Argument(parameters = Parameters.ONE, variable = "<field>", description = "the field")
-    private String field;
-
+@CommandDescription(names = "status", description = "Get the current status of the given issues")
+class Status implements Command {
     @Override
     public TextList execute(final Context context, Data input) {
-        final Schema schema = context.getWebService().getSchema();
+        Schema schema = context.getWebService().getSchema();
+        final Converter converter = schema.getConverter("status");
         IssueList issueList = input.toIssueListOrFail();
         return new TextList(issueList.convertingSupplier(new Function<Issue, Text>() {
             @Override
             public Text apply(Issue issue) {
-                FieldMap fieldMap = issue.getFieldMap();
-                Field f = fieldMap.getFieldById(field);
-                if (f == null) {
-                    f = fieldMap.getFieldByName(field, schema);
-                }
-                if (f == null) {
-                    throw new IllegalArgumentException("Unknown field: " + field);
-                }
-                return new Text(fieldValue(schema, f));
+                Object status = issue.getFieldMap().getFieldById("status").getValue().get();
+                return new Text(converter.toString(status));
             }
         }));
-    }
-
-    private String fieldValue(Schema schema, Field field) {
-        Object val = field.getValue().get();
-        if (raw) {
-            return Objects.toString(val, "");
-        } else {
-            Converter converter = schema.getConverter(field.getId());
-            return converter.toString(val);
-        }
     }
 }

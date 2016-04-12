@@ -15,13 +15,30 @@
  */
 package com.github.pascalgn.jiracli.model;
 
+import java.util.Arrays;
 import java.util.Objects;
+
+import com.github.pascalgn.jiracli.util.StringUtils;
 
 public class Text extends Data {
     private final String text;
 
-    public Text(String text) {
-        this.text = Objects.requireNonNull(text);
+    public Text(String... texts) {
+        if (texts.length == 0) {
+            this.text = "";
+        } else if (texts.length == 1) {
+            this.text = Objects.requireNonNull(texts[0]);
+        } else {
+            this.text = StringUtils.join(Arrays.asList(texts), System.lineSeparator());
+        }
+    }
+
+    public Text(java.util.List<String> texts) {
+        if (texts.isEmpty()) {
+            this.text = "";
+        } else {
+            this.text = StringUtils.join(texts, System.lineSeparator());
+        }
     }
 
     public String getText() {

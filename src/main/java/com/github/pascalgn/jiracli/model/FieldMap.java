@@ -17,8 +17,6 @@ package com.github.pascalgn.jiracli.model;
 
 import java.util.Collection;
 
-import com.github.pascalgn.jiracli.util.Function;
-
 public interface FieldMap {
     /**
      * @return All fields, never null
@@ -43,5 +41,5 @@ public interface FieldMap {
     /**
      * @return The field with the given name or <code>null</code>
      */
-    Field getFieldByName(String name, Function<Field, String> function);
+    Field getFieldByName(String name, Schema schema);
 }

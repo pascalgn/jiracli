@@ -19,12 +19,13 @@ import java.io.Console;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Locale;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.pascalgn.jiracli.util.RuntimeInterruptedException;
+import com.github.pascalgn.jiracli.util.InterruptedError;
+import com.github.pascalgn.jiracli.util.SystemUtils;
+import com.github.pascalgn.jiracli.util.SystemUtils.OS;
 
 class EditorProvider {
     private static final Logger LOGGER = LoggerFactory.getLogger(EditorProvider.class);
@@ -53,10 +54,10 @@ class EditorProvider {
     }
 
     private static EditorProviderDelegate createEditorProvider() {
-        String os = System.getProperty("os.name", "").toLowerCase(Locale.ENGLISH);
-        if (os.contains("mac") || os.contains("darwin")) {
+        OS os = SystemUtils.getOS();
+        if (os == OS.MAC) {
             return new MacEditorProvider();
-        } else if (os.contains("win")) {
+        } else if (os == OS.WINDOWS) {
             return new WindowsEditorProvider();
         } else {
             return new DefaultEditorProvider();
@@ -181,7 +182,7 @@ class EditorProvider {
             try {
                 process.waitFor();
             } catch (InterruptedException e) {
-                throw new RuntimeInterruptedException(e);
+                throw new InterruptedError(e);
             }
 
             return true;

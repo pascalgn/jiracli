@@ -17,8 +17,6 @@ package com.github.pascalgn.jiracli.model;
 
 import java.util.Collection;
 
-import com.github.pascalgn.jiracli.util.Function;
-
 public abstract class AbstractFieldMap implements FieldMap {
     @Override
     public Field getFieldById(String id) {
@@ -35,14 +33,14 @@ public abstract class AbstractFieldMap implements FieldMap {
     }
 
     @Override
-    public Field getFieldByName(String name, Function<Field, String> function) {
-        return getFieldByName(getFields(), name, function);
+    public Field getFieldByName(String name, Schema schema) {
+        return getFieldByName(getFields(), name, schema);
     }
 
-    protected static Field getFieldByName(Collection<Field> fields, String name, Function<Field, String> function) {
+    protected static Field getFieldByName(Collection<Field> fields, String name, Schema schema) {
         String lower = name.toLowerCase();
         for (Field field : fields) {
-            String fieldName = function.apply(field);
+            String fieldName = schema.getName(field.getId());
             if (fieldName.toLowerCase().equals(lower)) {
                 return field;
             }

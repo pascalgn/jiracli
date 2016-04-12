@@ -16,10 +16,8 @@
 package com.github.pascalgn.jiracli.model;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Iterator;
 
-import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.Supplier;
 
 public class IssueList extends List<Issue> {
@@ -42,16 +40,6 @@ public class IssueList extends List<Issue> {
     @Override
     public IssueList toIssueList() {
         return this;
-    }
-
-    @Override
-    public FieldList toFieldList() {
-        return new FieldList(loadingSupplier(new Function<Issue, Collection<Field>>() {
-            @Override
-            public Collection<Field> apply(Issue issue) {
-                return issue.getFieldMap().getFields();
-            }
-        }));
     }
 
     @Override

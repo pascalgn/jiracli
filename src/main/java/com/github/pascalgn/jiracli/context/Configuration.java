@@ -15,7 +15,9 @@
  */
 package com.github.pascalgn.jiracli.context;
 
-public interface Configuration {
+import java.util.List;
+
+public interface Configuration extends AutoCloseable {
     String getBaseUrl();
 
     void setBaseUrl(String baseUrl);
@@ -23,4 +25,11 @@ public interface Configuration {
     String getUsername();
 
     void setUsername(String username);
+
+    List<String> getHistory();
+
+    void setHistory(List<String> history);
+
+    @Override
+    void close();
 }

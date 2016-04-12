@@ -42,6 +42,7 @@ import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.AuthState;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
@@ -65,7 +66,7 @@ import com.github.pascalgn.jiracli.util.Consumer;
 import com.github.pascalgn.jiracli.util.Credentials;
 import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.IOUtils;
-import com.github.pascalgn.jiracli.util.RuntimeInterruptedException;
+import com.github.pascalgn.jiracli.util.InterruptedError;
 import com.github.pascalgn.jiracli.util.StringUtils;
 import com.github.pascalgn.jiracli.util.Supplier;
 
@@ -203,6 +204,15 @@ class HttpClient implements AutoCloseable {
         return execute(request, function);
     }
 
+    public String delete(String path) {
+        return delete(path, TO_STRING);
+    }
+
+    public <T> T delete(String path, Function<Reader, T> function) {
+        HttpDelete request = new HttpDelete(getUrl(path));
+        return execute(request, function);
+    }
+
     private String getUrl(String path) {
         if (!path.startsWith("/")) {
             throw new IllegalArgumentException("Invalid path: " + path);
@@ -239,7 +249,7 @@ class HttpClient implements AutoCloseable {
         HttpEntity entity = response.getEntity();
         try {
             if (Thread.interrupted()) {
-                throw new RuntimeInterruptedException();
+                throw new InterruptedError();
             }
 
             int statusCode = response.getStatusLine().getStatusCode();
@@ -258,7 +268,7 @@ class HttpClient implements AutoCloseable {
                 }
 
                 if (Thread.interrupted()) {
-                    throw new RuntimeInterruptedException();
+                    throw new InterruptedError();
                 }
 
                 return result;
@@ -291,7 +301,7 @@ class HttpClient implements AutoCloseable {
                     }
 
                     if (Thread.interrupted()) {
-                        throw new RuntimeInterruptedException();
+                        throw new InterruptedError();
                     }
 
                     if (statusCode == HttpURLConnection.HTTP_NOT_FOUND) {

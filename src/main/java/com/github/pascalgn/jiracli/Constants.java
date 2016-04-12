@@ -21,8 +21,12 @@ import java.util.prefs.Preferences;
  * Shared constants
  */
 public class Constants {
+    public static String getName() {
+        return "Jiracli";
+    }
+
     public static String getTitle() {
-        return "Jiracli 1.2.1-SNAPSHOT";
+        return getName() + " 1.2.1-SNAPSHOT";
     }
 
     public static Preferences getPreferences() {

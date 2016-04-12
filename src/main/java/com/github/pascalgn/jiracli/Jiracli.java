@@ -105,7 +105,7 @@ public class Jiracli {
     }
 
     private static void startConsole() {
-        Configuration configuration = new DefaultConfiguration();
+        final Configuration configuration = new DefaultConfiguration();
         Console console = new DefaultConsole(configuration);
 
         final WebService webService = new DefaultWebService(console);
@@ -115,7 +115,11 @@ public class Jiracli {
         context.onClose(new Runnable() {
             @Override
             public void run() {
-                webService.close();
+                try {
+                    webService.close();
+                } finally {
+                    configuration.close();
+                }
             }
         });
 
@@ -136,7 +140,7 @@ public class Jiracli {
     }
 
     private static void openNewWindow(Window oldWindow) {
-        Configuration configuration = new DefaultConfiguration();
+        final Configuration configuration = new DefaultConfiguration();
         final ConsoleWindow window = new ConsoleWindow(configuration);
 
         if (oldWindow != null) {
@@ -159,7 +163,11 @@ public class Jiracli {
         context.onClose(new Runnable() {
             @Override
             public void run() {
-                webService.close();
+                try {
+                    webService.close();
+                } finally {
+                    configuration.close();
+                }
             }
         });
 

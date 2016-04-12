@@ -146,7 +146,22 @@ class ConverterProvider {
         public String toString(Object value) {
             if (value instanceof JSONArray) {
                 JSONArray array = (JSONArray) value;
-                return StringUtils.join(array, ", ");
+                if (array.length() == 0) {
+                    return "";
+                } else {
+                    boolean allStrings = true;
+                    for (Object obj : array) {
+                        if (!(obj instanceof String)) {
+                            allStrings = false;
+                            break;
+                        }
+                    }
+                    if (allStrings) {
+                        return StringUtils.join(array, ", ");
+                    } else {
+                        return array.toString();
+                    }
+                }
             } else {
                 return super.toString(value);
             }
