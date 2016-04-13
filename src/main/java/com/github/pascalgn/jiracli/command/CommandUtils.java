@@ -33,6 +33,7 @@ import com.github.pascalgn.jiracli.model.FieldMap;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.Schema;
 import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.ReflectionUtils;
 import com.github.pascalgn.jiracli.util.StringUtils;
 
@@ -41,6 +42,20 @@ class CommandUtils {
 
     private static final Pattern ISSUE_KEY_PATTERN = Pattern.compile("[A-Z][A-Z0-9]*-[0-9]+");
     private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\$\\{([^}]+)\\}|\\$([a-zA-Z]+[a-zA-Z0-9\\.]*)");
+
+    public static List<String> getFields(String pattern) {
+        List<String> fields = new ArrayList<>();
+        Matcher m = VARIABLE_PATTERN.matcher(pattern);
+        while (m.find()) {
+            String name = (m.group(1) == null ? m.group(2) : m.group(1));
+            if (name.contains(".")) {
+                String[] names = name.split("\\.", 2);
+                name = names[0];
+            }
+            fields.add(name);
+        }
+        return fields;
+    }
 
     public static String toString(Object object, String pattern, String defaultValue) {
         StringBuilder str = new StringBuilder();
@@ -93,10 +108,7 @@ class CommandUtils {
         }
 
         FieldMap fieldMap = issue.getFieldMap();
-        Field field = fieldMap.getFieldById(fieldNameOrId);
-        if (field == null) {
-            field = fieldMap.getFieldByName(fieldNameOrId, schema);
-        }
+        Field field = fieldMap.getField(fieldNameOrId, schema);
 
         if (field == null) {
             if (defaultValue == null) {
@@ -168,7 +180,7 @@ class CommandUtils {
         try {
             File tempFile = File.createTempFile(prefix, suffix);
             try {
-                return function.apply(tempFile);
+                return function.apply(tempFile, Hint.none());
             } finally {
                 if (!tempFile.delete() && tempFile.exists()) {
                     LOGGER.warn("Could not delete temporary file: {}", tempFile);

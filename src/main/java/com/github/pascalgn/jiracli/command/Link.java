@@ -16,6 +16,8 @@
 package com.github.pascalgn.jiracli.command;
 
 import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
@@ -24,9 +26,12 @@ import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.util.Hint;
 
 @CommandDescription(names = "link", description = "Link the issues to the given issue")
 class Link implements Command {
+    private static final List<String> FIELDS = Collections.emptyList();
+
     @Argument(order = 1, parameters = Parameters.ONE, variable = "<issue>",
             description = "the issue to link the other issues to")
     private String issue;
@@ -45,12 +50,12 @@ class Link implements Command {
     public Data execute(Context context, Data input) {
         final WebService webService = context.getWebService();
 
-        final Issue target = webService.getIssues(Collections.singletonList(issue)).get(0);
+        final Issue target = webService.getIssues(Collections.singletonList(issue), FIELDS).get(0);
 
         IssueList issueList = input.toIssueListOrFail();
         return new IssueList(issueList.convertingSupplier(new Function<Issue, Issue>() {
             @Override
-            public Issue apply(Issue source) {
+            public Issue apply(Issue source, Set<Hint> hints) {
                 Issue inward;
                 Issue outward;
                 if (reverse) {

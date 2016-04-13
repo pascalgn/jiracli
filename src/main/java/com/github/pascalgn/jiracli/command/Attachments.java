@@ -16,6 +16,7 @@
 package com.github.pascalgn.jiracli.command;
 
 import java.util.Collection;
+import java.util.Set;
 
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Attachment;
@@ -24,6 +25,7 @@ import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.util.Hint;
 
 @CommandDescription(names = "attachments", description = "List all attachments for the given issues")
 class Attachments implements Command {
@@ -32,7 +34,7 @@ class Attachments implements Command {
         IssueList issueList = input.toIssueListOrFail();
         return new AttachmentList(issueList.loadingSupplier(new Function<Issue, Collection<Attachment>>() {
             @Override
-            public Collection<Attachment> apply(Issue issue) {
+            public Collection<Attachment> apply(Issue issue, Set<Hint> hints) {
                 return context.getWebService().getAttachments(issue);
             }
         }));

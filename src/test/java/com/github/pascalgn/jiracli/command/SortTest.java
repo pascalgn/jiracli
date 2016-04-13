@@ -28,6 +28,7 @@ import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.testutil.MockContext;
+import com.github.pascalgn.jiracli.util.Hint;
 
 public class SortTest {
     @Test
@@ -68,7 +69,7 @@ public class SortTest {
         TextList result = (TextList) sort.execute(context, new TextList(textList.iterator()));
 
         List<String> resultList = new ArrayList<String>();
-        for (Text text : result.remaining()) {
+        for (Text text : result.remaining(Hint.none())) {
             resultList.add(text.getText());
         }
 

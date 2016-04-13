@@ -21,13 +21,14 @@ import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
+import com.github.pascalgn.jiracli.util.Hint;
 
 @CommandDescription(names = "rank", description = "Set the rank of the issues to the given order")
 class Rank implements Command {
     @Override
     public Data execute(Context context, Data input) {
         IssueList issueList = input.toIssueListOrFail();
-        List<Issue> issues = issueList.remaining();
+        List<Issue> issues = issueList.remaining(Hint.none());
         context.getWebService().rankIssues(issues);
         return new IssueList(issues.iterator());
     }

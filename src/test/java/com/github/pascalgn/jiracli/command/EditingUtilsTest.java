@@ -135,6 +135,11 @@ public class EditingUtilsTest {
         }
 
         @Override
+        public String getId(String field) {
+            return field;
+        }
+
+        @Override
         public String getName(String field) {
             return field;
         }

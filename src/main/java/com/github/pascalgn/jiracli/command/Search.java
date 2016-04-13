@@ -18,12 +18,15 @@ package com.github.pascalgn.jiracli.command;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
+import com.github.pascalgn.jiracli.model.IssueHint;
 import com.github.pascalgn.jiracli.model.IssueList;
+import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.Supplier;
 
 @CommandDescription(names = { "search", "s" }, description = "Search for issues via JQL")
@@ -57,9 +60,11 @@ class Search implements Command {
         }
 
         @Override
-        public synchronized Issue get() {
+        public synchronized Issue get(Set<Hint> hints) {
             if (issues == null) {
-                List<Issue> list = context.getWebService().searchIssues(jql, fields);
+                Set<String> hintFields = IssueHint.getFields(hints);
+                hintFields.addAll(fields);
+                List<Issue> list = context.getWebService().searchIssues(jql, hintFields);
                 issues = list.iterator();
             }
             return (issues.hasNext() ? issues.next() : null);

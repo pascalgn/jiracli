@@ -30,7 +30,7 @@ public class StringSupplierReader extends Reader {
     @Override
     public int read(char[] cbuf, int off, int len) throws IOException {
         while (buffer.length() < len) {
-            String str = supplier.get();
+            String str = supplier.get(Hint.none());
             if (str == null) {
                 if (buffer.length() == 0) {
                     return -1;

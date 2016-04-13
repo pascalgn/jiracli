@@ -20,9 +20,11 @@ import static org.junit.Assert.assertEquals;
 import java.io.Reader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.Test;
 
+import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.StringSupplierReader;
 import com.github.pascalgn.jiracli.util.Supplier;
 
@@ -36,7 +38,7 @@ public class StringSupplierReaderTest {
 
         Supplier<String> supplier = new Supplier<String>() {
             @Override
-            public String get() {
+            public String get(Set<Hint> hints) {
                 return (strs.isEmpty() ? null : strs.remove(0));
             }
         };

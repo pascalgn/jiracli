@@ -18,12 +18,14 @@ package com.github.pascalgn.jiracli.command;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
+import java.util.Set;
 
 import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
+import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.StringUtils;
 import com.github.pascalgn.jiracli.util.Supplier;
 
@@ -40,9 +42,9 @@ class Split implements Command {
             private Deque<Text> list = new ArrayDeque<Text>();
 
             @Override
-            public Text get() {
+            public Text get(Set<Hint> hints) {
                 if (list.isEmpty()) {
-                    Text text = textList.next();
+                    Text text = textList.next(hints);
                     if (text != null) {
                         List<String> split;
                         if (delimiter == null) {

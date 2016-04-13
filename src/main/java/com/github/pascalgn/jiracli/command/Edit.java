@@ -21,15 +21,18 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Field;
 import com.github.pascalgn.jiracli.model.Issue;
+import com.github.pascalgn.jiracli.model.IssueHint;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.Schema;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.IOUtils;
 
 @CommandDescription(names = "edit", description = "Edit the given issues in a text editor")
@@ -41,7 +44,7 @@ class Edit implements Command {
     public Data execute(final Context context, final Data input) {
         return CommandUtils.withTemporaryFile("edit", ".txt", new Function<File, Data>() {
             @Override
-            public Data apply(File tempFile) {
+            public Data apply(File tempFile, Set<Hint> hints) {
                 IssueList issueList = input.toIssueList();
                 if (issueList == null) {
                     Text text = input.toTextOrFail();
@@ -75,7 +78,7 @@ class Edit implements Command {
     }
 
     private Data editIssues(Context context, File file, IssueList issueList) throws IOException {
-        List<Issue> issues = issueList.remaining();
+        List<Issue> issues = issueList.remaining(IssueHint.editableFields());
 
         Schema schema = context.getWebService().getSchema();
 

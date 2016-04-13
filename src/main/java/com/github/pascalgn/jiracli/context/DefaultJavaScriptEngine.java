@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import javax.script.Bindings;
 import javax.script.ScriptContext;
@@ -54,6 +55,7 @@ import com.github.pascalgn.jiracli.model.Schema;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.model.Value;
+import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.IOUtils;
 import com.github.pascalgn.jiracli.util.JsonUtils;
 import com.github.pascalgn.jiracli.util.StringSupplierReader;
@@ -62,6 +64,8 @@ import com.github.pascalgn.jiracli.util.Supplier;
 
 public class DefaultJavaScriptEngine implements JavaScriptEngine {
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultJavaScriptEngine.class);
+
+    private static final List<String> FIELDS = Collections.emptyList();
 
     private static final String INIT_JS = "if (typeof forEach !== 'function') { forEach = Array.prototype.forEach; } "
             + "if (typeof println !== 'function') { println = function(obj) { print(obj); print('\\n'); }; }";
@@ -110,7 +114,7 @@ public class DefaultJavaScriptEngine implements JavaScriptEngine {
         Objects.requireNonNull(input, "Input must not be null!");
         JSONArray arr = new JSONArray();
         Text text;
-        while ((text = input.next()) != null) {
+        while ((text = input.next(Hint.none())) != null) {
             arr.put(text.getText());
         }
         Object obj = toJsonObject(arr.toString());
@@ -131,7 +135,7 @@ public class DefaultJavaScriptEngine implements JavaScriptEngine {
 
     private Data doEvaluate(String js, IssueList input, List<String> fields) {
         Objects.requireNonNull(input, "Input must not be null!");
-        List<Issue> issues = input.remaining();
+        List<Issue> issues = input.remaining(Hint.none());
         String inputStr = toJsonArray(issues, fields);
         Object inputObj = toJsonObject(inputStr);
         Object resultObj = doEvaluate(js, inputObj);
@@ -298,7 +302,7 @@ public class DefaultJavaScriptEngine implements JavaScriptEngine {
         if (key == null || key.isEmpty()) {
             return null;
         }
-        List<Issue> issues = webService.getIssues(Collections.singletonList(key));
+        List<Issue> issues = webService.getIssues(Collections.singletonList(key), FIELDS);
         Issue issue = issues.get(0);
         JSONObject fields = json.optJSONObject("fields");
         if (fields != null) {
@@ -391,7 +395,7 @@ public class DefaultJavaScriptEngine implements JavaScriptEngine {
         }
 
         public Object getIssue(String key, List<String> fields) {
-            List<Issue> issues = webService.getIssues(Collections.singletonList(key));
+            List<Issue> issues = webService.getIssues(Collections.singletonList(key), fields);
             Issue issue = issues.get(0);
             String json = toJson(issue, fields);
             return toJsonObject(json);
@@ -425,7 +429,7 @@ public class DefaultJavaScriptEngine implements JavaScriptEngine {
         public ScriptCtx(final Console console) {
             Reader reader = new StringSupplierReader(new Supplier<String>() {
                 @Override
-                public String get() {
+                public String get(Set<Hint> hints) {
                     return console.readLine();
                 }
             });

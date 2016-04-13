@@ -30,6 +30,7 @@ import com.github.pascalgn.jiracli.model.None;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.parser.CommandReference;
+import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.InterruptedError;
 
 class Shell {
@@ -131,7 +132,7 @@ class Shell {
             TextList textList = result.toTextList();
             if (textList != null) {
                 Text text;
-                while ((text = textList.next()) != null) {
+                while ((text = textList.next(Hint.none())) != null) {
                     console.println(text.getText());
                 }
             }

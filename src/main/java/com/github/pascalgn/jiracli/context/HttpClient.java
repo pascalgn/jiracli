@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Set;
 import java.util.zip.GZIPInputStream;
 
 import javax.net.ssl.SSLContext;
@@ -65,6 +66,7 @@ import org.slf4j.LoggerFactory;
 import com.github.pascalgn.jiracli.util.Consumer;
 import com.github.pascalgn.jiracli.util.Credentials;
 import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.IOUtils;
 import com.github.pascalgn.jiracli.util.InterruptedError;
 import com.github.pascalgn.jiracli.util.StringUtils;
@@ -81,7 +83,7 @@ class HttpClient implements AutoCloseable {
     static {
         TO_STRING = new Function<Reader, String>() {
             @Override
-            public String apply(Reader reader) {
+            public String apply(Reader reader, Set<Hint> hints) {
                 return IOUtils.toString(reader);
             }
         };
@@ -126,7 +128,7 @@ class HttpClient implements AutoCloseable {
                 String baseUrl = getBaseUrl();
                 Credentials c = HttpClient.this.credentials.get(baseUrl);
                 if (c == null) {
-                    c = credentials.apply(authscope.getOrigin().toURI());
+                    c = credentials.apply(authscope.getOrigin().toURI(), Hint.none());
                     if (c == null) {
                         throw new IllegalStateException("No credentials provided!");
                     }
@@ -148,7 +150,7 @@ class HttpClient implements AutoCloseable {
     }
 
     public String getBaseUrl() {
-        String url = baseUrl.get();
+        String url = baseUrl.get(Hint.none());
         if (url == null || url.trim().isEmpty()) {
             throw new IllegalStateException("No base URL provided!");
         }
@@ -169,7 +171,7 @@ class HttpClient implements AutoCloseable {
     public void get(final URI uri, final Consumer<InputStream> consumer) {
         doExecute(new HttpGet(uri), true, new Function<HttpEntity, Void>() {
             @Override
-            public Void apply(HttpEntity entity) {
+            public Void apply(HttpEntity entity, Set<Hint> hints) {
                 if (entity == null) {
                     throw new IllegalStateException("No response!");
                 } else {
@@ -223,7 +225,7 @@ class HttpClient implements AutoCloseable {
     private <T> T execute(final HttpUriRequest request, final Function<Reader, T> function) {
         return doExecute(request, true, new Function<HttpEntity, T>() {
             @Override
-            public T apply(HttpEntity entity) {
+            public T apply(HttpEntity entity, Set<Hint> hints) {
                 return (entity == null ? null : readResponse(request.getURI(), entity, function));
             }
         });
@@ -256,7 +258,7 @@ class HttpClient implements AutoCloseable {
             if (isSuccess(statusCode)) {
                 T result;
                 try {
-                    result = function.apply(entity);
+                    result = function.apply(entity, Hint.none());
                 } catch (NotAuthenticatedException e) {
                     if (retry) {
                         resetAuthentication();
@@ -323,7 +325,7 @@ class HttpClient implements AutoCloseable {
     private static <T> T readResponse(URI uri, HttpEntity entity, Function<Reader, T> function) {
         try (InputStream input = entity.getContent()) {
             try (Reader reader = new InputStreamReader(input, getEncoding(entity))) {
-                return function.apply(reader);
+                return function.apply(reader, Hint.none());
             }
         } catch (NotAuthenticatedException e) {
             throw e;

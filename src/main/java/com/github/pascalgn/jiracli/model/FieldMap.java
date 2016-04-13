@@ -34,6 +34,11 @@ public interface FieldMap {
     void addField(Field field);
 
     /**
+     * @return The field with the given id (or name) or <code>null</code>
+     */
+    Field getField(String idOrName, Schema schema);
+
+    /**
      * @return The field with the given ID or <code>null</code>
      */
     Field getFieldById(String id);

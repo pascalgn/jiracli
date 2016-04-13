@@ -18,6 +18,7 @@ package com.github.pascalgn.jiracli.util;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.Set;
 
 public abstract class CollectingSupplier<T> implements Supplier<T> {
     private final Deque<T> items;
@@ -27,9 +28,9 @@ public abstract class CollectingSupplier<T> implements Supplier<T> {
     }
 
     @Override
-    public final T get() {
+    public final T get(Set<Hint> hints) {
         while (items.isEmpty()) {
-            Collection<T> loaded = nextItems();
+            Collection<T> loaded = nextItems(hints);
             if (loaded == null) {
                 return null;
             }
@@ -41,5 +42,5 @@ public abstract class CollectingSupplier<T> implements Supplier<T> {
     /**
      * @return The next items or <code>null</code> to indicate that no more items are available
      */
-    protected abstract Collection<T> nextItems();
+    protected abstract Collection<T> nextItems(Set<Hint> hints);
 }

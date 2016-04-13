@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
@@ -29,6 +30,7 @@ import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.model.Value;
 import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.StringUtils;
 
 @CommandDescription(names = "update", description = "Update the given issues on the server")
@@ -54,7 +56,7 @@ class Update implements Command {
         if (dry) {
             return new TextList(issueList.convertingSupplier(new Function<Issue, Text>() {
                 @Override
-                public Text apply(Issue issue) {
+                public Text apply(Issue issue, Set<Hint> hints) {
                     List<String> invalid;
                     if (check) {
                         invalid = getInvalidFields(context, issue);
@@ -81,7 +83,7 @@ class Update implements Command {
             final boolean notifyUsers = !noEmail;
             return new IssueList(issueList.convertingSupplier(new Function<Issue, Issue>() {
                 @Override
-                public Issue apply(Issue issue) {
+                public Issue apply(Issue issue, Set<Hint> hints) {
                     try {
                         if (check) {
                             checkFields(context, issue);

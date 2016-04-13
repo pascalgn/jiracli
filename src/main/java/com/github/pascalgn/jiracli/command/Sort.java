@@ -35,11 +35,13 @@ import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
+import com.github.pascalgn.jiracli.model.IssueHint;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.Schema;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.IOUtils;
 
 @CommandDescription(names = "sort", description = "Sort the given input")
@@ -91,7 +93,7 @@ class Sort implements Command {
     }
 
     private IssueList sort(final Context context, IssueList issueList) {
-        List<Issue> issues = issueList.remaining();
+        List<Issue> issues = issueList.remaining(IssueHint.fields(fields));
 
         Schema schema = context.getWebService().getSchema();
         Collections.sort(issues, new IssueComparator(schema));
@@ -112,7 +114,7 @@ class Sort implements Command {
             final List<Issue> issuesRef = issues;
             issues = CommandUtils.withTemporaryFile("sort", ".txt", new Function<File, List<Issue>>() {
                 @Override
-                public List<Issue> apply(File tempFile) {
+                public List<Issue> apply(File tempFile, Set<Hint> hints) {
                     try {
                         return edit(context, issuesRef, tempFile);
                     } catch (IOException e) {
@@ -146,7 +148,7 @@ class Sort implements Command {
             LOGGER.warn("Sorting text list, fields ignored: {}", fields);
         }
 
-        List<Text> list = textList.remaining();
+        List<Text> list = textList.remaining(Hint.none());
         Collections.sort(list, new TextComparator());
 
         if (unique) {

@@ -23,6 +23,7 @@ import java.awt.event.ComponentEvent;
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.prefs.Preferences;
 
@@ -42,6 +43,7 @@ import com.github.pascalgn.jiracli.context.Configuration;
 import com.github.pascalgn.jiracli.context.Console;
 import com.github.pascalgn.jiracli.gui.ConsoleTextArea.History;
 import com.github.pascalgn.jiracli.util.Credentials;
+import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.InterruptedError;
 import com.github.pascalgn.jiracli.util.Supplier;
 
@@ -192,7 +194,7 @@ public class ConsoleWindow extends JFrame {
         protected String provideBaseUrl() {
             return invokeAndWait(new Supplier<String>() {
                 @Override
-                public String get() {
+                public String get(Set<Hint> hints) {
                     return JOptionPane.showInputDialog(ConsoleWindow.this, "Please enter the base URL:",
                             Constants.getTitle(), JOptionPane.PLAIN_MESSAGE);
                 }
@@ -203,7 +205,7 @@ public class ConsoleWindow extends JFrame {
         protected Credentials provideCredentials(final String username, final String url) {
             return invokeAndWait(new Supplier<Credentials>() {
                 @Override
-                public Credentials get() {
+                public Credentials get(Set<Hint> hints) {
                     return CredentialsPanel.getCredentials(ConsoleWindow.this, username, url);
                 }
             });
@@ -215,7 +217,7 @@ public class ConsoleWindow extends JFrame {
                 SwingUtilities.invokeAndWait(new Runnable() {
                     @Override
                     public void run() {
-                        result.set(supplier.get());
+                        result.set(supplier.get(Hint.none()));
                     }
                 });
                 return result.get();

@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.command.EditingUtils.EditingField;
@@ -36,6 +37,7 @@ import com.github.pascalgn.jiracli.model.IssueType;
 import com.github.pascalgn.jiracli.model.Project;
 import com.github.pascalgn.jiracli.model.ProjectList;
 import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.IOUtils;
 
 @CommandDescription(names = "create", description = "Create new issues")
@@ -62,7 +64,7 @@ class Create implements Command {
             if (projectList == null) {
                 project = null;
             } else {
-                project = projectList.next();
+                project = projectList.next(Hint.none());
             }
         }
 
@@ -80,7 +82,7 @@ class Create implements Command {
         List<CreateRequest> createRequests = CommandUtils.withTemporaryFile("create", ".txt",
                 new Function<File, List<CreateRequest>>() {
                     @Override
-                    public List<CreateRequest> apply(File tempFile) {
+                    public List<CreateRequest> apply(File tempFile, Set<Hint> hints) {
                         try {
                             return getCreateRequests(context, project, issueType, tempFile);
                         } catch (IOException e) {

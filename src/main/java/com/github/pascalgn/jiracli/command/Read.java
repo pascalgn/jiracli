@@ -26,11 +26,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
+import java.util.Set;
 
 import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
+import com.github.pascalgn.jiracli.model.IssueHint;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
@@ -38,6 +40,7 @@ import com.github.pascalgn.jiracli.util.CollectingSupplier;
 import com.github.pascalgn.jiracli.util.ExcelHelper;
 import com.github.pascalgn.jiracli.util.ExcelHelper.CellHandler;
 import com.github.pascalgn.jiracli.util.ExcelHelperFactory;
+import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.Supplier;
 
 @CommandDescription(names = { "read", "r" }, description = "Read issue keys from standard input")
@@ -74,15 +77,15 @@ class Read implements Command {
                 final List<String> lines = context.getConsole().readLines();
                 supplier = new CollectingSupplier<String>() {
                     @Override
-                    protected Collection<String> nextItems() {
+                    protected Collection<String> nextItems(Set<Hint> hints) {
                         return (lines.isEmpty() ? null : CommandUtils.findIssues(lines.remove(0)));
                     }
                 };
             } else {
                 supplier = new CollectingSupplier<String>() {
                     @Override
-                    protected Collection<String> nextItems() {
-                        Text text = textList.next();
+                    protected Collection<String> nextItems(Set<Hint> hints) {
+                        Text text = textList.next(hints);
                         return (text == null ? null : CommandUtils.findIssues(text.getText()));
                     }
                 };
@@ -99,17 +102,17 @@ class Read implements Command {
             private static final int ISSUE_FETCH_SIZE = 10;
 
             @Override
-            protected Collection<Issue> nextItems() {
+            protected Collection<Issue> nextItems(Set<Hint> hints) {
                 // Fetch multiple issues at once to reduce server requests
                 List<String> keys = new ArrayList<String>();
                 String key;
-                while ((key = supplier.get()) != null) {
+                while ((key = supplier.get(hints)) != null) {
                     keys.add(key);
                     if (keys.size() >= ISSUE_FETCH_SIZE) {
                         break;
                     }
                 }
-                return (keys.isEmpty() ? null : context.getWebService().getIssues(keys));
+                return (keys.isEmpty() ? null : context.getWebService().getIssues(keys, IssueHint.getFields(hints)));
             }
         });
     }
@@ -128,7 +131,7 @@ class Read implements Command {
         }
 
         @Override
-        public String get() {
+        public String get(Set<Hint> hints) {
             if (keys.isEmpty()) {
                 try {
                     readNext();
@@ -176,7 +179,7 @@ class Read implements Command {
         }
 
         @Override
-        public String get() {
+        public String get(Set<Hint> hints) {
             init();
             if (index < keys.size()) {
                 return keys.get(index++);

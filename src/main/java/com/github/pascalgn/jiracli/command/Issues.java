@@ -16,7 +16,9 @@
 package com.github.pascalgn.jiracli.command;
 
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
@@ -26,10 +28,12 @@ import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Field;
 import com.github.pascalgn.jiracli.model.FieldList;
 import com.github.pascalgn.jiracli.model.Issue;
+import com.github.pascalgn.jiracli.model.IssueHint;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.Sprint;
 import com.github.pascalgn.jiracli.model.SprintList;
 import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.Supplier;
 
 @CommandDescription(names = { "issues", "i" },
@@ -50,8 +54,8 @@ class Issues implements Command {
                         IssueList issueList = input.toIssueListOrFail();
                         return new IssueList(issueList.loadingSupplier(new Function<Issue, Collection<Issue>>() {
                             @Override
-                            public Collection<Issue> apply(Issue issue) {
-                                return context.getWebService().getIssues(issue);
+                            public Collection<Issue> apply(Issue issue, Set<Hint> hints) {
+                                return context.getWebService().getIssues(issue, IssueHint.getFields(hints));
                             }
                         }));
                     } else {
@@ -59,9 +63,9 @@ class Issues implements Command {
                             private Issue last;
 
                             @Override
-                            public Issue get() {
+                            public Issue get(Set<Hint> hints) {
                                 Field field;
-                                while ((field = fieldList.next()) != null) {
+                                while ((field = fieldList.next(hints)) != null) {
                                     Issue issue = field.getIssue();
                                     if (last == null || !last.equals(issue)) {
                                         last = issue;
@@ -75,22 +79,32 @@ class Issues implements Command {
                 } else {
                     return new IssueList(boardList.loadingSupplier(new Function<Board, Collection<Issue>>() {
                         @Override
-                        public Collection<Issue> apply(Board board) {
-                            return context.getWebService().getIssues(board);
+                        public Collection<Issue> apply(Board board, Set<Hint> hints) {
+                            return context.getWebService().getIssues(board, IssueHint.getFields(hints));
                         }
                     }));
                 }
             } else {
                 return new IssueList(sprintList.loadingSupplier(new Function<Sprint, Collection<Issue>>() {
                     @Override
-                    public Collection<Issue> apply(Sprint sprint) {
-                        return context.getWebService().getIssues(sprint);
+                    public Collection<Issue> apply(Sprint sprint, Set<Hint> hints) {
+                        return context.getWebService().getIssues(sprint, IssueHint.getFields(hints));
                     }
                 }));
             }
         } else {
-            List<Issue> issues = context.getWebService().getIssues(this.issues);
-            return new IssueList(issues.iterator());
+            return new IssueList(new Supplier<Issue>() {
+                private Iterator<Issue> iterator;
+
+                @Override
+                public Issue get(Set<Hint> hints) {
+                    if (iterator == null) {
+                        List<Issue> list = context.getWebService().getIssues(issues, IssueHint.getFields(hints));
+                        iterator = list.iterator();
+                    }
+                    return (iterator.hasNext() ? iterator.next() : null);
+                }
+            });
         }
     }
 }

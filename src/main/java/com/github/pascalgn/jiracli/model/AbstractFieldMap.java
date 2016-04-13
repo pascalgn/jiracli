@@ -19,8 +19,27 @@ import java.util.Collection;
 
 public abstract class AbstractFieldMap implements FieldMap {
     @Override
-    public Field getFieldById(String id) {
-        return getFieldById(getFields(), id);
+    public final Field getField(String idOrName, Schema schema) {
+        Field field = getFieldById(getLoadedFields(), idOrName);
+        if (field == null) {
+            field = getFieldByName(getLoadedFields(), idOrName, schema);
+        }
+        if (field == null) {
+            field = getFieldById(getFields(), idOrName);
+        }
+        if (field == null) {
+            field = getFieldByName(getFields(), idOrName, schema);
+        }
+        return field;
+    }
+
+    @Override
+    public final Field getFieldById(String id) {
+        Field field = getFieldById(getLoadedFields(), id);
+        if (field == null) {
+            field = getFieldById(getFields(), id);
+        }
+        return field;
     }
 
     protected static Field getFieldById(Collection<Field> fields, String id) {
@@ -33,8 +52,12 @@ public abstract class AbstractFieldMap implements FieldMap {
     }
 
     @Override
-    public Field getFieldByName(String name, Schema schema) {
-        return getFieldByName(getFields(), name, schema);
+    public final Field getFieldByName(String name, Schema schema) {
+        Field field = getFieldByName(getLoadedFields(), name, schema);
+        if (field == null) {
+            field = getFieldByName(getFields(), name, schema);
+        }
+        return field;
     }
 
     protected static Field getFieldByName(Collection<Field> fields, String name, Schema schema) {

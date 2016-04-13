@@ -28,6 +28,7 @@ import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.testutil.IssueFactory;
 import com.github.pascalgn.jiracli.testutil.MockContext;
+import com.github.pascalgn.jiracli.util.Hint;
 
 public class PrintTest {
     @Test
@@ -39,7 +40,7 @@ public class PrintTest {
         Print print = new Print("${author.name}");
         TextList textList = print.execute(context, new IssueList(issue1));
 
-        List<Text> list = textList.remaining();
+        List<Text> list = textList.remaining(Hint.none());
         assertEquals(1, list.size());
         assertEquals("Author-Name", list.get(0).getText());
     }

@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.json.JSONArray;
 
@@ -30,6 +31,7 @@ import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.Value;
 import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.util.Hint;
 
 @CommandDescription(names = "labels", description = "Add or remove labels of the given issues")
 class Labels implements Command {
@@ -52,7 +54,7 @@ class Labels implements Command {
 
             return new IssueList(issueList.convertingSupplier(new Function<Issue, Issue>() {
                 @Override
-                public Issue apply(Issue issue) {
+                public Issue apply(Issue issue, Set<Hint> hints) {
                     if (!add.isEmpty()) {
                         Value value = getLabels(issue);
                         JSONArray arr = (JSONArray) value.get();

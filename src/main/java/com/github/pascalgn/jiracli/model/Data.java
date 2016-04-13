@@ -17,18 +17,20 @@ package com.github.pascalgn.jiracli.model;
 
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.Set;
 
+import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.Supplier;
 
 public abstract class Data {
     private static final Filter<Data> ANY = new Filter<Data>() {
         @Override
-        public Data get(Supplier<Data> supplier) {
-            return supplier.get();
+        public Data get(Supplier<Data> supplier, Set<Hint> hints) {
+            return supplier.get(hints);
         }
     };
 
-    public Iterator<Data> toIterator() {
+    public Iterator<Data> toIterator(final Set<Hint> hints) {
         final List<Data> list = toList(ANY);
         if (list == null) {
             return Collections.singleton(this).iterator();
@@ -39,7 +41,7 @@ public abstract class Data {
                 @Override
                 public boolean hasNext() {
                     if (next == null) {
-                        next = list.next();
+                        next = list.next(hints);
                     }
                     return (next != null);
                 }

@@ -15,6 +15,9 @@
  */
 package com.github.pascalgn.jiracli.model;
 
+import java.util.Set;
+
+import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.Supplier;
 
 class FilteredSupplier<T> implements Supplier<T> {
@@ -27,7 +30,7 @@ class FilteredSupplier<T> implements Supplier<T> {
     }
 
     @Override
-    public T get() {
-        return filter.get(supplier);
+    public T get(Set<Hint> hints) {
+        return filter.get(supplier, hints);
     }
 }

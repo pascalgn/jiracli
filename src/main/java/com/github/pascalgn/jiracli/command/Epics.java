@@ -16,6 +16,7 @@
 package com.github.pascalgn.jiracli.command;
 
 import java.util.Collection;
+import java.util.Set;
 
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Board;
@@ -24,6 +25,7 @@ import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.util.Hint;
 
 @CommandDescription(names = "epics", description = "Show the epics for the given boards")
 class Epics implements Command {
@@ -32,7 +34,7 @@ class Epics implements Command {
         BoardList boardList = input.toBoardListOrFail();
         return new IssueList(boardList.loadingSupplier(new Function<Board, Collection<Issue>>() {
             @Override
-            public Collection<Issue> apply(Board board) {
+            public Collection<Issue> apply(Board board, Set<Hint> hints) {
                 return context.getWebService().getEpics(board);
             }
         }));

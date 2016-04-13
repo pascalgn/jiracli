@@ -16,6 +16,7 @@
 package com.github.pascalgn.jiracli.command;
 
 import java.util.Collection;
+import java.util.Set;
 
 import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
@@ -27,14 +28,15 @@ import com.github.pascalgn.jiracli.model.Sprint;
 import com.github.pascalgn.jiracli.model.Sprint.State;
 import com.github.pascalgn.jiracli.model.SprintList;
 import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.Supplier;
 
 @CommandDescription(names = "sprints", description = "Show the sprints for the given boards")
 class Sprints implements Command {
     private static final Filter<Sprint> ANY = new Filter<Sprint>() {
         @Override
-        public Sprint get(Supplier<Sprint> supplier) {
-            return supplier.get();
+        public Sprint get(Supplier<Sprint> supplier, Set<Hint> hints) {
+            return supplier.get(hints);
         }
     };
 
@@ -58,9 +60,9 @@ class Sprints implements Command {
             }
             filter = new Filter<Sprint>() {
                 @Override
-                public Sprint get(Supplier<Sprint> supplier) {
+                public Sprint get(Supplier<Sprint> supplier, Set<Hint> hints) {
                     Sprint next;
-                    while ((next = supplier.get()) != null) {
+                    while ((next = supplier.get(hints)) != null) {
                         if (next.getState() == s) {
                             return next;
                         }
@@ -75,7 +77,7 @@ class Sprints implements Command {
             BoardList boardList = input.toBoardListOrFail();
             sprintList = new SprintList(boardList.loadingSupplier(new Function<Board, Collection<Sprint>>() {
                 @Override
-                public Collection<Sprint> apply(Board board) {
+                public Collection<Sprint> apply(Board board, Set<Hint> hints) {
                     return context.getWebService().getSprints(board);
                 }
             }));

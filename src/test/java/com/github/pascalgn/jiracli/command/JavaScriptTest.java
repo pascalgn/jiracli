@@ -29,6 +29,7 @@ import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.testutil.IssueFactory;
 import com.github.pascalgn.jiracli.testutil.MockContext;
+import com.github.pascalgn.jiracli.util.Hint;
 
 public class JavaScriptTest {
     @Test
@@ -42,7 +43,7 @@ public class JavaScriptTest {
         Data result = javaScript.execute(context, new IssueList(issue1, issue2));
 
         assertNotNull(result);
-        assertEquals(Arrays.asList(issue1, issue2), result.toIssueList().remaining());
+        assertEquals(Arrays.asList(issue1, issue2), result.toIssueList().remaining(Hint.none()));
     }
 
     @Test

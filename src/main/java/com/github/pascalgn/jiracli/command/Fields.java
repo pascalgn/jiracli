@@ -16,6 +16,7 @@
 package com.github.pascalgn.jiracli.command;
 
 import java.util.Collection;
+import java.util.Set;
 
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
@@ -23,6 +24,7 @@ import com.github.pascalgn.jiracli.model.Field;
 import com.github.pascalgn.jiracli.model.FieldList;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.util.Hint;
 
 @CommandDescription(names = "fields", description = "Return the fields of the given issues")
 class Fields implements Command {
@@ -33,7 +35,7 @@ class Fields implements Command {
     public FieldList execute(Context context, Data input) {
         return new FieldList(input.toIssueListOrFail().loadingSupplier(new Function<Issue, Collection<Field>>() {
             @Override
-            public Collection<Field> apply(Issue issue) {
+            public Collection<Field> apply(Issue issue, Set<Hint> hints) {
                 if (all) {
                     return issue.getFieldMap().getFields();
                 } else {

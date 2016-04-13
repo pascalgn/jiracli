@@ -39,6 +39,7 @@ import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.None;
 import com.github.pascalgn.jiracli.testutil.ExcelUtils;
 import com.github.pascalgn.jiracli.testutil.MockContext;
+import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.IOUtils;
 
 public class ReadTest {
@@ -64,7 +65,7 @@ public class ReadTest {
         IssueList list = re.execute(context, None.getInstance());
         assertNotNull(list);
 
-        List<Issue> issues = list.remaining();
+        List<Issue> issues = list.remaining(Hint.none());
         assertNotNull(issues);
         assertEquals(101, issues.size());
         assertEquals("ISSUE-10", issues.get(0).getKey());
@@ -78,7 +79,7 @@ public class ReadTest {
         TextFileReader fileReader = new TextFileReader(file);
         List<String> keys = new ArrayList<>();
         String key;
-        while ((key = fileReader.get()) != null) {
+        while ((key = fileReader.get(Hint.none())) != null) {
             keys.add(key);
         }
         assertEquals(Arrays.asList("ISSUE-1", "ISSUE-2", "ISSUE-3", "ISSUE-4", "ISSUE-5"), keys);

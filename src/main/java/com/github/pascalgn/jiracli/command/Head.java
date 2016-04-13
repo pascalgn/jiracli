@@ -15,10 +15,13 @@
  */
 package com.github.pascalgn.jiracli.command;
 
+import java.util.Set;
+
 import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Filter;
+import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.Supplier;
 
 @CommandDescription(names = "head", description = "Return only the first items of a list")
@@ -31,10 +34,10 @@ class Head implements Command {
         final int[] index = new int[1];
         return input.toListOrFail(new Filter<Data>() {
             @Override
-            public Data get(Supplier<Data> supplier) {
+            public Data get(Supplier<Data> supplier, Set<Hint> hints) {
                 if (index[0] < count) {
                     index[0]++;
-                    return supplier.get();
+                    return supplier.get(hints);
                 } else {
                     return null;
                 }

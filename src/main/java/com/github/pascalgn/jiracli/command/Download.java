@@ -34,6 +34,7 @@ import com.github.pascalgn.jiracli.model.AttachmentList;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.None;
 import com.github.pascalgn.jiracli.util.Consumer;
+import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.IOUtils;
 
 @CommandDescription(names = { "download", "dl" }, description = "Download the given attachments")
@@ -55,7 +56,7 @@ class Download implements Command {
         }
 
         AttachmentList attachmentList = input.toAttachmentListOrFail();
-        List<Attachment> attachments = attachmentList.remaining();
+        List<Attachment> attachments = attachmentList.remaining(Hint.none());
 
         final Console console = context.getConsole();
 

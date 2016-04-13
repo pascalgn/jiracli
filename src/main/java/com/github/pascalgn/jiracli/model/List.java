@@ -18,8 +18,10 @@ package com.github.pascalgn.jiracli.model;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Set;
 
 import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.Supplier;
 
 abstract class List<T extends Data> extends Data {
@@ -28,7 +30,7 @@ abstract class List<T extends Data> extends Data {
     public List() {
         this(new Supplier<T>() {
             @Override
-            public T get() {
+            public T get(Set<Hint> hints) {
                 return null;
             }
         });
@@ -37,7 +39,7 @@ abstract class List<T extends Data> extends Data {
     public List(final Iterator<T> iterator) {
         this(new Supplier<T>() {
             @Override
-            public T get() {
+            public T get(Set<Hint> hints) {
                 return iterator.hasNext() ? iterator.next() : null;
             }
         });
@@ -51,14 +53,14 @@ abstract class List<T extends Data> extends Data {
         return supplier;
     }
 
-    public T next() {
-        return supplier.get();
+    public T next(Set<Hint> hints) {
+        return supplier.get(hints);
     }
 
-    public java.util.List<T> remaining() {
+    public java.util.List<T> remaining(Set<Hint> hints) {
         java.util.List<T> result = new ArrayList<T>();
         T item;
-        while ((item = next()) != null) {
+        while ((item = next(hints)) != null) {
             result.add(item);
         }
         return result;
@@ -74,7 +76,7 @@ abstract class List<T extends Data> extends Data {
     public TextList toTextList() {
         return new TextList(convertingSupplier(new Function<T, Text>() {
             @Override
-            public Text apply(T project) {
+            public Text apply(T project, Set<Hint> hints) {
                 return project.toText();
             }
         }));
@@ -83,11 +85,16 @@ abstract class List<T extends Data> extends Data {
     public abstract List<T> filteredList(Filter<T> filter);
 
     public <R> Supplier<R> convertingSupplier(final Function<T, R> function) {
+        return convertingSupplier(Hint.none(), function);
+    }
+
+    public <R> Supplier<R> convertingSupplier(final Set<Hint> hints, final Function<T, R> function) {
         return new Supplier<R>() {
             @Override
-            public R get() {
-                T next = next();
-                return (next == null ? null : function.apply(next));
+            public R get(Set<Hint> localHints) {
+                Set<Hint> combined = Hint.combine(hints, localHints);
+                T next = next(combined);
+                return (next == null ? null : function.apply(next, combined));
             }
         };
     }
@@ -97,11 +104,11 @@ abstract class List<T extends Data> extends Data {
             private Iterator<R> iterator;
 
             @Override
-            public R get() {
+            public R get(Set<Hint> hints) {
                 if (iterator == null || !iterator.hasNext()) {
-                    T next = next();
+                    T next = next(hints);
                     if (next != null) {
-                        Collection<R> collection = function.apply(next);
+                        Collection<R> collection = function.apply(next, hints);
                         iterator = collection.iterator();
                     }
                 }

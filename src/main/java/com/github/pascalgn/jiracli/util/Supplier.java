@@ -15,6 +15,8 @@
  */
 package com.github.pascalgn.jiracli.util;
 
+import java.util.Set;
+
 public interface Supplier<T> {
-    T get();
+    T get(Set<Hint> hints);
 }

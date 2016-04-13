@@ -25,6 +25,7 @@ import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.testutil.MockContext;
+import com.github.pascalgn.jiracli.util.Hint;
 
 public class Base64Test {
     @Test
@@ -32,7 +33,7 @@ public class Base64Test {
         Context context = new MockContext();
         Base64 base64 = new Base64();
         TextList result = base64.execute(context, new TextList(new Text("hello")));
-        List<Text> list = result.remaining();
+        List<Text> list = result.remaining(Hint.none());
         assertEquals(1, list.size());
         assertEquals("aGVsbG8=", list.get(0).getText());
     }

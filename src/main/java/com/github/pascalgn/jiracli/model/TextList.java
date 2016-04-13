@@ -18,6 +18,7 @@ package com.github.pascalgn.jiracli.model;
 import java.util.Arrays;
 import java.util.Iterator;
 
+import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.Supplier;
 
 public class TextList extends List<Text> {
@@ -46,7 +47,7 @@ public class TextList extends List<Text> {
         StringBuilder str = new StringBuilder();
         boolean first = true;
         Text text;
-        while ((text = next()) != null) {
+        while ((text = next(Hint.none())) != null) {
             if (first) {
                 first = false;
             } else {

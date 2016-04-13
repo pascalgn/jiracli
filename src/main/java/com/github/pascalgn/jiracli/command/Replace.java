@@ -16,6 +16,7 @@
 package com.github.pascalgn.jiracli.command;
 
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -32,6 +33,7 @@ import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.Schema;
 import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.util.Hint;
 
 @CommandDescription(names = "replace", description = "Replace field values")
 class Replace implements Command {
@@ -65,14 +67,11 @@ class Replace implements Command {
         IssueList issueList = input.toIssueListOrFail();
         return new IssueList(issueList.convertingSupplier(new Function<Issue, Issue>() {
             @Override
-            public Issue apply(Issue issue) {
+            public Issue apply(Issue issue, Set<Hint> hints) {
                 FieldMap fieldMap = issue.getFieldMap();
                 final Schema schema = context.getWebService().getSchema();
                 for (String f : fields) {
-                    Field field = fieldMap.getFieldById(f);
-                    if (field == null) {
-                        field = fieldMap.getFieldByName(f, schema);
-                    }
+                    Field field = fieldMap.getField(f, schema);
                     if (field == null) {
                         LOGGER.debug("Field not found: {}: {}", issue, f);
                         continue;

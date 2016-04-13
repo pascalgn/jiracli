@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import org.json.JSONObject;
 
@@ -35,6 +36,7 @@ import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.StringUtils;
 
 import difflib.DiffUtils;
@@ -54,7 +56,7 @@ class Changelog implements Command {
         final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd, HH:mm:ss");
         return new TextList(input.toIssueListOrFail().loadingSupplier(new Function<Issue, Collection<Text>>() {
             @Override
-            public Collection<Text> apply(Issue issue) {
+            public Collection<Text> apply(Issue issue, Set<Hint> hints) {
                 List<Text> texts = new ArrayList<>();
                 texts.add(new Text("### " + issue.getKey() + "  " + context.getWebService().getUrl(issue)));
 

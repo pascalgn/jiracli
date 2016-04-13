@@ -18,6 +18,7 @@ package com.github.pascalgn.jiracli.command;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
@@ -26,11 +27,13 @@ import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Field;
 import com.github.pascalgn.jiracli.model.FieldMap;
 import com.github.pascalgn.jiracli.model.Issue;
+import com.github.pascalgn.jiracli.model.IssueHint;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.Schema;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.ReflectionUtils;
 import com.github.pascalgn.jiracli.util.Supplier;
 
@@ -46,10 +49,10 @@ class Get implements Command {
     public TextList execute(final Context context, Data input) {
         IssueList issueList = input.toIssueList();
         if (issueList == null) {
-            final Iterator<Data> iterator = input.toIterator();
+            final Iterator<Data> iterator = input.toIterator(Hint.none());
             return new TextList(new Supplier<Text>() {
                 @Override
-                public Text get() {
+                public Text get(Set<Hint> hints) {
                     if (iterator.hasNext()) {
                         Data data = iterator.next();
                         StringBuilder str = new StringBuilder();
@@ -70,9 +73,9 @@ class Get implements Command {
             });
         } else {
             final Schema schema = context.getWebService().getSchema();
-            return new TextList(issueList.convertingSupplier(new Function<Issue, Text>() {
+            return new TextList(issueList.convertingSupplier(IssueHint.fields(fields), new Function<Issue, Text>() {
                 @Override
-                public Text apply(Issue issue) {
+                public Text apply(Issue issue, Set<Hint> hints) {
                     StringBuilder str = new StringBuilder();
                     boolean first = true;
                     for (String field : fields) {
@@ -85,10 +88,7 @@ class Get implements Command {
                             str.append(issue.getKey());
                         } else {
                             FieldMap fieldMap = issue.getFieldMap();
-                            Field f = fieldMap.getFieldById(field);
-                            if (f == null) {
-                                f = fieldMap.getFieldByName(field, schema);
-                            }
+                            Field f = fieldMap.getField(field, schema);
                             if (f == null) {
                                 throw new IllegalArgumentException("Unknown field: " + field);
                             }

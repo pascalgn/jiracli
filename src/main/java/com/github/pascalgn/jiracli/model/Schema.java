@@ -24,6 +24,11 @@ public interface Schema {
     Set<String> getFields();
 
     /**
+     * @param field Field name or ID
+     */
+    String getId(String field);
+
+    /**
      * @param field Field ID
      */
     String getName(String field);

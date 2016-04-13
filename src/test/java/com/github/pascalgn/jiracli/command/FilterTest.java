@@ -28,6 +28,7 @@ import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.testutil.IssueFactory;
 import com.github.pascalgn.jiracli.testutil.MockContext;
+import com.github.pascalgn.jiracli.util.Hint;
 
 public class FilterTest {
     @Test
@@ -73,6 +74,6 @@ public class FilterTest {
 
         Data result = filter.execute(context, issueList);
 
-        return result.toIssueListOrFail().remaining();
+        return result.toIssueListOrFail().remaining(Hint.none());
     }
 }

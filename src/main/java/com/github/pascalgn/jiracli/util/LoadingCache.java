@@ -36,7 +36,7 @@ public final class LoadingCache<K, V> {
     public synchronized V get(K key) {
         V value = map.get(key);
         if (value == null) {
-            value = function.apply(key);
+            value = function.apply(key, Hint.none());
             if (value == null) {
                 throw new IllegalStateException("Returned value must not be null!");
             }

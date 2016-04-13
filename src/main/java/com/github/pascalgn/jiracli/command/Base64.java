@@ -17,6 +17,7 @@ package com.github.pascalgn.jiracli.command;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.Set;
 
 import javax.xml.bind.DatatypeConverter;
 
@@ -25,6 +26,7 @@ import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.util.Hint;
 
 @CommandDescription(names = { "base64", "b64" }, description = "Print text from standard input as Base64 encoded")
 class Base64 implements Command {
@@ -46,7 +48,7 @@ class Base64 implements Command {
         }
         return new TextList(textList.convertingSupplier(new Function<Text, Text>() {
             @Override
-            public Text apply(Text text) {
+            public Text apply(Text text, Set<Hint> hints) {
                 if (decode) {
                     String plain = new String(DatatypeConverter.parseBase64Binary(text.getText()), CHARSET);
                     return new Text(plain);

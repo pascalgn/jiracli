@@ -28,6 +28,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.AbstractList;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -72,6 +73,7 @@ import com.github.pascalgn.jiracli.model.Workflow;
 import com.github.pascalgn.jiracli.util.Consumer;
 import com.github.pascalgn.jiracli.util.Credentials;
 import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.LoadingList;
 import com.github.pascalgn.jiracli.util.StringUtils;
 import com.github.pascalgn.jiracli.util.Supplier;
@@ -79,18 +81,18 @@ import com.github.pascalgn.jiracli.util.Supplier;
 public class DefaultWebService implements WebService {
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultWebService.class);
 
-    private static final String INITIAL_FIELDS = "issuetype,summary,status";
+    private static final List<String> INITIAL_FIELDS = Arrays.asList("issuetype", "summary", "status");
 
     private static final Function<Reader, JSONObject> TO_OBJECT = new Function<Reader, JSONObject>() {
         @Override
-        public JSONObject apply(Reader reader) {
+        public JSONObject apply(Reader reader, Set<Hint> hints) {
             return new JSONObject(new JSONTokener(reader));
         }
     };
 
     private static final Function<Reader, JSONArray> TO_ARRAY = new Function<Reader, JSONArray>() {
         @Override
-        public JSONArray apply(Reader reader) {
+        public JSONArray apply(Reader reader, Set<Hint> hints) {
             return new JSONArray(new JSONTokener(reader));
         }
     };
@@ -108,13 +110,13 @@ public class DefaultWebService implements WebService {
     private static HttpClient createHttpClient(final Console console) {
         Supplier<String> baseUrl = new Supplier<String>() {
             @Override
-            public String get() {
+            public String get(Set<Hint> hints) {
                 return console.getBaseUrl();
             }
         };
         Function<String, Credentials> credentials = new Function<String, Credentials>() {
             @Override
-            public Credentials apply(String url) {
+            public Credentials apply(String url, Set<Hint> hints) {
                 return console.getCredentials(url);
             }
         };
@@ -157,7 +159,9 @@ public class DefaultWebService implements WebService {
         }
         fieldMap.setSupplier(new Supplier<List<Field>>() {
             @Override
-            public List<Field> get() {
+            public List<Field> get(Set<Hint> hints) {
+                // ignore hints, we will fetch all fields at once, even if only one field is requested,
+                // because it's cheaper than doing multiple requests for multiple fields
                 JSONObject response = DefaultWebService.this.get("/rest/api/latest/issue/" + issue, TO_OBJECT);
                 JSONObject all = response.getJSONObject("fields");
                 cacheIssueLinks(all);
@@ -170,7 +174,7 @@ public class DefaultWebService implements WebService {
     private Function<JSONObject, Issue> toIssue() {
         return new Function<JSONObject, Issue>() {
             @Override
-            public Issue apply(JSONObject obj) {
+            public Issue apply(JSONObject obj, Set<Hint> hints) {
                 String key = obj.getString("key");
                 JSONObject fields = obj.optJSONObject("fields");
                 return getIssue(key, fields);
@@ -228,14 +232,14 @@ public class DefaultWebService implements WebService {
     }
 
     @Override
-    public List<Issue> getIssues(List<String> keys) {
+    public List<Issue> getIssues(List<String> keys, Collection<String> initialFields) {
         if (keys.isEmpty()) {
             return Collections.emptyList();
         } else if (keys.size() == 1) {
             String key = keys.get(0);
             JSONObject fields = cache.getFields(key);
             if (fields == null) {
-                List<Issue> result = loadIssues(keys);
+                List<Issue> result = loadIssues(keys, initialFields);
                 if (result.isEmpty()) {
                     throw new IllegalArgumentException("Issue not found: " + key);
                 }
@@ -269,7 +273,7 @@ public class DefaultWebService implements WebService {
             List<Issue> result = new ArrayList<Issue>();
 
             // key order doesn't matter when searching but improves caching:
-            List<Issue> searchResults = loadIssues(new TreeSet<String>(resolve));
+            List<Issue> searchResults = loadIssues(new TreeSet<String>(resolve), initialFields);
 
             // return the search results in the order the keys were given:
             Set<String> set = new LinkedHashSet<String>(keys);
@@ -293,7 +297,7 @@ public class DefaultWebService implements WebService {
         }
     }
 
-    private List<Issue> loadIssues(Collection<String> keys) {
+    private List<Issue> loadIssues(Collection<String> keys, Collection<String> initialFields) {
         if (keys.isEmpty()) {
             return Collections.emptyList();
         } else if (keys.size() == 1) {
@@ -302,7 +306,7 @@ public class DefaultWebService implements WebService {
             JSONObject fields = result.getJSONObject("fields");
             return Collections.singletonList(getIssue(key, fields));
         } else {
-            return searchIssues("key IN (" + StringUtils.join(keys, ",") + ")");
+            return searchIssues("key IN (" + StringUtils.join(keys, ",") + ")", initialFields);
         }
     }
 
@@ -342,12 +346,12 @@ public class DefaultWebService implements WebService {
     }
 
     @Override
-    public List<Issue> getIssues(Issue epic) {
-        return searchIssues("'Epic Link' = " + epic.getKey() + " ORDER BY Rank");
+    public List<Issue> getIssues(Issue epic, Collection<String> fields) {
+        return searchIssues("'Epic Link' = " + epic.getKey() + " ORDER BY Rank", fields);
     }
 
     @Override
-    public List<Issue> getLinks(Issue issue) {
+    public List<Issue> getLinks(Issue issue, Collection<String> initialFields) {
         Field field = issue.getFieldMap().getFieldById("issuelinks");
         if (field != null) {
             Object value = field.getValue().get();
@@ -373,14 +377,8 @@ public class DefaultWebService implements WebService {
     }
 
     @Override
-    public List<Issue> searchIssues(String jql) {
-        return searchIssues(jql, Collections.<String> emptyList());
-    }
-
-    @Override
-    public List<Issue> searchIssues(String jql, List<String> fields) {
-        String fieldParam = INITIAL_FIELDS + (fields.isEmpty() ? "" : "," + StringUtils.join(fields, ","));
-        String path = "/rest/api/latest/search?jql=" + urlEncode(jql.trim()) + "&fields=" + fieldParam;
+    public List<Issue> searchIssues(String jql, Collection<String> fields) {
+        String path = "/rest/api/latest/search?jql=" + urlEncode(jql.trim()) + "&fields=" + fieldParam(fields);
         return new PaginationList<Issue>(path, "issues", toIssue());
     }
 
@@ -391,7 +389,7 @@ public class DefaultWebService implements WebService {
             // There is no REST API to get the workflow name, so we need to parse the HTML:
             String workflowName = httpClient.get("/browse/" + issue.getKey(), new Function<Reader, String>() {
                 @Override
-                public String apply(Reader reader) {
+                public String apply(Reader reader, Set<Hint> hints) {
                     try (BufferedReader bufferedReader = new BufferedReader(reader)) {
                         String line;
                         while ((line = bufferedReader.readLine()) != null) {
@@ -642,8 +640,8 @@ public class DefaultWebService implements WebService {
         String path = "/rest/api/latest/project";
         JSONArray response = httpClient.get(path, new Function<Reader, JSONArray>() {
             @Override
-            public JSONArray apply(Reader reader) {
-                JSONArray array = TO_ARRAY.apply(reader);
+            public JSONArray apply(Reader reader, Set<Hint> hints) {
+                JSONArray array = TO_ARRAY.apply(reader, hints);
                 if (array.length() == 0) {
                     throw new NotAuthenticatedException(new IllegalStateException("No projects found!"));
                 }
@@ -706,8 +704,8 @@ public class DefaultWebService implements WebService {
 
         JSONObject response = httpClient.get(path, new Function<Reader, JSONObject>() {
             @Override
-            public JSONObject apply(Reader reader) {
-                JSONObject json = TO_OBJECT.apply(reader);
+            public JSONObject apply(Reader reader, Set<Hint> hints) {
+                JSONObject json = TO_OBJECT.apply(reader, hints);
                 JSONArray projects = json.getJSONArray("projects");
                 if (projects.length() == 0) {
                     String msg = "Project not found: " + project.getKey();
@@ -767,7 +765,7 @@ public class DefaultWebService implements WebService {
         }
         return new PaginationList<Board>(path, "values", new Function<JSONObject, Board>() {
             @Override
-            public Board apply(JSONObject json) {
+            public Board apply(JSONObject json, Set<Hint> hints) {
                 return toBoard(json);
             }
         });
@@ -795,8 +793,8 @@ public class DefaultWebService implements WebService {
     }
 
     @Override
-    public List<Issue> getIssues(Board board) {
-        String path = "/rest/agile/latest/board/" + board.getId() + "/issue?fields=" + INITIAL_FIELDS;
+    public List<Issue> getIssues(Board board, Collection<String> fields) {
+        String path = "/rest/agile/latest/board/" + board.getId() + "/issue?fields=" + fieldParam(fields);
         return new PaginationList<Issue>(path, "issues", toIssue());
     }
 
@@ -817,7 +815,7 @@ public class DefaultWebService implements WebService {
         String path = "/rest/agile/latest/board/" + board.getId() + "/sprint";
         return new PaginationList<Sprint>(path, "values", new Function<JSONObject, Sprint>() {
             @Override
-            public Sprint apply(JSONObject json) {
+            public Sprint apply(JSONObject json, Set<Hint> hints) {
                 return toSprint(json);
             }
         });
@@ -848,8 +846,8 @@ public class DefaultWebService implements WebService {
     }
 
     @Override
-    public List<Issue> getIssues(Sprint sprint) {
-        String path = "/rest/agile/latest/sprint/" + sprint.getId() + "/issue?fields=" + INITIAL_FIELDS;
+    public List<Issue> getIssues(Sprint sprint, Collection<String> fields) {
+        String path = "/rest/agile/latest/sprint/" + sprint.getId() + "/issue?fields=" + fieldParam(fields);
         return new PaginationList<Issue>(path, "issues", toIssue());
     }
 
@@ -886,7 +884,27 @@ public class DefaultWebService implements WebService {
             String key = json.getString("key");
             keys.add(key);
         }
-        return getIssues(keys);
+        return getIssues(keys, Collections.<String> emptyList());
+    }
+
+    private String fieldParam(Collection<String> fields) {
+        if (fields.isEmpty()) {
+            return StringUtils.join(INITIAL_FIELDS, ",");
+        } else {
+            Set<String> all = new TreeSet<>(INITIAL_FIELDS);
+            all.addAll(fields);
+            StringBuilder str = new StringBuilder();
+            for (String field : all) {
+                if (field.equals("key")) {
+                    continue;
+                }
+                if (str.length() > 0) {
+                    str.append(",");
+                }
+                str.append(schema.getId(field));
+            }
+            return str.toString();
+        }
     }
 
     private static String urlEncode(String str) {
@@ -906,7 +924,7 @@ public class DefaultWebService implements WebService {
         }
         T result;
         try (StringReader reader = new StringReader(response)) {
-            result = function.apply(reader);
+            result = function.apply(reader, Hint.none());
         }
         if (cacheResponse) {
             // response could be converted, so it's probably safe to cache now:
@@ -1020,7 +1038,7 @@ public class DefaultWebService implements WebService {
             JSONArray values = object.getJSONArray(field);
             for (Object obj : values) {
                 JSONObject json = (JSONObject) obj;
-                E element = function.apply(json);
+                E element = function.apply(json, Hint.none());
                 if (element == null) {
                     throw new NullPointerException("Element cannot be null!");
                 }
@@ -1048,6 +1066,20 @@ public class DefaultWebService implements WebService {
         @Override
         public Set<String> getFields() {
             return new HashSet<>(getFieldInfos().keySet());
+        }
+
+        @Override
+        public String getId(String field) {
+            Map<String, FieldInfo> fieldInfos = getFieldInfos();
+            if (fieldInfos.containsKey(field)) {
+                return field;
+            }
+            for (Map.Entry<String, FieldInfo> entry : fieldInfos.entrySet()) {
+                if (entry.getValue().getName().equals(field)) {
+                    return entry.getKey();
+                }
+            }
+            throw new IllegalArgumentException("Unknown field ID: " + field);
         }
 
         @Override

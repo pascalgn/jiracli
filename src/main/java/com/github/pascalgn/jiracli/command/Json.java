@@ -26,6 +26,7 @@ import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
+import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.JsonUtils;
 
 @CommandDescription(names = "json", description = "Parse Json strings")
@@ -36,7 +37,7 @@ class Json implements Command {
     @Override
     public Data execute(Context context, Data input) {
         TextList textList = input.toTextListOrFail();
-        List<Text> texts = textList.remaining();
+        List<Text> texts = textList.remaining(Hint.none());
         if (texts.isEmpty()) {
             return new Text("");
         } else if (texts.size() == 1) {

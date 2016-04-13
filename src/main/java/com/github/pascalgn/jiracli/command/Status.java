@@ -15,6 +15,8 @@
  */
 package com.github.pascalgn.jiracli.command;
 
+import java.util.Set;
+
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Converter;
 import com.github.pascalgn.jiracli.model.Data;
@@ -24,6 +26,7 @@ import com.github.pascalgn.jiracli.model.Schema;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.util.Hint;
 
 @CommandDescription(names = "status", description = "Get the current status of the given issues")
 class Status implements Command {
@@ -34,7 +37,7 @@ class Status implements Command {
         IssueList issueList = input.toIssueListOrFail();
         return new TextList(issueList.convertingSupplier(new Function<Issue, Text>() {
             @Override
-            public Text apply(Issue issue) {
+            public Text apply(Issue issue, Set<Hint> hints) {
                 Object status = issue.getFieldMap().getFieldById("status").getValue().get();
                 return new Text(converter.toString(status));
             }

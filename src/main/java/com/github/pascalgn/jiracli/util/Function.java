@@ -15,6 +15,8 @@
  */
 package com.github.pascalgn.jiracli.util;
 
+import java.util.Set;
+
 public interface Function<T, R> {
-    R apply(T t);
+    R apply(T t, Set<Hint> hints);
 }

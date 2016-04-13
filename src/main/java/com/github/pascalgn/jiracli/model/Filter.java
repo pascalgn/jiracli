@@ -15,8 +15,11 @@
  */
 package com.github.pascalgn.jiracli.model;
 
+import java.util.Set;
+
+import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.Supplier;
 
 public interface Filter<T> {
-    T get(Supplier<T> supplier);
+    T get(Supplier<T> supplier, Set<Hint> hints);
 }

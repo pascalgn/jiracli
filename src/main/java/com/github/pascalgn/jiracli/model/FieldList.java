@@ -17,8 +17,10 @@ package com.github.pascalgn.jiracli.model;
 
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.Set;
 
 import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.Supplier;
 
 public class FieldList extends List<Field> {
@@ -42,7 +44,7 @@ public class FieldList extends List<Field> {
     public IssueList toIssueList() {
         return new IssueList(convertingSupplier(new Function<Field, Issue>() {
             @Override
-            public Issue apply(Field field) {
+            public Issue apply(Field field, Set<Hint> hints) {
                 return field.toIssue();
             }
         }));

@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,10 +35,13 @@ import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.model.Transition;
 import com.github.pascalgn.jiracli.model.Workflow;
 import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.util.Hint;
 
 @CommandDescription(names = "transition", description = "Change the status of the given issues")
 class Transitions implements Command {
     private static final Logger LOGGER = LoggerFactory.getLogger(Transitions.class);
+
+    private static final List<String> FIELDS = Collections.emptyList();
 
     @Argument(names = { "-n", "--dry" }, description = "only print the transition order")
     private boolean dry;
@@ -51,7 +55,7 @@ class Transitions implements Command {
         if (status == null) {
             return new TextList(issueList.loadingSupplier(new Function<Issue, Collection<Text>>() {
                 @Override
-                public Collection<Text> apply(Issue issue) {
+                public Collection<Text> apply(Issue issue, Set<Hint> hints) {
                     return listAllTransitions(context, issue);
                 }
             }));
@@ -59,14 +63,14 @@ class Transitions implements Command {
             if (dry) {
                 return new TextList(issueList.convertingSupplier(new Function<Issue, Text>() {
                     @Override
-                    public Text apply(Issue issue) {
+                    public Text apply(Issue issue, Set<Hint> hints) {
                         return listTransitions(context, issue);
                     }
                 }));
             } else {
                 return new IssueList(issueList.convertingSupplier(new Function<Issue, Issue>() {
                     @Override
-                    public Issue apply(Issue issue) {
+                    public Issue apply(Issue issue, Set<Hint> hints) {
                         return doTransition(context, issue);
                     }
                 }));
@@ -117,7 +121,7 @@ class Transitions implements Command {
         for (Transition transition : transitions) {
             context.getWebService().transitionIssue(issue, transition);
         }
-        List<Issue> issues = context.getWebService().getIssues(Collections.singletonList(issue.getKey()));
+        List<Issue> issues = context.getWebService().getIssues(Collections.singletonList(issue.getKey()), FIELDS);
         return issues.get(0);
     }
 

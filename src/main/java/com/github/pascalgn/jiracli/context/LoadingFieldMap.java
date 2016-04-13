@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.github.pascalgn.jiracli.model.AbstractFieldMap;
 import com.github.pascalgn.jiracli.model.Field;
-import com.github.pascalgn.jiracli.model.Schema;
+import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.Supplier;
 
 class LoadingFieldMap extends AbstractFieldMap {
@@ -64,27 +64,9 @@ class LoadingFieldMap extends AbstractFieldMap {
         return new ArrayList<Field>(getFields(false));
     }
 
-    @Override
-    public Field getFieldById(String id) {
-        Field field = getFieldById(getFields(false), id);
-        if (field == null) {
-            field = getFieldById(getFields(true), id);
-        }
-        return field;
-    }
-
-    @Override
-    public Field getFieldByName(String name, Schema schema) {
-        Field field = getFieldByName(getFields(false), name, schema);
-        if (field == null) {
-            field = getFieldByName(getFields(true), name, schema);
-        }
-        return field;
-    }
-
     private synchronized Collection<Field> getFields(boolean loadAll) {
         if (loadAll && loaded.compareAndSet(false, true)) {
-            List<Field> all = supplier.get();
+            List<Field> all = supplier.get(Hint.none());
             for (Field field : all) {
                 String id = field.getId();
                 if (!fields.containsKey(id)) {

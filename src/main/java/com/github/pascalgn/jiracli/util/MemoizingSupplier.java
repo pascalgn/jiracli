@@ -15,6 +15,8 @@
  */
 package com.github.pascalgn.jiracli.util;
 
+import java.util.Set;
+
 public final class MemoizingSupplier<T> implements Supplier<T> {
     private final Supplier<T> supplier;
 
@@ -25,9 +27,9 @@ public final class MemoizingSupplier<T> implements Supplier<T> {
     }
 
     @Override
-    public synchronized T get() {
+    public synchronized T get(Set<Hint> hints) {
         if (value == null) {
-            value = supplier.get();
+            value = supplier.get(hints);
             if (value == null) {
                 throw new IllegalStateException("Supplied value must not be null!");
             }

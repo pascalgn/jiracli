@@ -16,13 +16,16 @@
 package com.github.pascalgn.jiracli.context;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.json.JSONObject;
 
 import com.github.pascalgn.jiracli.model.Workflow;
 
 class DefaultWebServiceCache implements WebService.Cache {
+    private final Map<String, IssueListResult> issueListCache;
     private final Map<String, String> responseCache;
     private final Map<String, JSONObject> fieldCache;
     private final Map<String, Workflow> workflowCache;
@@ -30,9 +33,19 @@ class DefaultWebServiceCache implements WebService.Cache {
     private Map<String, FieldInfo> fieldInfos;
 
     public DefaultWebServiceCache() {
+        this.issueListCache = new HashMap<>();
         this.responseCache = new HashMap<>();
         this.fieldCache = new HashMap<>();
         this.workflowCache = new HashMap<>();
+    }
+
+    public List<JSONObject> getIssues(String path) {
+        IssueListResult result = issueListCache.get(path);
+        return (result == null ? null : result.issues);
+    }
+
+    public void putIssues(String path, List<JSONObject> issues) {
+        issueListCache.put(path, new IssueListResult(null, issues));
     }
 
     public String getResponse(String path) {
@@ -73,5 +86,15 @@ class DefaultWebServiceCache implements WebService.Cache {
         fieldCache.clear();
         workflowCache.clear();
         fieldInfos = null;
+    }
+
+    private static class IssueListResult {
+        public final Set<String> fields;
+        public final List<JSONObject> issues;
+
+        public IssueListResult(Set<String> fields, List<JSONObject> issues) {
+            this.fields = fields;
+            this.issues = issues;
+        }
     }
 }

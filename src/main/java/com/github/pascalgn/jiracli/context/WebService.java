@@ -59,7 +59,7 @@ public interface WebService extends AutoCloseable {
      * Resolves the issues for the given keys, throws an exception if one or
      * more issues cannot be found.
      */
-    List<Issue> getIssues(List<String> keys);
+    List<Issue> getIssues(List<String> keys, Collection<String> fields);
 
     /**
      * @return The URL of this issue, for example <code>https://jira.example.com/browse/ISSUE-123</code>
@@ -71,13 +71,14 @@ public interface WebService extends AutoCloseable {
      */
     Collection<Field> getEditableFields(Issue issue);
 
-    List<Issue> getIssues(Issue epic);
+    List<Issue> getIssues(Issue epic, Collection<String> fields);
 
-    List<Issue> getLinks(Issue issue);
+    /**
+     * Returns all issues that are linked to the given issue
+     */
+    List<Issue> getLinks(Issue issue, Collection<String> fields);
 
-    List<Issue> searchIssues(String jql);
-
-    List<Issue> searchIssues(String jql, List<String> fields);
+    List<Issue> searchIssues(String jql, Collection<String> fields);
 
     Workflow getWorkflow(Issue issue);
 
@@ -121,7 +122,7 @@ public interface WebService extends AutoCloseable {
 
     List<Board> getBoards(String name);
 
-    List<Issue> getIssues(Board board);
+    List<Issue> getIssues(Board board, Collection<String> fields);
 
     List<Issue> getEpics(Board board);
 
@@ -129,7 +130,7 @@ public interface WebService extends AutoCloseable {
 
     List<Sprint> getSprints(Board board);
 
-    List<Issue> getIssues(Sprint sprint);
+    List<Issue> getIssues(Sprint sprint, Collection<String> fields);
 
     List<Issue> createIssues(Collection<CreateRequest> createRequests);
 
