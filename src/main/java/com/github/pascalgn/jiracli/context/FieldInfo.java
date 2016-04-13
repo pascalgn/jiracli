@@ -15,29 +15,24 @@
  */
 package com.github.pascalgn.jiracli.context;
 
-import java.io.File;
-import java.util.List;
+import java.util.Objects;
 
-import com.github.pascalgn.jiracli.util.Credentials;
+import com.github.pascalgn.jiracli.model.Converter;
 
-public interface Console {
-    void print(String str);
+final class FieldInfo {
+    private final String name;
+    private final Converter converter;
 
-    void println(String str);
+    public FieldInfo(String name, Converter converter) {
+        this.name = Objects.requireNonNull(name);
+        this.converter = Objects.requireNonNull(converter);
+    }
 
-    String readCommand();
+    public String getName() {
+        return name;
+    }
 
-    String readLine();
-
-    List<String> readLines();
-
-    String getBaseUrl();
-
-    Credentials getCredentials(String url);
-
-    boolean editFile(File file);
-
-    void openFile(File file);
-
-    void onInterrupt(Runnable runnable);
+    public Converter getConverter() {
+        return converter;
+    }
 }

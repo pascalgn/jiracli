@@ -77,7 +77,10 @@ public class MockConsole implements Console {
     }
 
     @Override
+    public void openFile(File file) {
+    }
+
+    @Override
     public void onInterrupt(Runnable runnable) {
-        // not supported
     }
 }

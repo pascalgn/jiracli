@@ -15,7 +15,9 @@
  */
 package com.github.pascalgn.jiracli.context;
 
+import java.awt.Desktop;
 import java.io.File;
+import java.io.IOException;
 
 import com.github.pascalgn.jiracli.util.Credentials;
 
@@ -59,6 +61,15 @@ public abstract class AbstractConsole implements Console {
 
     protected boolean editFile(File file, boolean gui) {
         return EditorProvider.getEditor(gui).editFile(file);
+    }
+
+    @Override
+    public void openFile(File file) {
+        try {
+            Desktop.getDesktop().open(file);
+        } catch (IOException e) {
+            throw new IllegalStateException("Error opening file: " + file, e);
+        }
     }
 
     @Override

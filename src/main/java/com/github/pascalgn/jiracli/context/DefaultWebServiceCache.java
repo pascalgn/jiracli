@@ -27,6 +27,8 @@ class DefaultWebServiceCache implements WebService.Cache {
     private final Map<String, JSONObject> fieldCache;
     private final Map<String, Workflow> workflowCache;
 
+    private Map<String, FieldInfo> fieldInfos;
+
     public DefaultWebServiceCache() {
         this.responseCache = new HashMap<>();
         this.fieldCache = new HashMap<>();
@@ -57,10 +59,19 @@ class DefaultWebServiceCache implements WebService.Cache {
         workflowCache.put(key, workflow);
     }
 
+    public Map<String, FieldInfo> getFieldInfos() {
+        return fieldInfos;
+    }
+
+    public void setFieldInfos(Map<String, FieldInfo> fieldInfos) {
+        this.fieldInfos = fieldInfos;
+    }
+
     @Override
     public void clear() {
         responseCache.clear();
         fieldCache.clear();
         workflowCache.clear();
+        fieldInfos = null;
     }
 }

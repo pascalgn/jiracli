@@ -15,6 +15,8 @@
  */
 package com.github.pascalgn.jiracli.command;
 
+import java.util.Iterator;
+import java.util.List;
 import java.util.Objects;
 
 import com.github.pascalgn.jiracli.command.Argument.Parameters;
@@ -29,33 +31,74 @@ import com.github.pascalgn.jiracli.model.Schema;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.util.ReflectionUtils;
+import com.github.pascalgn.jiracli.util.Supplier;
 
 @CommandDescription(names = "get", description = "Return the field value for the given field")
 class Get implements Command {
     @Argument(names = { "-r", "--raw" }, description = "get the raw field value")
     private boolean raw;
 
-    @Argument(parameters = Parameters.ONE, variable = "<field>", description = "the field")
-    private String field;
+    @Argument(parameters = Parameters.ONE_OR_MORE, variable = "<field>", description = "the fields to output")
+    private List<String> fields;
 
     @Override
     public TextList execute(final Context context, Data input) {
-        final Schema schema = context.getWebService().getSchema();
-        IssueList issueList = input.toIssueListOrFail();
-        return new TextList(issueList.convertingSupplier(new Function<Issue, Text>() {
-            @Override
-            public Text apply(Issue issue) {
-                FieldMap fieldMap = issue.getFieldMap();
-                Field f = fieldMap.getFieldById(field);
-                if (f == null) {
-                    f = fieldMap.getFieldByName(field, schema);
+        IssueList issueList = input.toIssueList();
+        if (issueList == null) {
+            final Iterator<Data> iterator = input.toIterator();
+            return new TextList(new Supplier<Text>() {
+                @Override
+                public Text get() {
+                    if (iterator.hasNext()) {
+                        Data data = iterator.next();
+                        StringBuilder str = new StringBuilder();
+                        boolean first = true;
+                        for (String field : fields) {
+                            if (first) {
+                                first = false;
+                            } else {
+                                str.append("\t");
+                            }
+                            str.append(ReflectionUtils.getValue(data, field, ""));
+                        }
+                        return new Text(str.toString());
+                    } else {
+                        return null;
+                    }
                 }
-                if (f == null) {
-                    throw new IllegalArgumentException("Unknown field: " + field);
+            });
+        } else {
+            final Schema schema = context.getWebService().getSchema();
+            return new TextList(issueList.convertingSupplier(new Function<Issue, Text>() {
+                @Override
+                public Text apply(Issue issue) {
+                    StringBuilder str = new StringBuilder();
+                    boolean first = true;
+                    for (String field : fields) {
+                        if (first) {
+                            first = false;
+                        } else {
+                            str.append("\t");
+                        }
+                        if (field.equals("key")) {
+                            str.append(issue.getKey());
+                        } else {
+                            FieldMap fieldMap = issue.getFieldMap();
+                            Field f = fieldMap.getFieldById(field);
+                            if (f == null) {
+                                f = fieldMap.getFieldByName(field, schema);
+                            }
+                            if (f == null) {
+                                throw new IllegalArgumentException("Unknown field: " + field);
+                            }
+                            str.append(fieldValue(schema, f));
+                        }
+                    }
+                    return new Text(str.toString());
                 }
-                return new Text(fieldValue(schema, f));
-            }
-        }));
+            }));
+        }
     }
 
     private String fieldValue(Schema schema, Field field) {

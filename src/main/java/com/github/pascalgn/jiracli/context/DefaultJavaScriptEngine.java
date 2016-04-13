@@ -305,6 +305,9 @@ public class DefaultJavaScriptEngine implements JavaScriptEngine {
             FieldMap fieldMap = issue.getFieldMap();
             for (String id : fields.keySet()) {
                 Object val = fields.get(id);
+                if (val == JSONObject.NULL) {
+                    val = null;
+                }
                 Field field = fieldMap.getFieldById(id);
                 if (field == null) {
                     field = new Field(issue, id, new Value(val));

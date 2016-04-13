@@ -33,6 +33,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -96,36 +97,12 @@ public class DefaultWebService implements WebService {
 
     private final HttpClient httpClient;
     private final DefaultWebServiceCache cache;
-    private final LoadingSchema schema;
+    private final Schema schema;
 
     public DefaultWebService(Console console) {
         this.httpClient = createHttpClient(console);
         this.cache = new DefaultWebServiceCache();
-        this.schema = new LoadingSchema() {
-            @Override
-            protected Map<String, FieldInfo> loadMap() {
-                Map<String, FieldInfo> map = new HashMap<>();
-                JSONArray array = get("/rest/api/latest/field", TO_ARRAY);
-                for (Object obj : array) {
-                    JSONObject json = (JSONObject) obj;
-                    String id = json.getString("id");
-
-                    String name = json.optString("name");
-                    if (name == null || name.isEmpty()) {
-                        name = id;
-                    }
-
-                    JSONObject schema = json.optJSONObject("schema");
-                    if (schema == null) {
-                        LOGGER.trace("Schema is null: {}", json);
-                    }
-
-                    Converter converter = ConverterProvider.getConverter(schema);
-                    map.put(id, new FieldInfo(name, converter));
-                }
-                return map;
-            }
-        };
+        this.schema = new CachedSchema();
     }
 
     private static HttpClient createHttpClient(final Console console) {
@@ -493,8 +470,7 @@ public class DefaultWebService implements WebService {
         for (Object obj : histories) {
             JSONObject history = (JSONObject) obj;
             int id = history.getInt("id");
-            JSONObject author = history.getJSONObject("author");
-            User user = new User(author.getString("key"), author.getString("displayName"));
+            User user = toUser(history.getJSONObject("author"));
             Date date = parseDate(dateFormat, history.getString("created"));
             List<Item> items = new ArrayList<Change.Item>();
             JSONArray itemArray = history.getJSONArray("items");
@@ -509,6 +485,15 @@ public class DefaultWebService implements WebService {
         }
 
         return changes;
+    }
+
+    private static User toUser(JSONObject author) {
+        String id = author.optString("key");
+        if (id == null || id.isEmpty()) {
+            id = author.getString("name");
+        }
+        String name = author.getString("displayName");
+        return new User(id, name);
     }
 
     private static String toString(Object obj) {
@@ -1056,6 +1041,58 @@ public class DefaultWebService implements WebService {
                     }
                 }
             }
+        }
+    }
+
+    private class CachedSchema implements Schema {
+        @Override
+        public Set<String> getFields() {
+            return new HashSet<>(getFieldInfos().keySet());
+        }
+
+        @Override
+        public String getName(String field) {
+            return getFieldInfo(field).getName();
+        }
+
+        @Override
+        public Converter getConverter(String field) {
+            return getFieldInfo(field).getConverter();
+        }
+
+        private FieldInfo getFieldInfo(String field) {
+            FieldInfo fieldInfo = getFieldInfos().get(field);
+            if (fieldInfo == null) {
+                throw new IllegalArgumentException("Unknown field: " + field);
+            }
+            return fieldInfo;
+        }
+
+        private synchronized Map<String, FieldInfo> getFieldInfos() {
+            Map<String, FieldInfo> fieldInfos = cache.getFieldInfos();
+            if (fieldInfos == null) {
+                fieldInfos = new HashMap<>();
+                JSONArray array = get("/rest/api/latest/field", TO_ARRAY);
+                for (Object obj : array) {
+                    JSONObject json = (JSONObject) obj;
+                    String id = json.getString("id");
+
+                    String name = json.optString("name");
+                    if (name == null || name.isEmpty()) {
+                        name = id;
+                    }
+
+                    JSONObject schema = json.optJSONObject("schema");
+                    if (schema == null) {
+                        LOGGER.trace("Schema is null: {}", json);
+                    }
+
+                    Converter converter = ConverterProvider.getConverter(schema);
+                    fieldInfos.put(id, new FieldInfo(name, converter));
+                }
+                cache.setFieldInfos(fieldInfos);
+            }
+            return fieldInfos;
         }
     }
 

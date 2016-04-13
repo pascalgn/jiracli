@@ -50,8 +50,8 @@ class Issues implements Command {
                         IssueList issueList = input.toIssueListOrFail();
                         return new IssueList(issueList.loadingSupplier(new Function<Issue, Collection<Issue>>() {
                             @Override
-                            public Collection<Issue> apply(Issue epic) {
-                                return context.getWebService().getIssues(epic);
+                            public Collection<Issue> apply(Issue issue) {
+                                return context.getWebService().getIssues(issue);
                             }
                         }));
                     } else {

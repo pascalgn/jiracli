@@ -15,7 +15,6 @@
  */
 package com.github.pascalgn.jiracli.command;
 
-import java.util.Objects;
 import java.util.regex.Pattern;
 
 import com.github.pascalgn.jiracli.command.Argument.Parameters;
@@ -104,7 +103,6 @@ class Filter implements Command {
     private boolean matches(Context context, Issue issue, Pattern pattern) {
         Schema schema = context.getWebService().getSchema();
         Object obj = CommandUtils.getFieldValue(issue, schema, field, "");
-        String fieldValue = Objects.toString(obj, "");
-        return pattern.matcher(fieldValue).find();
+        return pattern.matcher(obj.toString()).find();
     }
 }

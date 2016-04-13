@@ -71,4 +71,24 @@ public class StringUtilsTest {
     public void test3d() throws Exception {
         assertEquals("a...", StringUtils.shorten("abcde", 4));
     }
+
+    @Test
+    public void test4a() throws Exception {
+        assertEquals("", StringUtils.capitalize(""));
+    }
+
+    @Test
+    public void test4b() throws Exception {
+        assertEquals("Test", StringUtils.capitalize("test"));
+    }
+
+    @Test
+    public void test4c() throws Exception {
+        assertEquals("TEST", StringUtils.capitalize("TEST"));
+    }
+
+    @Test
+    public void test4d() throws Exception {
+        assertEquals("TeST", StringUtils.capitalize("teST"));
+    }
 }

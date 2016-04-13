@@ -56,6 +56,8 @@ class Changelog implements Command {
             @Override
             public Collection<Text> apply(Issue issue) {
                 List<Text> texts = new ArrayList<>();
+                texts.add(new Text("### " + issue.getKey() + "  " + context.getWebService().getUrl(issue)));
+
                 List<Change> changes = context.getWebService().getChanges(issue);
                 String currentInfo = null;
                 for (Change change : changes) {
@@ -76,6 +78,7 @@ class Changelog implements Command {
                         }
                     }
                 }
+
                 return texts;
             }
         }));

@@ -49,6 +49,7 @@ class ConverterProvider {
         Converter array = new ArrayConverter();
         Converter object = new ObjectConverter();
         Converter named = new NamedObjectConverter("name");
+        Converter value = new NamedObjectConverter("value");
         Converter project = new NamedObjectConverter("key");
 
         mappedBySystem = new HashMap<>();
@@ -101,7 +102,7 @@ class ConverterProvider {
         mappedByCustom.put("com.atlassian.jira.plugin.system.customfieldtypes:datetime", string);
         mappedByCustom.put("com.atlassian.jira.plugin.system.customfieldtypes:float", number);
         mappedByCustom.put("com.atlassian.jira.plugin.system.customfieldtypes:importid", number);
-        mappedByCustom.put("com.atlassian.jira.plugin.system.customfieldtypes:select", object);
+        mappedByCustom.put("com.atlassian.jira.plugin.system.customfieldtypes:select", value);
         mappedByCustom.put("com.atlassian.jira.plugin.system.customfieldtypes:labels", array);
         mappedByCustom.put("com.atlassian.jira.plugin.system.customfieldtypes:multiselect", array);
         mappedByCustom.put("com.atlassian.jira.plugin.system.customfieldtypes:multiuserpicker", array);

@@ -13,31 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.pascalgn.jiracli.context;
+package com.github.pascalgn.jiracli.util;
 
-import java.io.File;
-import java.util.List;
+import static org.junit.Assert.assertEquals;
 
-import com.github.pascalgn.jiracli.util.Credentials;
+import org.junit.Test;
 
-public interface Console {
-    void print(String str);
+public class ReflectionUtilsTest {
+    @Test
+    public void test1() throws Exception {
+        class Test {
+            public int getId() {
+                return 123;
+            }
 
-    void println(String str);
-
-    String readCommand();
-
-    String readLine();
-
-    List<String> readLines();
-
-    String getBaseUrl();
-
-    Credentials getCredentials(String url);
-
-    boolean editFile(File file);
-
-    void openFile(File file);
-
-    void onInterrupt(Runnable runnable);
+            public String getName() {
+                return "some name";
+            }
+        }
+        Test test = new Test();
+        assertEquals(test.getId(), ReflectionUtils.getValue(test, "id"));
+        assertEquals(test.getName(), ReflectionUtils.getValue(test, "name"));
+    }
 }

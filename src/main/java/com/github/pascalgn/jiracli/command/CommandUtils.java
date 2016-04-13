@@ -33,6 +33,7 @@ import com.github.pascalgn.jiracli.model.FieldMap;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.Schema;
 import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.util.ReflectionUtils;
 import com.github.pascalgn.jiracli.util.StringUtils;
 
 class CommandUtils {
@@ -40,6 +41,20 @@ class CommandUtils {
 
     private static final Pattern ISSUE_KEY_PATTERN = Pattern.compile("[A-Z][A-Z0-9]*-[0-9]+");
     private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\$\\{([^}]+)\\}|\\$([a-zA-Z]+[a-zA-Z0-9\\.]*)");
+
+    public static String toString(Object object, String pattern, String defaultValue) {
+        StringBuilder str = new StringBuilder();
+        Matcher m = VARIABLE_PATTERN.matcher(pattern);
+        int end = 0;
+        while (m.find()) {
+            str.append(pattern.substring(end, m.start()));
+            end = m.end();
+            String name = (m.group(1) == null ? m.group(2) : m.group(1));
+            str.append(ReflectionUtils.getValue(object, name, defaultValue));
+        }
+        str.append(pattern.substring(end));
+        return str.toString();
+    }
 
     public static String toString(Issue issue, Schema schema, String pattern, String defaultValue) {
         StringBuilder str = new StringBuilder();
@@ -50,20 +65,18 @@ class CommandUtils {
             end = m.end();
 
             String name = (m.group(1) == null ? m.group(2) : m.group(1));
-            Object value = CommandUtils.getFieldValue(issue, schema, name, defaultValue);
+            Object value = getFieldValue(issue, schema, name, defaultValue);
             if (value instanceof JSONArray) {
                 str.append(StringUtils.join((JSONArray) value, ", "));
             } else {
                 str.append(value);
             }
         }
-
         str.append(pattern.substring(end));
-
         return str.toString();
     }
 
-    public static Object getFieldValue(Issue issue, final Schema schema, String name, String defaultValue) {
+    public static Object getFieldValue(Issue issue, Schema schema, String name, String defaultValue) {
         if (name.equalsIgnoreCase("key")) {
             return issue.getKey();
         }
@@ -95,12 +108,16 @@ class CommandUtils {
 
         Object value = field.getValue().get();
         if (subname.isEmpty()) {
-            return value;
+            return (value == null ? defaultValue : value);
         } else {
             if (value instanceof JSONObject) {
                 return getFieldValue((JSONObject) value, subname);
             } else {
-                throw new IllegalArgumentException("Not a Json object: " + fieldNameOrId + ": " + value);
+                if (defaultValue == null) {
+                    throw new IllegalArgumentException("Not a Json object: " + fieldNameOrId + ": " + value);
+                } else {
+                    return defaultValue;
+                }
             }
         }
     }

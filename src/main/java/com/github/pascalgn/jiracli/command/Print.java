@@ -15,6 +15,8 @@
  */
 package com.github.pascalgn.jiracli.command;
 
+import java.util.Iterator;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,6 +29,7 @@ import com.github.pascalgn.jiracli.model.Schema;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.util.Supplier;
 
 @CommandDescription(names = { "print", "p" }, description = "Print the given JIRA issues using the given format")
 class Print implements Command {
@@ -47,20 +50,41 @@ class Print implements Command {
 
     @Override
     public TextList execute(final Context context, Data input) {
-        IssueList issueList = input.toIssueListOrFail();
-        final Schema schema = context.getWebService().getSchema();
-        return new TextList(issueList.convertingSupplier(new Function<Issue, Text>() {
-            @Override
-            public Text apply(Issue issue) {
-                String str;
-                try {
-                    str = CommandUtils.toString(issue, schema, pattern, "");
-                } catch (IllegalArgumentException e) {
-                    LOGGER.trace("Error while reading issue: {}", issue, e);
-                    str = "[Error: " + issue + ": " + e.getLocalizedMessage() + "]";
+        IssueList issueList = input.toIssueList();
+        if (issueList == null) {
+            final Iterator<Data> iterator = input.toIterator();
+            return new TextList(new Supplier<Text>() {
+                @Override
+                public Text get() {
+                    if (iterator.hasNext()) {
+                        Data data = iterator.next();
+                        String str;
+                        try {
+                            str = CommandUtils.toString(data, pattern, "");
+                        } catch (IllegalArgumentException e) {
+                            str = "[Error: " + data + ": " + e.getLocalizedMessage() + "]";
+                        }
+                        return new Text(str);
+                    } else {
+                        return null;
+                    }
                 }
-                return new Text(str);
-            }
-        }));
+            });
+        } else {
+            final Schema schema = context.getWebService().getSchema();
+            return new TextList(issueList.convertingSupplier(new Function<Issue, Text>() {
+                @Override
+                public Text apply(Issue issue) {
+                    String str;
+                    try {
+                        str = CommandUtils.toString(issue, schema, pattern, "");
+                    } catch (IllegalArgumentException e) {
+                        LOGGER.trace("Error while reading issue: {}", issue, e);
+                        str = "[Error: " + issue + ": " + e.getLocalizedMessage() + "]";
+                    }
+                    return new Text(str);
+                }
+            }));
+        }
     }
 }
