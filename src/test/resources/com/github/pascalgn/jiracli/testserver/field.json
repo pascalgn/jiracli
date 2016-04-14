@@ -149,4 +149,16 @@
         "type": "user",
         "system": "assignee"
     }
+}, {
+    "id": "status",
+    "orderable": false,
+    "clauseNames": ["status"],
+    "name": "Status",
+    "navigable": true,
+    "searchable": true,
+    "custom": false,
+    "schema": {
+        "system": "status",
+        "type": "status"
+    }
 }]

@@ -31,7 +31,8 @@ class Links implements Command {
     @Override
     public Data execute(final Context context, Data input) {
         IssueList issueList = input.toIssueListOrFail();
-        return new IssueList(issueList.loadingSupplier(new Function<Issue, Collection<Issue>>() {
+        Set<Hint> hints = IssueHint.fields("issuelinks");
+        return new IssueList(issueList.loadingSupplier(hints, new Function<Issue, Collection<Issue>>() {
             @Override
             public Collection<Issue> apply(Issue issue, Set<Hint> hints) {
                 return context.getWebService().getLinks(issue, IssueHint.getFields(hints));

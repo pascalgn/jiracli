@@ -27,6 +27,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,10 +50,11 @@ class Sort implements Command {
     private static final Logger LOGGER = LoggerFactory.getLogger(Sort.class);
 
     private static final String FORMAT = "$summary";
+    private static final List<String> KEY = Collections.singletonList("key");
 
     @Argument(names = { "-f", "--field" }, parameters = Parameters.ONE_OR_MORE, variable = "<field>",
             description = "issue fields to compare")
-    private List<String> fields = Collections.singletonList("key");
+    private List<String> fields = KEY;
 
     @Argument(names = { "-n", "--numeric" }, description = "compare input using numerical values")
     private boolean numeric;
@@ -96,7 +98,12 @@ class Sort implements Command {
         List<Issue> issues = issueList.remaining(IssueHint.fields(fields));
 
         Schema schema = context.getWebService().getSchema();
-        Collections.sort(issues, new IssueComparator(schema));
+
+        if (fields.equals(KEY)) {
+            Collections.sort(issues, new IssueKeyComparator());
+        } else {
+            Collections.sort(issues, new IssueComparator(schema));
+        }
 
         if (unique) {
             Set<List<String>> set = new HashSet<>();
@@ -158,6 +165,30 @@ class Sort implements Command {
         }
     }
 
+    private static class IssueKeyComparator implements Comparator<Issue> {
+        @Override
+        public int compare(Issue issue1, Issue issue2) {
+            return compareKeys(issue1.getKey(), issue2.getKey());
+        }
+    }
+
+    static int compareKeys(String key1, String key2) {
+        Matcher matcher1 = CommandUtils.getKeyPattern().matcher(key1);
+        Matcher matcher2 = CommandUtils.getKeyPattern().matcher(key2);
+        if (matcher1.matches() && matcher2.matches()) {
+            int strCompare = matcher1.group(1).compareTo(matcher2.group(1));
+            if (strCompare == 0) {
+                int id1 = Integer.parseInt(matcher1.group(2));
+                int id2 = Integer.parseInt(matcher2.group(2));
+                return Integer.compare(id1, id2);
+            } else {
+                return strCompare;
+            }
+        } else {
+            return key1.compareTo(key2);
+        }
+    }
+
     private class IssueComparator implements Comparator<Issue> {
         private final Schema schema;
 
@@ -172,7 +203,12 @@ class Sort implements Command {
             for (int i = 0; i < fields.size(); i++) {
                 String value1 = values1.get(i);
                 String value2 = values2.get(i);
-                int compare = Sort.this.compare(value1, value2);
+                int compare;
+                if (fields.get(i).equals("key")) {
+                    compare = compareKeys(value1, value2);
+                } else {
+                    compare = Sort.this.compare(value1, value2);
+                }
                 if (compare != 0) {
                     return compare;
                 }

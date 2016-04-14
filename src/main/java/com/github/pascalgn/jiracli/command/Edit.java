@@ -20,6 +20,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -78,7 +79,7 @@ class Edit implements Command {
     }
 
     private Data editIssues(Context context, File file, IssueList issueList) throws IOException {
-        List<Issue> issues = issueList.remaining(IssueHint.editableFields());
+        List<Issue> issues = issueList.remaining(Collections.<Hint> singleton(IssueHint.editableFields()));
 
         Schema schema = context.getWebService().getSchema();
 

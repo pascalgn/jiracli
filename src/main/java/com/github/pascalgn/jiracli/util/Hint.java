@@ -46,4 +46,17 @@ public abstract class Hint {
             return hints;
         }
     }
+
+    /**
+     * Returns a combination of the given hints
+     */
+    public static Set<Hint> combine(Set<Hint> hints, Hint hint) {
+        if (hints.isEmpty()) {
+            return Collections.singleton(hint);
+        } else {
+            Set<Hint> result = new HashSet<>(hints);
+            result.add(hint);
+            return result;
+        }
+    }
 }

@@ -40,7 +40,7 @@ import com.github.pascalgn.jiracli.util.StringUtils;
 class CommandUtils {
     private static final Logger LOGGER = LoggerFactory.getLogger(CommandUtils.class);
 
-    private static final Pattern ISSUE_KEY_PATTERN = Pattern.compile("[A-Z][A-Z0-9]*-[0-9]+");
+    private static final Pattern ISSUE_KEY_PATTERN = Pattern.compile("([A-Z][A-Z0-9]*)-([0-9]+)");
     private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\$\\{([^}]+)\\}|\\$([a-zA-Z]+[a-zA-Z0-9\\.]*)");
 
     public static List<String> getFields(String pattern) {
@@ -149,6 +149,10 @@ class CommandUtils {
                 throw new IllegalArgumentException("Name '" + name + "' not found: " + json.toString(2));
             }
         }
+    }
+
+    public static Pattern getKeyPattern() {
+        return ISSUE_KEY_PATTERN;
     }
 
     public static boolean isIssue(String str) {

@@ -32,7 +32,7 @@ class Epics implements Command {
     @Override
     public Data execute(final Context context, Data input) {
         BoardList boardList = input.toBoardListOrFail();
-        return new IssueList(boardList.loadingSupplier(new Function<Board, Collection<Issue>>() {
+        return new IssueList(boardList.loadingSupplier(Hint.none(), new Function<Board, Collection<Issue>>() {
             @Override
             public Collection<Issue> apply(Board board, Set<Hint> hints) {
                 return context.getWebService().getEpics(board);

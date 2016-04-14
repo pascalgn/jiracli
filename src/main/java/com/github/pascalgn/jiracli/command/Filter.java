@@ -76,9 +76,8 @@ class Filter implements Command {
             return new TextList(new Supplier<Text>() {
                 @Override
                 public Text get(Set<Hint> hints) {
-                    Set<Hint> combined = Hint.combine(hints, IssueHint.fields(field));
                     Text text;
-                    while ((text = textList.next(combined)) != null) {
+                    while ((text = textList.next(hints)) != null) {
                         String str = text.getText();
                         if (pattern.matcher(str).find()) {
                             return text;

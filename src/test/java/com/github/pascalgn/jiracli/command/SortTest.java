@@ -75,4 +75,19 @@ public class SortTest {
 
         return resultList;
     }
+
+    @Test
+    public void test2a() throws Exception {
+        assertEquals(-1, Sort.compareKeys("A-2", "A-10"));
+    }
+
+    @Test
+    public void test2b() throws Exception {
+        assertEquals(1, Sort.compareKeys("A-10", "A-2"));
+    }
+
+    @Test
+    public void test2c() throws Exception {
+        assertEquals(1, Sort.compareKeys("B-2", "A-10"));
+    }
 }

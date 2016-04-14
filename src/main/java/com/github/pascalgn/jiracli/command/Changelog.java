@@ -20,6 +20,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
@@ -33,6 +34,7 @@ import com.github.pascalgn.jiracli.model.Change;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.FieldMap;
 import com.github.pascalgn.jiracli.model.Issue;
+import com.github.pascalgn.jiracli.model.IssueHint;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.util.Function;
@@ -54,7 +56,8 @@ class Changelog implements Command {
     @Override
     public Data execute(final Context context, Data input) {
         final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd, HH:mm:ss");
-        return new TextList(input.toIssueListOrFail().loadingSupplier(new Function<Issue, Collection<Text>>() {
+        Set<Hint> hints = Collections.<Hint> singleton(IssueHint.changelog());
+        return new TextList(input.toIssueListOrFail().loadingSupplier(hints, new Function<Issue, Collection<Text>>() {
             @Override
             public Collection<Text> apply(Issue issue, Set<Hint> hints) {
                 List<Text> texts = new ArrayList<>();

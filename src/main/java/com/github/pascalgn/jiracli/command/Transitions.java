@@ -53,7 +53,7 @@ class Transitions implements Command {
     public Data execute(final Context context, Data input) {
         IssueList issueList = input.toIssueListOrFail();
         if (status == null) {
-            return new TextList(issueList.loadingSupplier(new Function<Issue, Collection<Text>>() {
+            return new TextList(issueList.loadingSupplier(Hint.none(), new Function<Issue, Collection<Text>>() {
                 @Override
                 public Collection<Text> apply(Issue issue, Set<Hint> hints) {
                     return listAllTransitions(context, issue);

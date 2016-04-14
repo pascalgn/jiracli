@@ -15,19 +15,21 @@
  */
 package com.github.pascalgn.jiracli.command;
 
+import java.util.Collections;
 import java.util.Iterator;
 
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.IssueHint;
 import com.github.pascalgn.jiracli.model.Text;
+import com.github.pascalgn.jiracli.util.Hint;
 
 @CommandDescription(names = "count", description = "Count the given items")
 class Count implements Command {
     @Override
     public Text execute(final Context context, Data input) {
         int count = 0;
-        Iterator<Data> it = input.toIterator(IssueHint.count());
+        Iterator<Data> it = input.toIterator(Collections.<Hint> singleton(IssueHint.count()));
         while (it.hasNext()) {
             it.next();
             ++count;

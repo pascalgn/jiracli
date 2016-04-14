@@ -84,7 +84,7 @@ abstract class List<T extends Data> extends Data {
 
     public abstract List<T> filteredList(Filter<T> filter);
 
-    public <R> Supplier<R> convertingSupplier(final Function<T, R> function) {
+    public <R> Supplier<R> convertingSupplier(Function<T, R> function) {
         return convertingSupplier(Hint.none(), function);
     }
 
@@ -99,16 +99,21 @@ abstract class List<T extends Data> extends Data {
         };
     }
 
-    public <R> Supplier<R> loadingSupplier(final Function<T, Collection<R>> function) {
+    public <R> Supplier<R> loadingSupplier(Function<T, Collection<R>> function) {
+        return loadingSupplier(Hint.none(), function);
+    }
+
+    public <R> Supplier<R> loadingSupplier(final Set<Hint> hints, final Function<T, Collection<R>> function) {
         return new Supplier<R>() {
             private Iterator<R> iterator;
 
             @Override
-            public R get(Set<Hint> hints) {
+            public R get(Set<Hint> localHints) {
                 if (iterator == null || !iterator.hasNext()) {
-                    T next = next(hints);
+                    Set<Hint> combined = Hint.combine(hints, localHints);
+                    T next = next(combined);
                     if (next != null) {
-                        Collection<R> collection = function.apply(next, hints);
+                        Collection<R> collection = function.apply(next, combined);
                         iterator = collection.iterator();
                     }
                 }

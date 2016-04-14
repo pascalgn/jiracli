@@ -23,6 +23,7 @@ import com.github.pascalgn.jiracli.model.Attachment;
 import com.github.pascalgn.jiracli.model.AttachmentList;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
+import com.github.pascalgn.jiracli.model.IssueHint;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.Hint;
@@ -32,7 +33,8 @@ class Attachments implements Command {
     @Override
     public AttachmentList execute(final Context context, Data input) {
         IssueList issueList = input.toIssueListOrFail();
-        return new AttachmentList(issueList.loadingSupplier(new Function<Issue, Collection<Attachment>>() {
+        Set<Hint> hints = IssueHint.fields("attachment");
+        return new AttachmentList(issueList.loadingSupplier(hints, new Function<Issue, Collection<Attachment>>() {
             @Override
             public Collection<Attachment> apply(Issue issue, Set<Hint> hints) {
                 return context.getWebService().getAttachments(issue);

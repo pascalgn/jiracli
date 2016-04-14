@@ -84,6 +84,7 @@ public class DefaultWebService implements WebService {
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultWebService.class);
 
     private static final List<String> INITIAL_FIELDS = Arrays.asList("issuetype", "summary", "status");
+    private static final List<String> ALL_FIELDS = Collections.singletonList("*");
 
     private static final Function<Reader, JSONObject> TO_OBJECT = new Function<Reader, JSONObject>() {
         @Override
@@ -100,12 +101,12 @@ public class DefaultWebService implements WebService {
     };
 
     private final HttpClient httpClient;
-    private final DefaultWebServiceCache cache;
+    private final CacheImpl cache;
     private final Schema schema;
 
     public DefaultWebService(Console console) {
         this.httpClient = createHttpClient(console);
-        this.cache = new DefaultWebServiceCache();
+        this.cache = new CacheImpl();
         this.schema = new CachedSchema();
     }
 
@@ -148,7 +149,7 @@ public class DefaultWebService implements WebService {
         return schema;
     }
 
-    private Issue getIssue(String key, JSONObject fields) {
+    private Issue toIssue(String key, JSONObject fields) {
         LoadingFieldMap fieldMap = new LoadingFieldMap();
         final Issue issue = new Issue(key, fieldMap);
         if (fields != null) {
@@ -164,8 +165,10 @@ public class DefaultWebService implements WebService {
             public List<Field> get(Set<Hint> hints) {
                 // ignore hints, we will fetch all fields at once, even if only one field is requested,
                 // because it's cheaper than doing multiple requests for multiple fields
-                JSONObject response = DefaultWebService.this.get("/rest/api/latest/issue/" + issue, TO_OBJECT);
+                String path = "/rest/api/latest/issue/" + issue.getKey();
+                JSONObject response = DefaultWebService.this.get(path, "", ALL_FIELDS);
                 JSONObject all = response.getJSONObject("fields");
+                cacheFields(issue.getKey(), all);
                 cacheIssueLinks(all);
                 return toFields(issue, all);
             }
@@ -179,7 +182,7 @@ public class DefaultWebService implements WebService {
             public Issue apply(JSONObject obj, Set<Hint> hints) {
                 String key = obj.getString("key");
                 JSONObject fields = obj.optJSONObject("fields");
-                return getIssue(key, fields);
+                return toIssue(key, fields);
             }
         };
     }
@@ -189,11 +192,7 @@ public class DefaultWebService implements WebService {
         if (cached == null) {
             cache.putFields(key, fields);
         } else {
-            for (String id : fields.keySet()) {
-                if (!cached.has(id)) {
-                    cached.put(id, fields.get(id));
-                }
-            }
+            mergeEntries(fields, cached);
         }
     }
 
@@ -234,20 +233,18 @@ public class DefaultWebService implements WebService {
     }
 
     @Override
-    public List<Issue> getIssues(List<String> keys, Collection<String> initialFields) {
+    public List<Issue> getIssues(List<String> keys, Collection<String> fields) {
         if (keys.isEmpty()) {
             return Collections.emptyList();
         } else if (keys.size() == 1) {
             String key = keys.get(0);
-            JSONObject fields = cache.getFields(key);
-            if (fields == null) {
-                List<Issue> result = loadIssues(keys, initialFields);
-                if (result.isEmpty()) {
-                    throw new IllegalArgumentException("Issue not found: " + key);
-                }
-                return result;
+            JSONObject fieldJson = cache.getFields(key);
+            if (fieldJson == null) {
+                // ignore initialFields, loadIssue will fetch all fields
+                Issue issue = loadIssue(key);
+                return Collections.singletonList(issue);
             } else {
-                Issue issue = getIssue(key, fields);
+                Issue issue = toIssue(key, fieldJson);
                 return Collections.singletonList(issue);
             }
         } else {
@@ -259,9 +256,15 @@ public class DefaultWebService implements WebService {
             Iterator<String> it = resolve.iterator();
             while (it.hasNext()) {
                 String key = it.next();
-                JSONObject fields = cache.getFields(key);
-                if (fields != null) {
-                    Issue issue = getIssue(key, fields);
+                JSONObject fieldJson = cache.getFields(key);
+                for (String field : fields) {
+                    if (!fieldJson.has(field)) {
+                        // we should fetch this issue again, to get the missing field(s)
+                        fieldJson = null;
+                    }
+                }
+                if (fieldJson != null) {
+                    Issue issue = toIssue(key, fieldJson);
                     resolved.put(key, issue);
                     it.remove();
                 }
@@ -275,7 +278,7 @@ public class DefaultWebService implements WebService {
             List<Issue> result = new ArrayList<Issue>();
 
             // key order doesn't matter when searching but improves caching:
-            List<Issue> searchResults = loadIssues(new TreeSet<String>(resolve), initialFields);
+            List<Issue> searchResults = loadIssues(new TreeSet<String>(resolve), fields);
 
             // return the search results in the order the keys were given:
             Set<String> set = new LinkedHashSet<String>(keys);
@@ -299,17 +302,22 @@ public class DefaultWebService implements WebService {
         }
     }
 
-    private List<Issue> loadIssues(Collection<String> keys, Collection<String> initialFields) {
+    private List<Issue> loadIssues(Collection<String> keys, Collection<String> fields) {
         if (keys.isEmpty()) {
             return Collections.emptyList();
         } else if (keys.size() == 1) {
             String key = keys.iterator().next();
-            JSONObject result = get("/rest/api/latest/issue/" + key, TO_OBJECT);
-            JSONObject fields = result.getJSONObject("fields");
-            return Collections.singletonList(getIssue(key, fields));
+            return Collections.singletonList(loadIssue(key));
         } else {
-            return searchIssues("key IN (" + StringUtils.join(keys, ",") + ")", initialFields);
+            return searchIssues("key IN (" + StringUtils.join(keys, ",") + ")", fields);
         }
+    }
+
+    private Issue loadIssue(String key) {
+        // fetch all fields when requesting a single issue
+        JSONObject result = get("/rest/api/latest/issue/" + key, "", ALL_FIELDS);
+        JSONObject fields = result.getJSONObject("fields");
+        return toIssue(key, fields);
     }
 
     @Override
@@ -319,7 +327,7 @@ public class DefaultWebService implements WebService {
 
     @Override
     public Collection<Field> getEditableFields(Issue issue) {
-        JSONObject response = get("/rest/api/latest/issue/" + issue + "/editmeta", TO_OBJECT);
+        JSONObject response = get("/rest/api/latest/issue/" + issue.getKey() + "/editmeta", TO_OBJECT);
         JSONObject json = response.getJSONObject("fields");
         List<Field> editableFields = new ArrayList<Field>();
         for (String id : json.keySet()) {
@@ -369,7 +377,7 @@ public class DefaultWebService implements WebService {
                     if (linked != null) {
                         String key = linked.getString("key");
                         JSONObject fields = linked.optJSONObject("fields");
-                        links.add(getIssue(key, fields));
+                        links.add(toIssue(key, fields));
                     }
                 }
                 return links;
@@ -380,8 +388,8 @@ public class DefaultWebService implements WebService {
 
     @Override
     public List<Issue> searchIssues(String jql, Collection<String> fields) {
-        String path = "/rest/api/latest/search?jql=" + urlEncode(jql.trim()) + "&fields=" + fieldParam(fields);
-        return new PaginationList<Issue>(path, "issues", toIssue());
+        String path = "/rest/api/latest/search?jql=" + urlEncode(jql.trim());
+        return new IssueList(path, "issues", fields);
     }
 
     @Override
@@ -455,10 +463,8 @@ public class DefaultWebService implements WebService {
 
     @Override
     public List<Change> getChanges(Issue issue) {
-        String fields = "creator,created";
-        String path = "/rest/api/latest/issue/" + issue.getKey() + "?fields=" + fields + "&expand=changelog";
-
-        JSONObject issueJson = get(path, TO_OBJECT);
+        String path = "/rest/api/latest/issue/" + issue.getKey() + "?expand=changelog";
+        JSONObject issueJson = get(path, "", Arrays.asList("creator", "created"));
         cacheFields(issueJson.getString("key"), issueJson.getJSONObject("fields"));
 
         DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
@@ -796,14 +802,14 @@ public class DefaultWebService implements WebService {
 
     @Override
     public List<Issue> getIssues(Board board, Collection<String> fields) {
-        String path = "/rest/agile/latest/board/" + board.getId() + "/issue?fields=" + fieldParam(fields);
-        return new PaginationList<Issue>(path, "issues", toIssue());
+        String path = "/rest/agile/latest/board/" + board.getId() + "/issue";
+        return new IssueList(path, "issues", fields);
     }
 
     @Override
     public List<Issue> getEpics(Board board) {
         String path = "/rest/agile/latest/board/" + board.getId() + "/epic";
-        return new PaginationList<Issue>(path, "values", toIssue());
+        return new IssueList(path, "values", INITIAL_FIELDS);
     }
 
     @Override
@@ -849,8 +855,8 @@ public class DefaultWebService implements WebService {
 
     @Override
     public List<Issue> getIssues(Sprint sprint, Collection<String> fields) {
-        String path = "/rest/agile/latest/sprint/" + sprint.getId() + "/issue?fields=" + fieldParam(fields);
-        return new PaginationList<Issue>(path, "issues", toIssue());
+        String path = "/rest/agile/latest/sprint/" + sprint.getId() + "/issue";
+        return new IssueList(path, "issues", fields);
     }
 
     @Override
@@ -889,9 +895,73 @@ public class DefaultWebService implements WebService {
         return getIssues(keys, Collections.<String> emptyList());
     }
 
+    private static String urlEncode(String str) {
+        try {
+            return URLEncoder.encode(str, "UTF-8").replace("+", "%20");
+        } catch (UnsupportedEncodingException e) {
+            throw new IllegalStateException("Unsupported encoding!", e);
+        }
+    }
+
+    private synchronized JSONObject get(String path, String issuesField, Collection<String> fields) {
+        String p = addParam(path, "fields", fieldParam(fields));
+        String cached = cache.getResponse(p);
+        if (cached == null) {
+            // find a cached response for any fields:
+            JSONObject cachedJson = cache.getIssues(path);
+            if (cachedJson != null) {
+                Object issues = (issuesField.isEmpty() ? cachedJson : cachedJson.get(issuesField));
+                boolean allFieldsCached;
+                if (issues instanceof JSONObject) {
+                    allFieldsCached = hasFields(((JSONObject) issues).getJSONObject("fields"), fields);
+                } else if (issues instanceof JSONArray) {
+                    allFieldsCached = true;
+                    for (Object item : (JSONArray) issues) {
+                        JSONObject fieldsJson = ((JSONObject) item).getJSONObject("fields");
+                        if (!hasFields(fieldsJson, fields)) {
+                            allFieldsCached = false;
+                            break;
+                        }
+                    }
+                } else {
+                    throw new IllegalStateException("Invalid cached value: " + path + ": " + issues);
+                }
+                if (allFieldsCached) {
+                    // cached response is valid, just use it
+                    return cachedJson;
+                }
+            }
+            JSONObject result = get(p, TO_OBJECT);
+            if (cachedJson == null) {
+                cache.putIssues(path, result);
+            } else {
+                // merge the missing fields with the fields of the cache entry:
+                Object source = (issuesField.isEmpty() ? result : result.get(issuesField));
+                Object target = (issuesField.isEmpty() ? cachedJson : cachedJson.get(issuesField));
+                if (source instanceof JSONObject) {
+                    mergeFields((JSONObject) source, target);
+                } else if (source instanceof JSONArray) {
+                    for (Object obj : (JSONArray) source) {
+                        JSONObject json = (JSONObject) obj;
+                        mergeFields(json, target);
+                    }
+                } else {
+                    throw new IllegalStateException("Invalid response: " + p + ": " + source);
+                }
+            }
+            return result;
+        } else {
+            try (StringReader reader = new StringReader(cached)) {
+                return TO_OBJECT.apply(reader, Hint.none());
+            }
+        }
+    }
+
     private String fieldParam(Collection<String> fields) {
         if (fields.isEmpty()) {
             return StringUtils.join(INITIAL_FIELDS, ",");
+        } else if (fields.equals(ALL_FIELDS)) {
+            return "*all";
         } else {
             Set<String> all = new TreeSet<>(INITIAL_FIELDS);
             all.addAll(fields);
@@ -909,11 +979,39 @@ public class DefaultWebService implements WebService {
         }
     }
 
-    private static String urlEncode(String str) {
-        try {
-            return URLEncoder.encode(str, "UTF-8").replace("+", "%20");
-        } catch (UnsupportedEncodingException e) {
-            throw new IllegalStateException("Unsupported encoding!", e);
+    private static boolean hasFields(JSONObject json, Collection<String> fields) {
+        for (String field : fields) {
+            if (!json.has(field)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static void mergeFields(JSONObject source, Object target) {
+        JSONObject sourceFields = source.getJSONObject("fields");
+        if (target instanceof JSONObject) {
+            JSONObject targetFields = ((JSONObject) target).getJSONObject("fields");
+            mergeEntries(sourceFields, targetFields);
+        } else if (target instanceof JSONArray) {
+            String sourceKey = source.getString("key");
+            for (Object targetIssueObj : (JSONArray) target) {
+                JSONObject targetIssue = (JSONObject) targetIssueObj;
+                if (sourceKey.equals(targetIssue.get("key"))) {
+                    JSONObject targetFields = targetIssue.getJSONObject("fields");
+                    mergeEntries(sourceFields, targetFields);
+                }
+            }
+        } else {
+            throw new IllegalStateException("Invalid object: " + target);
+        }
+    }
+
+    private static void mergeEntries(JSONObject source, JSONObject target) {
+        for (String key : source.keySet()) {
+            if (!target.has(key)) {
+                target.put(key, source.get(key));
+            }
         }
     }
 
@@ -968,6 +1066,20 @@ public class DefaultWebService implements WebService {
         }
     }
 
+    private class IssueList extends PaginationList<Issue> {
+        private final Collection<String> fields;
+
+        public IssueList(String path, String field, Collection<String> fields) {
+            super(path, field, toIssue());
+            this.fields = fields;
+        }
+
+        @Override
+        protected JSONObject fetch(String path) {
+            return DefaultWebService.this.get(path, getField(), fields);
+        }
+    }
+
     private class PaginationList<E> extends AbstractList<E> {
         private final List<E> fetched;
 
@@ -985,6 +1097,10 @@ public class DefaultWebService implements WebService {
             this.function = function;
             this.fetched = new ArrayList<E>();
             this.size = -1;
+        }
+
+        protected String getField() {
+            return field;
         }
 
         @Override
@@ -1034,9 +1150,9 @@ public class DefaultWebService implements WebService {
             }
             String p = path;
             if (!fetched.isEmpty()) {
-                p += (p.contains("?") ? "&" : "?") + "startAt=" + fetched.size();
+                p = addParam(p, "startAt", fetched.size());
             }
-            JSONObject object = DefaultWebService.this.get(p, TO_OBJECT);
+            JSONObject object = fetch(p);
             JSONArray values = object.getJSONArray(field);
             for (Object obj : values) {
                 JSONObject json = (JSONObject) obj;
@@ -1062,6 +1178,14 @@ public class DefaultWebService implements WebService {
                 }
             }
         }
+
+        protected JSONObject fetch(String path) {
+            return DefaultWebService.this.get(path, TO_OBJECT);
+        }
+    }
+
+    private static String addParam(String path, String parameter, Object value) {
+        return path + (path.contains("?") ? "&" : "?") + parameter + "=" + value;
     }
 
     private class CachedSchema implements Schema {
@@ -1081,7 +1205,7 @@ public class DefaultWebService implements WebService {
                     return entry.getKey();
                 }
             }
-            throw new IllegalArgumentException("Unknown field ID: " + field);
+            throw new IllegalArgumentException("Unknown field: " + field);
         }
 
         @Override

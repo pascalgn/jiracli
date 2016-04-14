@@ -16,6 +16,7 @@
 package com.github.pascalgn.jiracli.command;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Set;
 
 import com.github.pascalgn.jiracli.context.Context;
@@ -23,6 +24,7 @@ import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Field;
 import com.github.pascalgn.jiracli.model.FieldList;
 import com.github.pascalgn.jiracli.model.Issue;
+import com.github.pascalgn.jiracli.model.IssueHint;
 import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.Hint;
 
@@ -33,7 +35,8 @@ class Fields implements Command {
 
     @Override
     public FieldList execute(Context context, Data input) {
-        return new FieldList(input.toIssueListOrFail().loadingSupplier(new Function<Issue, Collection<Field>>() {
+        Set<Hint> h = (all ? Collections.<Hint> singleton(IssueHint.allFields()) : Hint.none());
+        return new FieldList(input.toIssueListOrFail().loadingSupplier(h, new Function<Issue, Collection<Field>>() {
             @Override
             public Collection<Field> apply(Issue issue, Set<Hint> hints) {
                 if (all) {

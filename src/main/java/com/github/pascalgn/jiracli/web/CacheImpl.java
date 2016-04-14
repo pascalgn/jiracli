@@ -16,37 +16,26 @@
 package com.github.pascalgn.jiracli.web;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.json.JSONObject;
 
 import com.github.pascalgn.jiracli.context.WebService.Cache;
 import com.github.pascalgn.jiracli.model.Workflow;
 
-class DefaultWebServiceCache implements Cache {
-    private final Map<String, IssueListResult> issueListCache;
+class CacheImpl implements Cache {
     private final Map<String, String> responseCache;
+    private final Map<String, JSONObject> issueListCache;
     private final Map<String, JSONObject> fieldCache;
     private final Map<String, Workflow> workflowCache;
+    private Map<String, FieldInfo> fieldInfoCache;
 
-    private Map<String, FieldInfo> fieldInfos;
-
-    public DefaultWebServiceCache() {
-        this.issueListCache = new HashMap<>();
+    public CacheImpl() {
         this.responseCache = new HashMap<>();
+        this.issueListCache = new HashMap<>();
         this.fieldCache = new HashMap<>();
         this.workflowCache = new HashMap<>();
-    }
-
-    public List<JSONObject> getIssues(String path) {
-        IssueListResult result = issueListCache.get(path);
-        return (result == null ? null : result.issues);
-    }
-
-    public void putIssues(String path, List<JSONObject> issues) {
-        issueListCache.put(path, new IssueListResult(null, issues));
+        this.fieldInfoCache = null;
     }
 
     public String getResponse(String path) {
@@ -55,6 +44,14 @@ class DefaultWebServiceCache implements Cache {
 
     public void putResponse(String path, String response) {
         responseCache.put(path, response);
+    }
+
+    public JSONObject getIssues(String path) {
+        return issueListCache.get(path);
+    }
+
+    public void putIssues(String path, JSONObject issues) {
+        issueListCache.put(path, issues);
     }
 
     public JSONObject getFields(String key) {
@@ -74,28 +71,19 @@ class DefaultWebServiceCache implements Cache {
     }
 
     public Map<String, FieldInfo> getFieldInfos() {
-        return fieldInfos;
+        return fieldInfoCache;
     }
 
     public void setFieldInfos(Map<String, FieldInfo> fieldInfos) {
-        this.fieldInfos = fieldInfos;
+        this.fieldInfoCache = fieldInfos;
     }
 
     @Override
     public void clear() {
         responseCache.clear();
+        issueListCache.clear();
         fieldCache.clear();
         workflowCache.clear();
-        fieldInfos = null;
-    }
-
-    private static class IssueListResult {
-        public final Set<String> fields;
-        public final List<JSONObject> issues;
-
-        public IssueListResult(Set<String> fields, List<JSONObject> issues) {
-            this.fields = fields;
-            this.issues = issues;
-        }
+        fieldInfoCache = null;
     }
 }
