@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.pascalgn.jiracli.context;
+package com.github.pascalgn.jiracli.web;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -50,7 +50,8 @@ import org.json.JSONTokener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.pascalgn.jiracli.context.HttpClient.NotAuthenticatedException;
+import com.github.pascalgn.jiracli.context.Console;
+import com.github.pascalgn.jiracli.context.WebService;
 import com.github.pascalgn.jiracli.model.Attachment;
 import com.github.pascalgn.jiracli.model.Board;
 import com.github.pascalgn.jiracli.model.Board.Type;
@@ -77,6 +78,7 @@ import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.LoadingList;
 import com.github.pascalgn.jiracli.util.StringUtils;
 import com.github.pascalgn.jiracli.util.Supplier;
+import com.github.pascalgn.jiracli.web.HttpClient.NotAuthenticatedException;
 
 public class DefaultWebService implements WebService {
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultWebService.class);

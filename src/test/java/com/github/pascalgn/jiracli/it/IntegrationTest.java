@@ -28,10 +28,10 @@ import com.github.pascalgn.jiracli.context.Console;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.context.DefaultContext;
 import com.github.pascalgn.jiracli.context.DefaultJavaScriptEngine;
-import com.github.pascalgn.jiracli.context.DefaultWebService;
 import com.github.pascalgn.jiracli.context.JavaScriptEngine;
 import com.github.pascalgn.jiracli.context.WebService;
 import com.github.pascalgn.jiracli.testutil.MockConsole;
+import com.github.pascalgn.jiracli.web.DefaultWebService;
 
 public class IntegrationTest {
     @Rule

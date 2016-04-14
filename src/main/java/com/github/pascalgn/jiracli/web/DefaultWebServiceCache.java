@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.pascalgn.jiracli.context;
+package com.github.pascalgn.jiracli.web;
 
 import java.util.HashMap;
 import java.util.List;
@@ -22,9 +22,10 @@ import java.util.Set;
 
 import org.json.JSONObject;
 
+import com.github.pascalgn.jiracli.context.WebService.Cache;
 import com.github.pascalgn.jiracli.model.Workflow;
 
-class DefaultWebServiceCache implements WebService.Cache {
+class DefaultWebServiceCache implements Cache {
     private final Map<String, IssueListResult> issueListCache;
     private final Map<String, String> responseCache;
     private final Map<String, JSONObject> fieldCache;

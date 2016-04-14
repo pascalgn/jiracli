@@ -38,10 +38,10 @@ import com.github.pascalgn.jiracli.context.DefaultConfiguration;
 import com.github.pascalgn.jiracli.context.DefaultConsole;
 import com.github.pascalgn.jiracli.context.DefaultContext;
 import com.github.pascalgn.jiracli.context.DefaultJavaScriptEngine;
-import com.github.pascalgn.jiracli.context.DefaultWebService;
 import com.github.pascalgn.jiracli.context.JavaScriptEngine;
 import com.github.pascalgn.jiracli.context.WebService;
 import com.github.pascalgn.jiracli.gui.ConsoleWindow;
+import com.github.pascalgn.jiracli.web.DefaultWebService;
 
 /**
  * Main class
