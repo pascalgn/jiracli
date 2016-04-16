@@ -15,30 +15,41 @@
  */
 package com.github.pascalgn.jiracli.gui;
 
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
 
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 import javax.swing.KeyStroke;
+
+import com.github.pascalgn.jiracli.util.Runnables;
 
 class ContextMenu extends JPopupMenu {
     private static final long serialVersionUID = 7288490759713985256L;
 
     private Runnable newWindowListener;
 
+    private Runnable increaseZoomListener;
+    private Runnable decreaseZoomListener;
+    private Runnable resetZoomListener;
+
     public ContextMenu() {
-        newWindowListener = new Runnable() {
-            @Override
-            public void run() {
-            }
-        };
+        newWindowListener = Runnables.empty();
+        increaseZoomListener = Runnables.empty();
+        decreaseZoomListener = Runnables.empty();
+        resetZoomListener = Runnables.empty();
         initComponents();
     }
 
     private void initComponents() {
+        int shortcut = Toolkit.getDefaultToolkit().getMenuShortcutKeyMask();
+        String modifier = (shortcut == InputEvent.META_MASK ? "meta" : "control");
+
         JMenuItem newWindow = new JMenuItem("New window");
-        newWindow.setAccelerator(KeyStroke.getKeyStroke("control N"));
+        newWindow.setAccelerator(KeyStroke.getKeyStroke(modifier + " N"));
         newWindow.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -46,9 +57,53 @@ class ContextMenu extends JPopupMenu {
             }
         });
         add(newWindow);
+
+        addSeparator();
+
+        JMenuItem increaseZoom = new JMenuItem("Increase font size");
+        increaseZoom.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_PLUS, shortcut));
+        increaseZoom.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                increaseZoomListener.run();
+            }
+        });
+        add(increaseZoom);
+
+        JMenuItem decreaseZoom = new JMenuItem("Decrease font size");
+        decreaseZoom.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_MINUS, shortcut));
+        decreaseZoom.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                decreaseZoomListener.run();
+            }
+        });
+        add(decreaseZoom);
+
+        JMenuItem resetZoom = new JMenuItem("Reset font size");
+        resetZoom.setAccelerator(KeyStroke.getKeyStroke(modifier + " 0"));
+        resetZoom.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                resetZoomListener.run();
+            }
+        });
+        add(resetZoom);
     }
 
     public void setNewWindowListener(Runnable newWindowListener) {
         this.newWindowListener = newWindowListener;
+    }
+
+    public void setIncreaseZoomListener(Runnable increaseZoomListener) {
+        this.increaseZoomListener = increaseZoomListener;
+    }
+
+    public void setDecreaseZoomListener(Runnable decreaseZoomListener) {
+        this.decreaseZoomListener = decreaseZoomListener;
+    }
+
+    public void setResetZoomListener(Runnable resetZoomListener) {
+        this.resetZoomListener = resetZoomListener;
     }
 }

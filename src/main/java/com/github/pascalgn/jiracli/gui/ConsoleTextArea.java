@@ -17,7 +17,9 @@ package com.github.pascalgn.jiracli.gui;
 
 import java.awt.EventQueue;
 import java.awt.Font;
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseWheelEvent;
 import java.util.ArrayList;
@@ -46,6 +48,7 @@ import org.slf4j.LoggerFactory;
 import com.github.pascalgn.jiracli.Constants;
 import com.github.pascalgn.jiracli.command.CommandFactory;
 import com.github.pascalgn.jiracli.util.InterruptedError;
+import com.github.pascalgn.jiracli.util.Runnables;
 
 class ConsoleTextArea extends JTextArea {
     private static final long serialVersionUID = -8193770562227282747L;
@@ -55,6 +58,8 @@ class ConsoleTextArea extends JTextArea {
     private static final String FONT_SIZE = "fontSize";
     private static final int MIN_FONT_SIZE = 6;
     private static final int MAX_FONT_SIZE = 72;
+
+    private static final int SCROLL_THRESHOLD = 10;
 
     private static final Object EOF = new Object();
     private static final Object INTERRUPT = new Object();
@@ -66,7 +71,10 @@ class ConsoleTextArea extends JTextArea {
 
     private final Preferences preferences;
 
+    private final int defaultFontSize;
+
     private transient Runnable interruptListener;
+    private transient Runnable newWindowListener;
 
     private transient Integer editStart;
 
@@ -87,7 +95,40 @@ class ConsoleTextArea extends JTextArea {
         contextMenu = new ContextMenu();
         preferences = Constants.getPreferences();
 
-        int size = normalize(preferences.getInt(FONT_SIZE, getFont().getSize()));
+        interruptListener = Runnables.empty();
+        newWindowListener = Runnables.empty();
+
+        contextMenu.setNewWindowListener(new Runnable() {
+            @Override
+            public void run() {
+                newWindowListener.run();
+            }
+        });
+
+        contextMenu.setIncreaseZoomListener(new Runnable() {
+            @Override
+            public void run() {
+                increaseFontSize();
+            }
+        });
+
+        contextMenu.setDecreaseZoomListener(new Runnable() {
+            @Override
+            public void run() {
+                decreaseFontSize();
+            }
+        });
+
+        contextMenu.setResetZoomListener(new Runnable() {
+            @Override
+            public void run() {
+                resetFontSize();
+            }
+        });
+
+        defaultFontSize = getFont().getSize();
+
+        int size = normalize(preferences.getInt(FONT_SIZE, defaultFontSize));
 
         setCaret(new BlockCaret());
         setFont(new Font(Font.MONOSPACED, 0, size));
@@ -100,10 +141,16 @@ class ConsoleTextArea extends JTextArea {
         Object enterActionKey = getInputMap(JComponent.WHEN_FOCUSED).get(KeyStroke.getKeyStroke("ENTER"));
         getActionMap().put(enterActionKey, new EnterAction());
 
+        int shortcut = Toolkit.getDefaultToolkit().getMenuShortcutKeyMask();
+
         registerAction("escape-action", KeyStroke.getKeyStroke("ESCAPE"), new EscapeAction());
         registerAction("up-action", KeyStroke.getKeyStroke("UP"), new UpAction());
         registerAction("down-action", KeyStroke.getKeyStroke("DOWN"), new DownAction());
         registerAction("tab-action", KeyStroke.getKeyStroke("TAB"), new TabAction());
+
+        registerAction("new-window-action", KeyStroke.getKeyStroke(KeyEvent.VK_N, shortcut), new NewWindowAction());
+
+        // always use control as modifier, even on macOS!
         registerAction("eof-action", KeyStroke.getKeyStroke("control D"), new EofAction());
         registerAction("interrupt-action", KeyStroke.getKeyStroke("control G"), new InterruptAction());
 
@@ -140,7 +187,7 @@ class ConsoleTextArea extends JTextArea {
             scrollBar = null;
         } else {
             JScrollBar sb = scrollPane.getHorizontalScrollBar();
-            if (sb.getValue() == sb.getMaximum()) {
+            if (sb.getValue() + SCROLL_THRESHOLD >= sb.getMaximum()) {
                 scrollBar = sb;
             } else {
                 scrollBar = null;
@@ -209,7 +256,7 @@ class ConsoleTextArea extends JTextArea {
     }
 
     public void setNewWindowListener(Runnable newWindowListener) {
-        contextMenu.setNewWindowListener(newWindowListener);
+        this.newWindowListener = newWindowListener;
     }
 
     public void setInterruptListener(Runnable interruptListener) {
@@ -235,6 +282,25 @@ class ConsoleTextArea extends JTextArea {
             getCaret().setVisible(editable && isFocusOwner());
         }
         super.setEditable(editable);
+    }
+
+    private void increaseFontSize() {
+        setFontSize(getFont().getSize() + 3);
+    }
+
+    private void decreaseFontSize() {
+        setFontSize(getFont().getSize() - 3);
+    }
+
+    private void resetFontSize() {
+        setFontSize(defaultFontSize);
+    }
+
+    private void setFontSize(int newSize) {
+        newSize = normalize(newSize);
+        Font font = getFont();
+        setFont(font.deriveFont((float) newSize));
+        preferences.putInt(FONT_SIZE, newSize);
     }
 
     private class EnterAction extends AbstractAction {
@@ -401,14 +467,20 @@ class ConsoleTextArea extends JTextArea {
                 setEditable(false);
                 input.add(INTERRUPT);
             } else {
-                Runnable listener = interruptListener;
-                if (listener != null) {
-                    Thread t = new Thread(listener);
-                    t.setName("call-interrupt-listener");
-                    t.setDaemon(true);
-                    t.start();
-                }
+                Thread t = new Thread(interruptListener);
+                t.setName("call-interrupt-listener");
+                t.setDaemon(true);
+                t.start();
             }
+        }
+    }
+
+    private class NewWindowAction extends AbstractAction {
+        private static final long serialVersionUID = 2304019690448335147L;
+
+        @Override
+        public void actionPerformed(ActionEvent evt) {
+            newWindowListener.run();
         }
     }
 
@@ -432,13 +504,14 @@ class ConsoleTextArea extends JTextArea {
     private class ZoomListener extends MouseAdapter {
         @Override
         public void mouseWheelMoved(MouseWheelEvent evt) {
-            if (evt.isControlDown() && !evt.isShiftDown() && !evt.isAltDown() && !evt.isAltGraphDown()
-                    && !evt.isMetaDown()) {
-                Font font = getFont();
-                int newSize = font.getSize() + (evt.getWheelRotation() < 0 ? 3 : -3);
-                newSize = normalize(newSize);
-                setFont(font.deriveFont((float) newSize));
-                preferences.putInt(FONT_SIZE, newSize);
+            int shortcut = Toolkit.getDefaultToolkit().getMenuShortcutKeyMask();
+            if ((evt.getModifiers() & shortcut) == shortcut && !evt.isShiftDown() && !evt.isAltDown()
+                    && !evt.isAltGraphDown()) {
+                if (evt.getWheelRotation() < 0) {
+                    increaseFontSize();
+                } else {
+                    decreaseFontSize();
+                }
             } else {
                 evt.getComponent().getParent().dispatchEvent(evt);
             }

@@ -49,6 +49,7 @@ import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Field;
 import com.github.pascalgn.jiracli.model.FieldMap;
 import com.github.pascalgn.jiracli.model.Issue;
+import com.github.pascalgn.jiracli.model.IssueHint;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.None;
 import com.github.pascalgn.jiracli.model.Schema;
@@ -135,7 +136,8 @@ public class DefaultJavaScriptEngine implements JavaScriptEngine {
 
     private Data doEvaluate(String js, IssueList input, List<String> fields) {
         Objects.requireNonNull(input, "Input must not be null!");
-        List<Issue> issues = input.remaining(Hint.none());
+        Set<Hint> hints = (fields == null ? Hint.none() : IssueHint.fields(fields));
+        List<Issue> issues = input.remaining(hints);
         String inputStr = toJsonArray(issues, fields);
         Object inputObj = toJsonObject(inputStr);
         Object resultObj = doEvaluate(js, inputObj);
@@ -195,9 +197,6 @@ public class DefaultJavaScriptEngine implements JavaScriptEngine {
         FieldMap fieldMap = issue.getFieldMap();
         if (fields == null) {
             fieldList = fieldMap.getLoadedFields();
-            if (fieldList.isEmpty()) {
-                fieldList = fieldMap.getFields();
-            }
         } else if (fields.contains(ALL_FIELDS)) {
             fieldList = fieldMap.getFields();
         } else {
