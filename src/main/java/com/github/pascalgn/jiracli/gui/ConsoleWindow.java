@@ -37,6 +37,9 @@ import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.github.pascalgn.jiracli.Constants;
 import com.github.pascalgn.jiracli.context.AbstractConsole;
 import com.github.pascalgn.jiracli.context.Configuration;
@@ -51,12 +54,22 @@ import com.github.pascalgn.jiracli.util.Supplier;
  * Main window of the GUI: Displays the console for input/output
  */
 public class ConsoleWindow extends JFrame {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ConsoleWindow.class);
+
     private static final long serialVersionUID = -6569821157912403607L;
 
     private static final String WIDTH = "width";
     private static final String HEIGHT = "height";
 
     private static final int MIN_SIZE = 200;
+
+    public static void initialize() {
+        try {
+            AppleHelper.initialize();
+        } catch (Throwable t) {
+            LOGGER.debug("Exception while calling AppleHelper.initialize()", t);
+        }
+    }
 
     private final ConsoleTextArea consoleTextArea;
     private final Preferences preferences;

@@ -109,8 +109,8 @@ public class Jiracli {
         Console console = new DefaultConsole(configuration);
 
         final WebService webService = new DefaultWebService(console);
-        JavaScriptEngine javaScriptEngine = new DefaultJavaScriptEngine(console, webService);
-        Context context = new DefaultContext(configuration, console, webService, javaScriptEngine);
+        final JavaScriptEngine javaScriptEngine = new DefaultJavaScriptEngine(console, webService);
+        final Context context = new DefaultContext(configuration, console, webService, javaScriptEngine);
 
         context.onClose(new Runnable() {
             @Override
@@ -123,10 +123,19 @@ public class Jiracli {
             }
         });
 
+        Shutdown.addShutdownHook(new Runnable() {
+            @Override
+            public void run() {
+                context.close();
+            }
+        });
+
         new Shell(context).start();
     }
 
     private static void startGUI() {
+        ConsoleWindow.initialize();
+
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
@@ -168,6 +177,13 @@ public class Jiracli {
                 } finally {
                     configuration.close();
                 }
+            }
+        });
+
+        Shutdown.addShutdownHook(new Runnable() {
+            @Override
+            public void run() {
+                context.close();
             }
         });
 
