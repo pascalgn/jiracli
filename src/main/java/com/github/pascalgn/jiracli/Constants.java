@@ -26,7 +26,7 @@ public class Constants {
     }
 
     public static String getVersion() {
-        return "1.2.2";
+        return "1.2.3-SNAPSHOT";
     }
 
     public static String getTitle() {
