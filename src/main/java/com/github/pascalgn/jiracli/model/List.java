@@ -109,10 +109,12 @@ abstract class List<T extends Data> extends Data {
 
             @Override
             public R get(Set<Hint> localHints) {
-                if (iterator == null || !iterator.hasNext()) {
-                    Set<Hint> combined = Hint.combine(hints, localHints);
+                Set<Hint> combined = Hint.combine(hints, localHints);
+                while (iterator == null || !iterator.hasNext()) {
                     T next = next(combined);
-                    if (next != null) {
+                    if (next == null) {
+                        break;
+                    } else {
                         Collection<R> collection = function.apply(next, combined);
                         iterator = collection.iterator();
                     }
