@@ -16,30 +16,35 @@
 package com.github.pascalgn.jiracli.util;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Collection;
 
 public class ReflectionUtils {
-    public static Object getValue(Object instance, String property, Object defaultValue) {
+    /**
+     * Tries to invoke the getter for the given property, returns <code>null</code> if it fails
+     */
+    public static Object getValue(Object instance, String property) {
+        String getterName = "get" + StringUtils.capitalize(property);
+        Method getter;
         try {
-            Object result = getValue(instance, property);
-            return (result == null ? defaultValue : result);
-        } catch (RuntimeException e) {
-            if (defaultValue == null) {
-                throw e;
-            } else {
-                return defaultValue;
-            }
+            getter = instance.getClass().getMethod(getterName);
+            return getter.invoke(instance);
+        } catch (ReflectiveOperationException e) {
+            return null;
         }
     }
 
-    public static Object getValue(Object instance, String property) {
-        String getterName = "get" + StringUtils.capitalize(property);
-        try {
-            Method getter = instance.getClass().getMethod(getterName);
-            return getter.invoke(instance);
-        } catch (NoSuchMethodException e) {
-            throw new IllegalStateException("No such property: " + property, e);
-        } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException("Cannot get property value: " + property, e);
+    /**
+     * Returns all properties of the given object
+     */
+    public static Collection<String> getProperties(Object instance) {
+        Collection<String> properties = new ArrayList<String>();
+        for (Method m : instance.getClass().getMethods()) {
+            String name = m.getName();
+            if (name.length() > 3 && name.startsWith("get")) {
+                properties.add(StringUtils.uncapitalize(name.substring(3)));
+            }
         }
+        return properties;
     }
 }

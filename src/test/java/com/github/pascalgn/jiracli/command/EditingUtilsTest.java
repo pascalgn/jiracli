@@ -18,7 +18,6 @@ package com.github.pascalgn.jiracli.command;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
@@ -40,8 +39,11 @@ import com.github.pascalgn.jiracli.model.Schema;
 import com.github.pascalgn.jiracli.testutil.IssueFactory;
 import com.github.pascalgn.jiracli.testutil.Resource;
 import com.github.pascalgn.jiracli.util.IOUtils;
+import com.github.pascalgn.jiracli.util.LineReader;
 
 public class EditingUtilsTest {
+    private static final String NL = System.lineSeparator();
+
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
 
@@ -91,12 +93,12 @@ public class EditingUtilsTest {
         assertEquals(1, result.size());
         Issue issue = result.get(0);
         assertSame(originalIssue, issue);
-        assertEquals("Summary\r\nwith\r\nnewline", getFieldValue(issue, "summary"));
+        assertEquals("Summary" + NL + "with" + NL + "newline", getFieldValue(issue, "summary"));
         assertEquals("test", getFieldValue(issue, "environment"));
-        assertEquals("Some description\r\n; not a comment", getFieldValue(issue, "description"));
+        assertEquals("Some description" + NL + "; not a comment", getFieldValue(issue, "description"));
         assertEquals("", getFieldValue(issue, "custom_123"));
         assertEquals("", getFieldValue(issue, "custom_456"));
-        assertEquals("", getFieldValue(issue, "custom_789"));
+        assertEquals(NL, getFieldValue(issue, "custom_789"));
     }
 
     @Test
@@ -116,14 +118,14 @@ public class EditingUtilsTest {
     private static List<Issue> readEdit(String resourceName, Issue... originalIssues) throws IOException {
         Schema schema = new SchemaImpl();
         Resource resource = Resource.get(EditingUtilsTest.class, resourceName);
-        try (BufferedReader reader = new BufferedReader(resource.openReader())) {
+        try (LineReader reader = new LineReader(resource.openReader())) {
             return EditingUtils.readEdit(Arrays.asList(originalIssues), schema, reader);
         }
     }
 
     private static List<CreateRequest> readCreate(String resourceName) throws IOException {
         Resource resource = Resource.get(EditingUtilsTest.class, resourceName);
-        try (BufferedReader reader = new BufferedReader(resource.openReader())) {
+        try (LineReader reader = new LineReader(resource.openReader())) {
             return EditingUtils.readCreate(reader);
         }
     }

@@ -82,7 +82,7 @@ public class StringUtils {
     /**
      * Strips <b>all</b> occurrences of <code>end</code> from the end of <code>str</code>
      */
-    public static String stripEnd(String str, String end) {
+    public static String stripEnds(String str, String end) {
         if (end.isEmpty()) {
             return str;
         } else {
@@ -91,6 +91,21 @@ public class StringUtils {
                 s = s.substring(0, s.length() - end.length());
             }
             return s;
+        }
+    }
+
+    /**
+     * Strips "\r\n", "\r" or "\n" from the end of <code>str</code>
+     */
+    public static String stripNewline(String str) {
+        if (str.endsWith("\r\n")) {
+            return str.substring(0, str.length() - 2);
+        } else if (str.endsWith("\r")) {
+            return str.substring(0, str.length() - 1);
+        } else if (str.endsWith("\n")) {
+            return str.substring(0, str.length() - 1);
+        } else {
+            return str;
         }
     }
 
@@ -114,6 +129,14 @@ public class StringUtils {
             return str;
         } else {
             return str.substring(0, 1).toUpperCase() + str.substring(1);
+        }
+    }
+
+    public static String uncapitalize(String str) {
+        if (str.isEmpty()) {
+            return str;
+        } else {
+            return str.substring(0, 1).toLowerCase() + str.substring(1);
         }
     }
 }

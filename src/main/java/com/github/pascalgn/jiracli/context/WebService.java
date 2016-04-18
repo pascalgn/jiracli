@@ -24,6 +24,7 @@ import java.util.Map;
 import com.github.pascalgn.jiracli.model.Attachment;
 import com.github.pascalgn.jiracli.model.Board;
 import com.github.pascalgn.jiracli.model.Change;
+import com.github.pascalgn.jiracli.model.Comment;
 import com.github.pascalgn.jiracli.model.Field;
 import com.github.pascalgn.jiracli.model.FieldDescription;
 import com.github.pascalgn.jiracli.model.Issue;
@@ -40,6 +41,14 @@ import com.github.pascalgn.jiracli.util.Consumer;
 public interface WebService extends AutoCloseable {
     enum Method {
         GET, POST, PUT, DELETE;
+    }
+
+    interface Request {
+        boolean getAllFields();
+
+        Collection<String> getFields();
+
+        Collection<String> getExpand();
     }
 
     interface CreateRequest {
@@ -63,10 +72,16 @@ public interface WebService extends AutoCloseable {
     Schema getSchema();
 
     /**
+     * Resolves the issue for the given key, throws an exception if it cannot be
+     * found.
+     */
+    Issue getIssue(String key, Request request);
+
+    /**
      * Resolves the issues for the given keys, throws an exception if one or
      * more issues cannot be found.
      */
-    List<Issue> getIssues(List<String> keys, Collection<String> fields);
+    List<Issue> getIssues(List<String> keys, Request request);
 
     /**
      * @return The URL of this issue, for example <code>https://jira.example.com/browse/ISSUE-123</code>
@@ -78,14 +93,16 @@ public interface WebService extends AutoCloseable {
      */
     Collection<Field> getEditableFields(Issue issue);
 
-    List<Issue> getIssues(Issue epic, Collection<String> fields);
+    List<Issue> getIssues(Issue epic, Request request);
 
     /**
      * Returns all issues that are linked to the given issue
      */
-    List<Issue> getLinks(Issue issue, Collection<String> fields);
+    List<Issue> getLinks(Issue issue, Request request);
 
-    List<Issue> searchIssues(String jql, Collection<String> fields);
+    List<Issue> searchIssues(String jql, Request request);
+
+    Issue getParent(Issue issue, Request request);
 
     Workflow getWorkflow(Issue issue);
 
@@ -95,7 +112,14 @@ public interface WebService extends AutoCloseable {
 
     List<Change> getChanges(Issue issue);
 
+    List<Comment> getComments(Issue issue);
+
     void updateIssue(Issue issue, boolean notifyUsers);
+
+    /**
+     * Adds a new comment to the issue
+     */
+    void addComment(Issue issue, String comment);
 
     void transitionIssue(Issue issue, Transition transition);
 
@@ -129,15 +153,15 @@ public interface WebService extends AutoCloseable {
 
     List<Board> getBoards(String name);
 
-    List<Issue> getIssues(Board board, Collection<String> fields);
+    List<Issue> getIssues(Board board, Request request);
 
-    List<Issue> getEpics(Board board);
+    List<Issue> getEpics(Board board, Request request);
 
     Sprint getSprint(int id);
 
     List<Sprint> getSprints(Board board);
 
-    List<Issue> getIssues(Sprint sprint, Collection<String> fields);
+    List<Issue> getIssues(Sprint sprint, Request request);
 
     List<Issue> createIssues(Collection<CreateRequest> createRequests);
 

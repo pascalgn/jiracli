@@ -25,7 +25,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 import javax.swing.KeyStroke;
 
-import com.github.pascalgn.jiracli.util.Runnables;
+import com.github.pascalgn.jiracli.util.Functions;
 
 class ContextMenu extends JPopupMenu {
     private static final long serialVersionUID = 7288490759713985256L;
@@ -37,10 +37,10 @@ class ContextMenu extends JPopupMenu {
     private Runnable resetZoomListener;
 
     public ContextMenu() {
-        newWindowListener = Runnables.empty();
-        increaseZoomListener = Runnables.empty();
-        decreaseZoomListener = Runnables.empty();
-        resetZoomListener = Runnables.empty();
+        newWindowListener = Functions.emptyRunnable();
+        increaseZoomListener = Functions.emptyRunnable();
+        decreaseZoomListener = Functions.emptyRunnable();
+        resetZoomListener = Functions.emptyRunnable();
         initComponents();
     }
 

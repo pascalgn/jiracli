@@ -31,9 +31,9 @@ import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.Supplier;
 
-@CommandDescription(names = "filter", description = "Filter issues by the given field value")
+@CommandDescription(names = { "filter", "grep" }, description = "Filter issues by the given field value")
 class Filter implements Command {
-    @Argument(names = { "-e", "--regexp" }, description = "use regular expressions")
+    @Argument(names = { "-e", "-E", "--regexp" }, description = "use regular expressions")
     private boolean regexp;
 
     @Argument(names = { "-i", "--ignore-case" }, description = "ignore case")
@@ -41,6 +41,9 @@ class Filter implements Command {
 
     @Argument(names = { "-j", "--javascript" }, description = "interpret value as a JavaScript expression")
     private boolean javaScript;
+
+    @Argument(names = { "-v", "--inverse" }, description = "only return items that don't match")
+    private boolean inverse;
 
     @Argument(names = { "-f", "--field" }, parameters = Parameters.ONE, variable = "<field>",
             description = "issue's field name")
@@ -93,7 +96,8 @@ class Filter implements Command {
                 public Text get(Set<Hint> hints) {
                     Text text;
                     while ((text = textList.next(hints)) != null) {
-                        if (context.getJavaScriptEngine().test(js, text)) {
+                        boolean result = context.getJavaScriptEngine().test(js, text);
+                        if (result ^ inverse) {
                             return text;
                         }
                     }
@@ -101,7 +105,7 @@ class Filter implements Command {
                 }
             });
         } else {
-            List<String> fields = CommandUtils.getJavaScriptFields(js);
+            List<String> fields = CommandUtils.findJavaScriptFields(js);
             final Set<Hint> hints = IssueHint.fields(fields);
             return new IssueList(new Supplier<Issue>() {
                 @Override
@@ -109,7 +113,8 @@ class Filter implements Command {
                     Set<Hint> combined = Hint.combine(hints, localHints);
                     Issue issue;
                     while ((issue = issueList.next(combined)) != null) {
-                        if (context.getJavaScriptEngine().test(js, issue)) {
+                        boolean result = context.getJavaScriptEngine().test(js, issue);
+                        if (result ^ inverse) {
                             return issue;
                         }
                     }
@@ -136,7 +141,8 @@ class Filter implements Command {
                     Text text;
                     while ((text = textList.next(hints)) != null) {
                         String str = text.getText();
-                        if (pattern.matcher(str).find()) {
+                        boolean result = pattern.matcher(str).find();
+                        if (result ^ inverse) {
                             return text;
                         }
                     }
@@ -151,7 +157,8 @@ class Filter implements Command {
                     Set<Hint> combined = Hint.combine(hints, IssueHint.fields(field));
                     Issue issue;
                     while ((issue = issueList.next(combined)) != null) {
-                        if (matches(context, issue, pattern)) {
+                        boolean result = matches(context, issue, pattern);
+                        if (result ^ inverse) {
                             return issue;
                         }
                     }
@@ -163,7 +170,7 @@ class Filter implements Command {
 
     private boolean matches(Context context, Issue issue, Pattern pattern) {
         Schema schema = context.getWebService().getSchema();
-        Object obj = CommandUtils.getFieldValue(issue, schema, field, "");
-        return pattern.matcher(obj.toString()).find();
+        String value = new FormatHelper(schema).getValue(issue, field);
+        return pattern.matcher(value).find();
     }
 }

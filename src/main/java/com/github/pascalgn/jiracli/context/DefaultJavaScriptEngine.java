@@ -22,6 +22,7 @@ import java.io.Writer;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -42,6 +43,7 @@ import org.slf4j.LoggerFactory;
 
 import com.github.pascalgn.jiracli.context.WebService.CreateRequest;
 import com.github.pascalgn.jiracli.context.WebService.Method;
+import com.github.pascalgn.jiracli.context.WebService.Request;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.Schema;
@@ -49,7 +51,7 @@ import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.IOUtils;
-import com.github.pascalgn.jiracli.util.IssueUtils;
+import com.github.pascalgn.jiracli.util.ConversionUtils;
 import com.github.pascalgn.jiracli.util.JsonUtils;
 import com.github.pascalgn.jiracli.util.StringSupplierReader;
 import com.github.pascalgn.jiracli.util.StringUtils;
@@ -119,7 +121,7 @@ public class DefaultJavaScriptEngine implements JavaScriptEngine {
 
     @Override
     public TextList evaluate(String js, Issue input) {
-        Object inputObj = toJsonObject(IssueUtils.toJson(input).toString());
+        Object inputObj = toJsonObject(ConversionUtils.toJson(input).toString());
         Object resultObj = doEvaluate(js, inputObj);
         return parseResult(resultObj);
     }
@@ -141,7 +143,7 @@ public class DefaultJavaScriptEngine implements JavaScriptEngine {
 
     @Override
     public boolean test(String js, Issue input) {
-        Object inputObj = toJsonObject(IssueUtils.toJson(input).toString());
+        Object inputObj = toJsonObject(ConversionUtils.toJson(input).toString());
         Object resultObj = doEvaluate(js, inputObj);
         return parseBooleanResult(resultObj);
     }
@@ -188,7 +190,7 @@ public class DefaultJavaScriptEngine implements JavaScriptEngine {
             } else {
                 str.append(",");
             }
-            str.append(IssueUtils.toJson(issue));
+            str.append(ConversionUtils.toJson(issue));
         }
         str.append("]");
         return str.toString();
@@ -242,7 +244,7 @@ public class DefaultJavaScriptEngine implements JavaScriptEngine {
     }
 
     private List<Text> toTextList(JSONArray array) {
-        List<Text> list = new ArrayList<Text>();
+        List<Text> list = new ArrayList<>();
         for (Object obj : array) {
             String str = Objects.toString(obj, "").trim();
             if (!str.isEmpty()) {
@@ -265,7 +267,7 @@ public class DefaultJavaScriptEngine implements JavaScriptEngine {
 
     public class JavaScriptConsole {
         public void print(String str) {
-            console.print(str);;
+            console.print(str);
         }
 
         public void println(String str) {
@@ -328,13 +330,25 @@ public class DefaultJavaScriptEngine implements JavaScriptEngine {
             return getIssue(key, null);
         }
 
-        public Object getIssue(String key, List<String> fields) {
-            List<Issue> issues = webService.getIssues(Collections.singletonList(key), fields);
-            if (issues.size() != 1) {
-                throw new IllegalStateException("Invalid response for key: " + key);
-            }
-            Issue issue = issues.get(0);
-            String json = IssueUtils.toJson(issue, fields).toString();
+        public Object getIssue(String key, final List<String> fields) {
+            Request request = new Request() {
+                @Override
+                public Collection<String> getFields() {
+                    return fields;
+                }
+
+                @Override
+                public Collection<String> getExpand() {
+                    return Collections.emptyList();
+                }
+
+                @Override
+                public boolean getAllFields() {
+                    return false;
+                }
+            };
+            Issue issue = webService.getIssue(key, request);
+            String json = ConversionUtils.toJson(issue, fields).toString();
             return toJsonObject(json);
         }
 
@@ -349,12 +363,12 @@ public class DefaultJavaScriptEngine implements JavaScriptEngine {
             if (issues.isEmpty()) {
                 return null;
             } else if (issues.size() == 1) {
-                String json = IssueUtils.toJson(issues.get(0)).toString();
+                String json = ConversionUtils.toJson(issues.get(0)).toString();
                 return toJsonObject(json);
             } else {
-                List<Object> result = new ArrayList<Object>();
+                List<Object> result = new ArrayList<>();
                 for (Issue issue : issues) {
-                    String json = IssueUtils.toJson(issue).toString();
+                    String json = ConversionUtils.toJson(issue).toString();
                     result.add(toJsonObject(json));
                 }
                 return result;

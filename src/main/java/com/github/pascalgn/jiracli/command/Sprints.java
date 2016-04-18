@@ -50,6 +50,15 @@ class Sprints implements Command {
 
     @Override
     public SprintList execute(final Context context, Data input) {
+        if (sprint == null) {
+            return listSprints(context, input);
+        } else {
+            Sprint s = context.getWebService().getSprint(sprint);
+            return new SprintList(s);
+        }
+    }
+
+    private SprintList listSprints(final Context context, Data input) {
         Filter<Sprint> filter;
         if (state == null || state.equals("*") || state.equalsIgnoreCase("any")) {
             filter = ANY;
@@ -72,19 +81,13 @@ class Sprints implements Command {
             };
         }
 
-        SprintList sprintList;
-        if (sprint == null) {
-            BoardList boardList = input.toBoardListOrFail();
-            sprintList = new SprintList(boardList.loadingSupplier(new Function<Board, Collection<Sprint>>() {
-                @Override
-                public Collection<Sprint> apply(Board board, Set<Hint> hints) {
-                    return context.getWebService().getSprints(board);
-                }
-            }));
-        } else {
-            Sprint s = context.getWebService().getSprint(sprint);
-            sprintList = new SprintList(s);
-        }
+        BoardList boardList = input.toBoardListOrFail();
+        SprintList sprintList = new SprintList(boardList.loadingSupplier(new Function<Board, Collection<Sprint>>() {
+            @Override
+            public Collection<Sprint> apply(Board board, Set<Hint> hints) {
+                return context.getWebService().getSprints(board);
+            }
+        }));
 
         return sprintList.filteredList(filter);
     }

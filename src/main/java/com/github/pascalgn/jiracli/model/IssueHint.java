@@ -52,6 +52,9 @@ public class IssueHint extends Hint {
         }
         Set<Hint> hints = new HashSet<>();
         for (String field : fields) {
+            if (field.contains(".")) {
+                field = field.split("\\.", 2)[0];
+            }
             hints.add(new Field(field));
         }
         return hints;

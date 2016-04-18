@@ -137,7 +137,7 @@ class Sort implements Command {
 
         if (edit) {
             final List<Issue> issuesRef = issues;
-            issues = CommandUtils.withTemporaryFile("sort", ".txt", new Function<File, List<Issue>>() {
+            issues = IOUtils.withTemporaryFile("sort", ".txt", new Function<File, List<Issue>>() {
                 @Override
                 public List<Issue> apply(File tempFile, Set<Hint> hints) {
                     try {
@@ -169,7 +169,7 @@ class Sort implements Command {
     }
 
     private TextList sort(TextList textList) {
-        if (fields != KEY && !fields.isEmpty()) {
+        if (!fields.equals(KEY) && !fields.isEmpty()) {
             LOGGER.warn("Sorting text list, fields ignored: {}", fields);
         }
 
@@ -177,7 +177,7 @@ class Sort implements Command {
         Collections.sort(list, new TextComparator());
 
         if (unique) {
-            return new TextList(textList.getType(), new LinkedHashSet<Text>(list).iterator());
+            return new TextList(textList.getType(), new LinkedHashSet<>(list).iterator());
         } else {
             return new TextList(textList.getType(), list.iterator());
         }
@@ -236,10 +236,10 @@ class Sort implements Command {
     }
 
     private List<String> values(Issue issue, Schema schema) {
-        List<String> values = new ArrayList<String>();
+        List<String> values = new ArrayList<>();
         for (String field : fields) {
-            Object value = CommandUtils.getFieldValue(issue, schema, field, "");
-            values.add(value.toString());
+            String value = new FormatHelper(schema).getValue(issue, field);
+            values.add(value);
         }
         return values;
     }

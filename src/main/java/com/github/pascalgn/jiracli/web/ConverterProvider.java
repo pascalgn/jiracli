@@ -38,6 +38,10 @@ class ConverterProvider {
         return INSTANCE.get(schema);
     }
 
+    public static Converter getDefaultConverter() {
+        return INSTANCE.defaultConverter;
+    }
+
     public static Converter getIssueConverter() {
         return INSTANCE.issueConverter;
     }

@@ -15,40 +15,48 @@
  */
 package com.github.pascalgn.jiracli.command;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.github.pascalgn.jiracli.model.Converter;
-import com.github.pascalgn.jiracli.model.Field;
-import com.github.pascalgn.jiracli.model.FieldMap;
-import com.github.pascalgn.jiracli.model.Issue;
-import com.github.pascalgn.jiracli.model.Schema;
-import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.context.DefaultRequest;
+import com.github.pascalgn.jiracli.context.WebService.Request;
+import com.github.pascalgn.jiracli.model.IssueHint;
 import com.github.pascalgn.jiracli.util.Hint;
-import com.github.pascalgn.jiracli.util.ReflectionUtils;
 import com.github.pascalgn.jiracli.util.StringUtils;
 
 class CommandUtils {
-    private static final Logger LOGGER = LoggerFactory.getLogger(CommandUtils.class);
-
     private static final Pattern ISSUE_KEY_PATTERN = Pattern.compile("([A-Z][A-Z0-9]*)-([0-9]+)");
-    private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\$\\{([^}]+)\\}|\\$([a-zA-Z]+[a-zA-Z0-9\\.]*)");
 
-    private static final Pattern FIELD_PATTERN = Pattern.compile("\\.fields\\.([a-zA-Z][a-zA-Z0-9_]*)");
+    private static final Pattern PROPERTY_PATTERN = Pattern.compile("\\$\\{([^}]+)\\}|\\$([a-zA-Z]+[a-zA-Z0-9\\.]*)");
+    private static final Pattern JS_FIELD_PATTERN = Pattern.compile("\\.fields\\.([a-zA-Z][a-zA-Z0-9_]*)");
 
-    public static List<String> getPatternFields(String pattern) {
+    /**
+     * Parses the given field parameter, allowing fields separated by comma, for
+     * example <code>summary description,key</code>
+     */
+    public static List<String> getFields(List<String> fields) {
+        if (fields == null) {
+            return null;
+        }
+        List<String> result = new ArrayList<>();
+        for (String field : fields) {
+            result.addAll(StringUtils.split(field, ","));
+        }
+        return result;
+    }
+
+    /**
+     * Finds all field references in the given printf pattern
+     */
+    public static List<String> findPatternFields(String pattern) {
         List<String> fields = new ArrayList<>();
-        Matcher m = VARIABLE_PATTERN.matcher(pattern);
+        Matcher m = PROPERTY_PATTERN.matcher(pattern);
         while (m.find()) {
             String name = (m.group(1) == null ? m.group(2) : m.group(1));
             if (name.contains(".")) {
@@ -60,9 +68,20 @@ class CommandUtils {
         return fields;
     }
 
-    public static List<String> getJavaScriptFields(String script) {
+    /**
+     * Returns a pattern that matches properties, for example
+     * <code>$name</code>, <code>${name}</code>, <code>$some.name</code>
+     */
+    public static Pattern getPropertyPattern() {
+        return PROPERTY_PATTERN;
+    }
+
+    /**
+     * Finds all field references in the given JavaScript
+     */
+    public static List<String> findJavaScriptFields(String script) {
         List<String> fields = new ArrayList<>();
-        Matcher m = FIELD_PATTERN.matcher(script);
+        Matcher m = JS_FIELD_PATTERN.matcher(script);
         while (m.find()) {
             fields.add(m.group(1));
         }
@@ -70,143 +89,8 @@ class CommandUtils {
     }
 
     /**
-     * Parses the given field parameter, allowing fields separated by comma, for
-     * example <code>summary description,key</code>
+     * Returns all issue keys in the given string
      */
-    public static List<String> getFields(List<String> fields) {
-        if (fields == null) {
-            return null;
-        }
-        List<String> result = new ArrayList<String>();
-        for (String field : fields) {
-            result.addAll(StringUtils.split(field, ","));
-        }
-        return result;
-    }
-
-    public static String toString(Object object, String pattern, String defaultValue) {
-        StringBuilder str = new StringBuilder();
-        Matcher m = VARIABLE_PATTERN.matcher(pattern);
-        int end = 0;
-        while (m.find()) {
-            str.append(pattern.substring(end, m.start()));
-            end = m.end();
-            String name = (m.group(1) == null ? m.group(2) : m.group(1));
-            str.append(ReflectionUtils.getValue(object, name, defaultValue));
-        }
-        str.append(pattern.substring(end));
-        return str.toString();
-    }
-
-    public static String toString(Issue issue, Schema schema, String pattern, String defaultValue) {
-        StringBuilder str = new StringBuilder();
-        Matcher m = VARIABLE_PATTERN.matcher(pattern);
-        int end = 0;
-        while (m.find()) {
-            str.append(pattern.substring(end, m.start()));
-            end = m.end();
-
-            String name = (m.group(1) == null ? m.group(2) : m.group(1));
-            Object value = getFieldValue(issue, schema, name, defaultValue);
-            if (value instanceof JSONArray) {
-                str.append(StringUtils.join((JSONArray) value, ", "));
-            } else {
-                str.append(value);
-            }
-        }
-        str.append(pattern.substring(end));
-        return str.toString();
-    }
-
-    public static Object getFieldValue(Issue issue, Schema schema, String name, String defaultValue) {
-        if (name.equalsIgnoreCase("key")) {
-            return issue.getKey();
-        }
-
-        String fieldNameOrId;
-        String subname;
-        if (name.contains(".")) {
-            String[] names = name.split("\\.", 2);
-            fieldNameOrId = names[0];
-            subname = names[1];
-        } else {
-            fieldNameOrId = name;
-            subname = "";
-        }
-
-        FieldMap fieldMap = issue.getFieldMap();
-        Field field = fieldMap.getField(fieldNameOrId, schema);
-
-        if (field == null) {
-            if (defaultValue == null) {
-                throw new IllegalArgumentException("No such field: " + fieldNameOrId);
-            } else {
-                return defaultValue;
-            }
-        }
-
-        Object value = field.getValue().get();
-        if (subname.isEmpty()) {
-            return (value == null ? defaultValue : value);
-        } else {
-            if (value instanceof JSONObject) {
-                return getFieldValue((JSONObject) value, subname);
-            } else {
-                if (defaultValue == null) {
-                    throw new IllegalArgumentException("Not a Json object: " + fieldNameOrId + ": " + value);
-                } else {
-                    return defaultValue;
-                }
-            }
-        }
-    }
-
-    private static Object getFieldValue(JSONObject json, String name) {
-        if (name.contains(".")) {
-            String[] names = name.split("\\.");
-            Object obj = getFieldValue(json, names[0]);
-            for (int i = 1; i < names.length; i++) {
-                obj = ((JSONObject) obj).get(names[i]);
-            }
-            return obj;
-        } else {
-            if (json.has(name)) {
-                return json.get(name);
-            } else {
-                throw new IllegalArgumentException("Name '" + name + "' not found: " + json.toString(2));
-            }
-        }
-    }
-
-    public static String getFieldValue(Issue issue, Schema schema, String field) {
-        if (field.equalsIgnoreCase("key")) {
-            return issue.getKey();
-        } else if (field.contains(".")) {
-            return getFieldValue(issue, schema, field, "").toString();
-        } else {
-            String id = schema.getId(field);
-            Converter converter = schema.getConverter(id);
-            FieldMap fieldMap = issue.getFieldMap();
-            Field f = fieldMap.getFieldById(id);
-            Object value = f.getValue().get();
-            return converter.toString(value);
-        }
-    }
-
-    public static Pattern getKeyPattern() {
-        return ISSUE_KEY_PATTERN;
-    }
-
-    public static boolean isIssue(String str) {
-        return ISSUE_KEY_PATTERN.matcher(str).matches();
-    }
-
-    public static void checkIssue(String str) {
-        if (!isIssue(str)) {
-            throw new IllegalArgumentException("Invalid issue key: " + str);
-        }
-    }
-
     public static List<String> findIssues(String str) {
         List<String> result = null;
         Matcher m = ISSUE_KEY_PATTERN.matcher(str);
@@ -222,37 +106,23 @@ class CommandUtils {
         return result;
     }
 
-    public static <T> T withTemporaryFile(String prefix, String suffix, Function<File, T> function) {
-        try {
-            File tempFile = File.createTempFile(prefix, suffix);
-            try {
-                return function.apply(tempFile, Hint.none());
-            } finally {
-                if (!tempFile.delete() && tempFile.exists()) {
-                    LOGGER.warn("Could not delete temporary file: {}", tempFile);
-                }
-            }
-        } catch (IOException e) {
-            throw new IllegalStateException(e);
-        }
+    /**
+     * Returns a pattern that matches issue keys, for example "ISSUE-123", "A-1", "B12-34567890"
+     */
+    public static Pattern getKeyPattern() {
+        return ISSUE_KEY_PATTERN;
     }
 
-    public static File getFile(String path) {
-        File file;
-        if (path.startsWith("~/") || path.startsWith("~\\")) {
-            file = new File(getHome(), path.substring(1));
-        } else {
-            file = new File(path);
+    /**
+     * Returns a new {@link Request} instance based on the given hints
+     */
+    public static Request getRequest(Set<Hint> hints) {
+        boolean allFields = hints.contains(IssueHint.allFields());
+        Collection<String> fields = IssueHint.getFields(hints);
+        Collection<String> expand = new HashSet<>();
+        if (hints.contains(IssueHint.editableFields())) {
+            expand.add("editmeta");
         }
-        return file.getAbsoluteFile();
-    }
-
-    private static File getHome() {
-        String property = System.getProperty("user.home");
-        File home = new File(property);
-        if (!home.isDirectory()) {
-            throw new IllegalStateException("Invalid home directory: " + property);
-        }
-        return home;
+        return new DefaultRequest(allFields, fields, expand);
     }
 }

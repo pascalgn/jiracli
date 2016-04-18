@@ -25,38 +25,54 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import com.github.pascalgn.jiracli.context.Context;
+import com.github.pascalgn.jiracli.context.WebService.Request;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
-import com.github.pascalgn.jiracli.model.IssueHint;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
+import com.github.pascalgn.jiracli.util.CollectingSupplier;
+import com.github.pascalgn.jiracli.util.ConversionUtils;
 import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.Hint;
-import com.github.pascalgn.jiracli.util.IssueUtils;
 import com.github.pascalgn.jiracli.util.JsonUtils;
 
 @CommandDescription(names = "parse", description = "Parse issue data from text")
 class Parse implements Command {
+    // Fetch multiple issues at once to reduce server requests
+    private static final int ISSUE_FETCH_SIZE = 10;
+
     @Argument(names = { "-k", "--keys" }, description = "only parse issue keys")
     private boolean parseKeys;
 
     @Override
     public Data execute(final Context context, Data input) {
-        TextList textList = input.toTextListOrFail();
-        return new IssueList(textList.loadingSupplier(new Function<Text, Collection<Issue>>() {
-            @Override
-            public Collection<Issue> apply(Text text, Set<Hint> hints) {
-                String str = text.getText();
-                if (parseKeys) {
-                    List<String> keys = CommandUtils.findIssues(str);
-                    Set<String> fields = IssueHint.getFields(hints);
-                    return context.getWebService().getIssues(keys, fields);
-                } else {
-                    return parseJson(context, str);
+        final TextList textList = input.toTextListOrFail();
+        if (parseKeys) {
+            return new IssueList(new CollectingSupplier<Issue>() {
+                @Override
+                protected Collection<Issue> nextItems(Set<Hint> hints) {
+                    List<String> keys = new ArrayList<String>();
+                    Text text;
+                    // don't use hints for the input, they only apply to the returned issues!
+                    while ((text = textList.next(Hint.none())) != null) {
+                        keys.addAll(CommandUtils.findIssues(text.getText()));
+                        if (keys.size() >= ISSUE_FETCH_SIZE) {
+                            break;
+                        }
+                    }
+                    Request request = CommandUtils.getRequest(hints);
+                    return (keys.isEmpty() ? null : context.getWebService().getIssues(keys, request));
                 }
-            }
-        }));
+            });
+        } else {
+            return new IssueList(textList.loadingSupplier(new Function<Text, Collection<Issue>>() {
+                @Override
+                public Collection<Issue> apply(Text text, Set<Hint> hints) {
+                    return parseJson(context, text.getText());
+                }
+            }));
+        }
     }
 
     private Collection<Issue> parseJson(Context context, String str) {
@@ -72,12 +88,12 @@ class Parse implements Command {
                         throw new IllegalArgumentException("Invalid Json: " + obj);
                     }
                     JSONObject j = (JSONObject) obj;
-                    issues.add(IssueUtils.toIssue(context.getWebService(), j));
+                    issues.add(ConversionUtils.toIssue(context.getWebService(), j));
                 }
                 return issues;
             }
         } else {
-            Issue issue = IssueUtils.toIssue(context.getWebService(), json);
+            Issue issue = ConversionUtils.toIssue(context.getWebService(), json);
             return Collections.singleton(issue);
         }
     }

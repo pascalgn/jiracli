@@ -77,7 +77,8 @@ class Csv implements Command {
             public Text apply(Issue issue, Set<Hint> hints) {
                 List<String> values = new ArrayList<>(fields.size());
                 for (String field : fields) {
-                    values.add(CommandUtils.getFieldValue(issue, schema, field));
+                    String value = new FormatHelper(schema).getValue(issue, field);
+                    values.add(value);
                 }
                 return new Text(StringUtils.join(values, separator));
             }

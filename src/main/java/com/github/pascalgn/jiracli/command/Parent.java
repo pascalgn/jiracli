@@ -16,28 +16,30 @@
 package com.github.pascalgn.jiracli.command;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Set;
 
 import com.github.pascalgn.jiracli.context.Context;
-import com.github.pascalgn.jiracli.context.DefaultRequest;
-import com.github.pascalgn.jiracli.model.Board;
-import com.github.pascalgn.jiracli.model.BoardList;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
+import com.github.pascalgn.jiracli.model.IssueHint;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.Hint;
 
-@CommandDescription(names = "epics", description = "Show the epics for the given boards")
-class Epics implements Command {
+@CommandDescription(names = "parent", description = "Get the parent of the given sub-task issues")
+class Parent implements Command {
     @Override
-    public Data execute(final Context context, Data input) {
-        BoardList boardList = input.toBoardListOrFail();
-        return new IssueList(boardList.loadingSupplier(Hint.none(), new Function<Board, Collection<Issue>>() {
+    public IssueList execute(final Context context, Data input) {
+        IssueList issueList = input.toIssueListOrFail();
+        Set<Hint> hints = IssueHint.fields("parent");
+        return new IssueList(issueList.loadingSupplier(hints, new Function<Issue, Collection<Issue>>() {
             @Override
-            public Collection<Issue> apply(Board board, Set<Hint> hints) {
-                return context.getWebService().getEpics(board, new DefaultRequest());
+            public Collection<Issue> apply(Issue issue, Set<Hint> hints) {
+                Issue parent = context.getWebService().getParent(issue, CommandUtils.getRequest(hints));
+                return (parent == null ? Collections.<Issue> emptyList() : Collections.singleton(parent));
             }
         }));
     }
+
 }

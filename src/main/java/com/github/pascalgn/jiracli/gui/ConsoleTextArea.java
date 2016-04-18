@@ -47,8 +47,8 @@ import org.slf4j.LoggerFactory;
 
 import com.github.pascalgn.jiracli.Constants;
 import com.github.pascalgn.jiracli.command.CommandFactory;
+import com.github.pascalgn.jiracli.util.Functions;
 import com.github.pascalgn.jiracli.util.InterruptedError;
-import com.github.pascalgn.jiracli.util.Runnables;
 
 class ConsoleTextArea extends JTextArea {
     private static final long serialVersionUID = -8193770562227282747L;
@@ -95,8 +95,8 @@ class ConsoleTextArea extends JTextArea {
         contextMenu = new ContextMenu();
         preferences = Constants.getPreferences();
 
-        interruptListener = Runnables.empty();
-        newWindowListener = Runnables.empty();
+        interruptListener = Functions.emptyRunnable();
+        newWindowListener = Functions.emptyRunnable();
 
         contextMenu.setNewWindowListener(new Runnable() {
             @Override
@@ -257,7 +257,7 @@ class ConsoleTextArea extends JTextArea {
     }
 
     public List<String> readLines() {
-        List<String> lines = new ArrayList<String>();
+        List<String> lines = new ArrayList<>();
         String line;
         while ((line = readLine()) != null) {
             if (line.equals(".")) {
@@ -329,7 +329,7 @@ class ConsoleTextArea extends JTextArea {
                 String str;
                 try {
                     str = doc.getText(editStart, doc.getLength() - editStart);
-                    doc.insertString(doc.getLength(), "\n", null);
+                    appendText("\n");
                     input.add(str);
                 } catch (BadLocationException e) {
                     LOGGER.trace("Invalid location!", e);

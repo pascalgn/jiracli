@@ -54,9 +54,10 @@ class Print implements Command {
 
     @Override
     public TextList execute(final Context context, Data input) {
-        List<String> fields = CommandUtils.getPatternFields(pattern);
+        List<String> fields = CommandUtils.findPatternFields(pattern);
         Set<Hint> hints = IssueHint.fields(fields);
         IssueList issueList = input.toIssueList();
+        final Schema schema = context.getWebService().getSchema();
         if (issueList == null) {
             final Iterator<Data> iterator = input.toIterator(hints);
             return new TextList(new Supplier<Text>() {
@@ -66,8 +67,8 @@ class Print implements Command {
                         Data data = iterator.next();
                         String str;
                         try {
-                            str = CommandUtils.toString(data, pattern, "");
-                        } catch (IllegalArgumentException e) {
+                            str = new FormatHelper(schema).format(data, pattern);
+                        } catch (RuntimeException e) {
                             str = "[Error: " + data + ": " + e.getLocalizedMessage() + "]";
                         }
                         return new Text(str);
@@ -77,15 +78,14 @@ class Print implements Command {
                 }
             });
         } else {
-            final Schema schema = context.getWebService().getSchema();
             return new TextList(issueList.convertingSupplier(hints, new Function<Issue, Text>() {
                 @Override
                 public Text apply(Issue issue, Set<Hint> hints) {
                     String str;
                     try {
-                        str = CommandUtils.toString(issue, schema, pattern, "");
-                    } catch (IllegalArgumentException e) {
-                        LOGGER.trace("Error while reading issue: {}", issue, e);
+                        str = new FormatHelper(schema).format(issue, pattern);
+                    } catch (RuntimeException e) {
+                        LOGGER.trace("Error while formatting issue: {}", issue, e);
                         str = "[Error: " + issue + ": " + e.getLocalizedMessage() + "]";
                     }
                     return new Text(str);

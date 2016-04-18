@@ -28,6 +28,7 @@ import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
+import com.github.pascalgn.jiracli.model.IssueHint;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
@@ -48,9 +49,10 @@ class Labels implements Command {
 
     @Override
     public Data execute(Context context, Data input) {
+        Set<Hint> hints = IssueHint.fields("labels");
         IssueList issueList = input.toIssueListOrFail();
         if (add == null && remove == null) {
-            return new TextList(issueList.convertingSupplier(new Function<Issue, Text>() {
+            return new TextList(issueList.convertingSupplier(hints, new Function<Issue, Text>() {
                 @Override
                 public Text apply(Issue issue, Set<Hint> hints) {
                     Value value = getLabels(issue);
@@ -62,7 +64,7 @@ class Labels implements Command {
             final Collection<String> add = readLabels(this.add);
             final Collection<String> remove = readLabels(this.remove);
 
-            return new IssueList(issueList.convertingSupplier(new Function<Issue, Issue>() {
+            return new IssueList(issueList.convertingSupplier(hints, new Function<Issue, Issue>() {
                 @Override
                 public Issue apply(Issue issue, Set<Hint> hints) {
                     if (!add.isEmpty()) {

@@ -18,7 +18,6 @@ package com.github.pascalgn.jiracli.command;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -33,6 +32,8 @@ import com.github.pascalgn.jiracli.model.Converter;
 import com.github.pascalgn.jiracli.model.Field;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.Schema;
+import com.github.pascalgn.jiracli.util.LineReader;
+import com.github.pascalgn.jiracli.util.StringUtils;
 
 class EditingUtils {
     private static final String NO_EDITABLE_FIELDS = "no editable fields for this issue!";
@@ -43,7 +44,6 @@ class EditingUtils {
     private static final String CUSTOMFIELD_PREFIX = "customfield_";
 
     private static final String COMMENT = ";";
-    private static final String NEWLINE = "\r\n";
 
     private static final Pattern CREATE_ISSUE_TITLE = Pattern.compile("==\\s*(create\\s+issue)\\s*==\\s*",
             Pattern.CASE_INSENSITIVE);
@@ -63,7 +63,7 @@ class EditingUtils {
     }
 
     private static Collection<EditingField> toEditingFields(Collection<Field> fields, Schema schema) {
-        Collection<EditingField> editingFields = new ArrayList<EditingField>(fields.size());
+        Collection<EditingField> editingFields = new ArrayList<>(fields.size());
         for (Field field : fields) {
             Object value = field.getValue().get();
             Converter converter = schema.getConverter(field.getId());
@@ -110,13 +110,8 @@ class EditingUtils {
             if (value.contains("\r") || value.contains("\n")) {
                 writer.write("::");
                 writer.newLine();
-                try (BufferedReader reader = new BufferedReader(new StringReader(value))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        writer.write(line);
-                        writer.newLine();
-                    }
-                }
+                writer.write(value);
+                writer.newLine();
                 writer.write(".");
                 writer.newLine();
             } else {
@@ -132,18 +127,17 @@ class EditingUtils {
     public static void writeSort(BufferedWriter writer, Collection<Issue> issues, Schema schema, String format)
             throws IOException {
         for (Issue issue : issues) {
-            String s = CommandUtils.toString(issue, schema, format, null);
+            String s =  new FormatHelper(schema).format(issue, format);
             writer.write(issue.getKey() + (s.isEmpty() ? "" : " " + s));
             writer.newLine();
         }
     }
 
-    public static List<Issue> readEdit(List<Issue> originalIssues, Schema schema, BufferedReader reader)
-            throws IOException {
+    public static List<Issue> readEdit(List<Issue> original, Schema schema, LineReader reader) throws IOException {
         List<IssueData> issueData = read(reader, ISSUE_TITLE);
-        List<Issue> issues = new ArrayList<Issue>(issueData.size());
+        List<Issue> issues = new ArrayList<>(issueData.size());
         for (IssueData data : issueData) {
-            Issue issue = findIssue(originalIssues, data.getKey());
+            Issue issue = findIssue(original, data.getKey());
             for (Map.Entry<String, String> entry : data.getFields().entrySet()) {
                 Field field = getField(issue, entry.getKey());
                 setFieldValue(field, entry.getValue(), schema);
@@ -154,11 +148,11 @@ class EditingUtils {
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    public static List<CreateRequest> readCreate(BufferedReader reader) throws IOException {
+    public static List<CreateRequest> readCreate(LineReader reader) throws IOException {
         return (List) read(reader, CREATE_ISSUE_TITLE);
     }
 
-    private static List<IssueData> read(BufferedReader reader, Pattern issueTitle) throws IOException {
+    private static List<IssueData> read(LineReader reader, Pattern issueTitle) throws IOException {
         List<IssueData> issues = new ArrayList<>();
 
         ReadState s = ReadState.EXPECT_ISSUE_TITLE;
@@ -189,6 +183,8 @@ class EditingUtils {
                 if (commentOrEmpty(line)) {
                     continue;
                 } else {
+                    line = StringUtils.stripNewline(line);
+
                     Matcher mi = issueTitle.matcher(line);
                     if (mi.matches()) {
                         String key = mi.group(1);
@@ -216,8 +212,8 @@ class EditingUtils {
                 break;
 
             case EXPECT_FIELD_CONTENT_MULTILINE:
-                if (line.equals(".")) {
-                    issue.setField(field, content == null ? "" : content.toString().trim());
+                if (line.startsWith(".") && StringUtils.stripNewline(line).equals(".")) {
+                    issue.setField(field, (content == null ? "" : StringUtils.stripNewline(content.toString())));
                     field = null;
                     content = null;
                     s = ReadState.EXPECT_FIELD_OR_ISSUE;
@@ -226,7 +222,6 @@ class EditingUtils {
                     if (content == null) {
                         content = new StringBuilder(str);
                     } else {
-                        content.append(NEWLINE);
                         content.append(str);
                     }
                 }
@@ -236,14 +231,14 @@ class EditingUtils {
                 break;
             }
 
-            throw new IllegalArgumentException("Unexpected line: " + line);
+            throw new IllegalArgumentException("Unexpected line: " + line + " (" + s + ")");
         }
 
         return issues;
     }
 
     public static List<Issue> readSort(List<Issue> originalIssues, BufferedReader reader) throws IOException {
-        List<Issue> issues = new ArrayList<Issue>();
+        List<Issue> issues = new ArrayList<>();
 
         String line;
         while ((line = reader.readLine()) != null) {
@@ -299,7 +294,7 @@ class EditingUtils {
 
         public IssueData(String key) {
             this.key = key;
-            this.fields = new LinkedHashMap<String, String>();
+            this.fields = new LinkedHashMap<>();
         }
 
         public String getKey() {

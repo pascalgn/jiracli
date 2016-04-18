@@ -32,7 +32,12 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class IOUtils {
+    private static final Logger LOGGER = LoggerFactory.getLogger(IOUtils.class);
+
     private static final Charset CHARSET = StandardCharsets.UTF_8;
 
     static final int BUFFER_SIZE = 4096;
@@ -143,5 +148,45 @@ public class IOUtils {
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    /**
+     * Creates a temporary file and deletes it after the function has completed
+     */
+    public static <T> T withTemporaryFile(String prefix, String suffix, Function<File, T> function) {
+        try {
+            File tempFile = File.createTempFile(prefix, suffix);
+            try {
+                return function.apply(tempFile, Hint.none());
+            } finally {
+                if (!tempFile.delete() && tempFile.exists()) {
+                    LOGGER.warn("Could not delete temporary file: {}", tempFile);
+                }
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /**
+     * Returns a file object for the given path, expanding "~" to the home directory
+     */
+    public static File getFile(String path) {
+        File file;
+        if (path.startsWith("~/") || path.startsWith("~\\")) {
+            file = new File(getHome(), path.substring(1));
+        } else {
+            file = new File(path);
+        }
+        return file.getAbsoluteFile();
+    }
+
+    private static File getHome() {
+        String property = System.getProperty("user.home");
+        File home = new File(property);
+        if (!home.isDirectory()) {
+            throw new IllegalStateException("Invalid home directory: " + property);
+        }
+        return home;
     }
 }

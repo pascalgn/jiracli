@@ -19,10 +19,27 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Set;
 
+import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.util.Functions;
 import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.Supplier;
 
 public class TextList extends List<Text> {
+    private static final Function<String, Text> TO_TEXT = new Function<String, Text>() {
+        @Override
+        public Text apply(String str, Set<Hint> hints) {
+            return new Text(str);
+        }
+    };
+
+    public static Iterator<Text> toText(Iterator<String> iterator) {
+        return Functions.convert(iterator, TO_TEXT);
+    }
+
+    public static Supplier<Text> toText(Supplier<String> supplier) {
+        return Functions.convert(supplier, TO_TEXT);
+    }
+
     private final String type;
 
     public TextList() {

@@ -15,7 +15,6 @@
  */
 package com.github.pascalgn.jiracli.command;
 
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
@@ -37,6 +36,7 @@ import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.IOUtils;
+import com.github.pascalgn.jiracli.util.LineReader;
 
 @CommandDescription(names = "edit", description = "Edit the given issues in a text editor")
 class Edit implements Command {
@@ -69,7 +69,7 @@ class Edit implements Command {
             }
         }
 
-        return CommandUtils.withTemporaryFile("edit", ".txt", new Function<File, Data>() {
+        return IOUtils.withTemporaryFile("edit", ".txt", new Function<File, Data>() {
             @Override
             public Data apply(File tempFile, Set<Hint> hints) {
                 IssueList issueList = input.toIssueList();
@@ -105,7 +105,7 @@ class Edit implements Command {
     }
 
     private Data editIssues(Context context, File file, IssueList issueList) throws IOException {
-        Set<Hint> hints = new HashSet<Hint>();
+        Set<Hint> hints = new HashSet<>();
         if (all) {
             hints.add(IssueHint.allFields());
         } else if (editable) {
@@ -126,7 +126,7 @@ class Edit implements Command {
                 } else if (editable) {
                     fields = context.getWebService().getEditableFields(issue);
                 } else if (this.fields != null) {
-                    fields = new ArrayList<Field>();
+                    fields = new ArrayList<>();
                     for (String name : this.fields) {
                         fields.add(issue.getFieldMap().getField(name, schema));
                     }
@@ -143,7 +143,7 @@ class Edit implements Command {
             boolean success = context.getConsole().editFile(file);
             if (success) {
                 List<Issue> result;
-                try (BufferedReader reader = IOUtils.createBufferedReader(file)) {
+                try (LineReader reader = new LineReader(IOUtils.createReader(file))) {
                     result = EditingUtils.readEdit(issues, schema, reader);
                 }
                 return new IssueList(result.iterator());

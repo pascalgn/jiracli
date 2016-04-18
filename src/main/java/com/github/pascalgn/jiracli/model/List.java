@@ -58,7 +58,7 @@ abstract class List<T extends Data> extends Data {
     }
 
     public java.util.List<T> remaining(Set<Hint> hints) {
-        java.util.List<T> result = new ArrayList<T>();
+        java.util.List<T> result = new ArrayList<>();
         T item;
         while ((item = next(hints)) != null) {
             result.add(item);
@@ -76,8 +76,8 @@ abstract class List<T extends Data> extends Data {
     public TextList toTextList() {
         return new TextList(convertingSupplier(new Function<T, Text>() {
             @Override
-            public Text apply(T project, Set<Hint> hints) {
-                return project.toText();
+            public Text apply(T item, Set<Hint> hints) {
+                return item.toText();
             }
         }));
     }
@@ -113,7 +113,7 @@ abstract class List<T extends Data> extends Data {
                 while (iterator == null || !iterator.hasNext()) {
                     T next = next(combined);
                     if (next == null) {
-                        break;
+                        return null;
                     } else {
                         Collection<R> collection = function.apply(next, combined);
                         iterator = collection.iterator();

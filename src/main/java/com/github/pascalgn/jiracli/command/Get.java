@@ -22,7 +22,6 @@ import java.util.Set;
 
 import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
-import com.github.pascalgn.jiracli.model.Converter;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Field;
 import com.github.pascalgn.jiracli.model.FieldMap;
@@ -65,7 +64,8 @@ class Get implements Command {
                             } else {
                                 str.append("\t");
                             }
-                            str.append(ReflectionUtils.getValue(data, field, ""));
+                            Object value = ReflectionUtils.getValue(data, field);
+                            str.append(Objects.toString(value, ""));
                         }
                         return new Text(str.toString());
                     } else {
@@ -89,27 +89,22 @@ class Get implements Command {
                         if (field.equals("key")) {
                             str.append(issue.getKey());
                         } else {
-                            FieldMap fieldMap = issue.getFieldMap();
-                            Field f = fieldMap.getField(field, schema);
-                            if (f == null) {
-                                throw new IllegalArgumentException("Unknown field: " + field);
+                            if (raw) {
+                                FieldMap fieldMap = issue.getFieldMap();
+                                Field f = fieldMap.getField(field, schema);
+                                if (f == null) {
+                                    throw new IllegalArgumentException("Unknown field: " + field);
+                                }
+                                Object val = f.getValue().get();
+                                str.append(Objects.toString(val, ""));
+                            } else {
+                                str.append(new FormatHelper(schema).getValue(issue, field));
                             }
-                            str.append(fieldValue(schema, f));
                         }
                     }
                     return new Text(str.toString());
                 }
             }));
-        }
-    }
-
-    private String fieldValue(Schema schema, Field field) {
-        Object val = field.getValue().get();
-        if (raw) {
-            return Objects.toString(val, "");
-        } else {
-            Converter converter = schema.getConverter(field.getId());
-            return converter.toString(val);
         }
     }
 }

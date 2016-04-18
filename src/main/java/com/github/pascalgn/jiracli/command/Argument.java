@@ -33,10 +33,7 @@ import java.lang.annotation.Target;
 
     Parameters parameters() default Parameters.ZERO;
 
-    /**
-     * <code>%s</code> will be replaced by the long name
-     */
-    String variable() default "<%s>";
+    String variable() default "<param>";
 
     /**
      * Argument order, starting with 1

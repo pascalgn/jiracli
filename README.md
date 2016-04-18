@@ -4,7 +4,6 @@ Jiracli is a command line interface for Jira to automate common tasks and perfor
 
 * [Examples](#examples)
 * [Usage](#usage)
-* [Model](#model)
 * [License](#license)
 
 ## Examples
@@ -12,7 +11,7 @@ Jiracli is a command line interface for Jira to automate common tasks and perfor
 Initialization and command chaining:
 
     $ java -jar jiracli.jar -c
-    jiracli> issues JRA-123 | print '${summary} [${status.name}]'
+    jiracli> issues JRA-123 JRA-321 | filter -f key 'JRA-123' | print '${summary} [${status.name}]'
     Base URL: https://jira.atlassian.com
     New Report: Voted Issues [Closed]
     jiracli> exit
@@ -41,9 +40,7 @@ Issue browsing:
 
 ## Usage
 
-Jiracli can be started in one of two modes, GUI and console mode. When no explicit mode is given
-(`-c` for console mode or `-g` for GUI mode), a mode is selected automatically.
-
+Jiracli can be started in one of two modes, GUI and console mode.
 After startup, Jiracli presents a command prompt to execute commands.
 For information about available commands, see the section [Commands](#commands).
 
@@ -66,8 +63,6 @@ modifications, for example:
 
     jiracli> issues JRA-123 | set summary 'Hello' | set description 'World' | update
 
-For more information about objects, see the section [Model](#model).
-
 ### Commands
 
 This section describes some of the basic commands. To get a list of all commands, type `help`.
@@ -76,7 +71,7 @@ This section describes some of the basic commands. To get a list of all commands
 
 * `issues` can be used to load specific issues (`issues JRA-1 JRA-7 JRA-123`)
   or to find issues belonging to the input object (`boards | sprints | issues`)
-* `read` reads issues from a given file (`read my-issues.txt`)
+* `read` reads text from a given file (`read my-issues.txt | parse -k`)
 * `search` executes the given JQL script and returns the issues (`search 'project = JRA and issuetype = Epic'`)
 
 #### Relationships
@@ -107,81 +102,12 @@ This section describes some of the basic commands. To get a list of all commands
 
 * `print` prints formatted output and can display properties (`issues JRA-1 | print $issuetype.name`)
 * `get` has an optional parameter to display the raw field value (`issues JRA-1 | get -r status`)
+* `properties` shows all available properties of the given objects (`projects -p JRA | properties`)
 
-### Caching
+#### Caching
 
-All requests will be cached during a session, to improve response times and reduce server load.
+All requests will be cached in memory during a session, to improve response times and reduce server load.
 Use `cache -c` to clear all current cache entries.
-
-## Model
-
-Jiracli uses different objects to represent the corresponding Jira elements. The properties of each object can be accessed by the `get` or `print` command.
-
-### Issue
-
-Issues are one of the key concepts in Jira and can represent bugs, tasks, tickets or anything else depending on the project requirements. Issues are used by almost all commands and are usually accessed by using the `issues`, `search` or `read` command.
-
-#### Properties
-
-- `key`: The unique issue key, e.g. `JIR-123`
-
-### Project
-
-Projects are used to organize and group issues. Each issue belongs to one project.
-
-#### Properties
-
-- `id`: The unique identifier of the project
-- `key`: The project key, e.g. `PROJ`. Issues of this project will be prefixed with the key (`PROJ-1`, `PROJ-2`, etc.)
-- `name`: The user-defined name, e.g. `Example Project`
-
-### Field
-
-Every issue has a set of system-defined fields, depending on the issue type.
-Additionally, administrators can define custom fields for issues, to match the respective project requirements.
-
-Each field has a technical identifier (`id`) and a user-defined name. Usually, both id and name are accepted as command arguments.
-
-#### Properties
-
-- `id`: The technical identifier of the field, e.g. `status`.
-  Identifiers for custom fields have the format `custom_12345`.
-
-### Attachment
-
-Attachments represent file attachments of issues. The `download` command can be used to access attachments.
-
-#### Properties
-
-- `id`: The technical numerical identifier of the attachment
-- `filename`: The original filename, e.g. `report.pdf`
-- `mimeType`: The file's mime type, e.g. `application/pdf`
-- `size`: The file size, in bytes
-- `content`: The URL to the file contents, e.g. `http://example.com/secure/attachment/12345/report.pdf`
-
-### Board
-
-Boards are used to organize and display issues of one or more projects.
-
-Boards are only available when the Jira Agile add-on is installed in the Jira instance.
-
-#### Properties
-
-- `id`: The unique identifier of the board
-- `name`: The user-defined name, e.g. `A simple Jira-Board`
-- `type`: The type of the board: Scrum, Kanban or Unknown
-
-### Sprint
-
-Sprints are parts of Scrum boards and are used to track the progress of issues over a period of time.
-
-Sprints are only available when the Jira Agile add-on is installed in the Jira instance.
-
-#### Properties
-
-- `id`: The unique identifier of the sprint
-- `name`: The user-defined name, e.g. `Sprint 17`
-- `state`: The state of the sprint: Closed, Active, Future or Unknown
 
 ## License
 

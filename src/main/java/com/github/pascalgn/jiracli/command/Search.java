@@ -21,9 +21,9 @@ import java.util.Set;
 
 import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
+import com.github.pascalgn.jiracli.context.WebService.Request;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
-import com.github.pascalgn.jiracli.model.IssueHint;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.Supplier;
@@ -57,8 +57,8 @@ class Search implements Command {
         @Override
         public synchronized Issue get(Set<Hint> hints) {
             if (issues == null) {
-                Set<String> fields = IssueHint.getFields(hints);
-                List<Issue> list = context.getWebService().searchIssues(jql, fields);
+                Request request = CommandUtils.getRequest(hints);
+                List<Issue> list = context.getWebService().searchIssues(jql, request);
                 issues = list.iterator();
             }
             return (issues.hasNext() ? issues.next() : null);

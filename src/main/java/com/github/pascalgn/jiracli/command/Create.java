@@ -15,7 +15,6 @@
  */
 package com.github.pascalgn.jiracli.command;
 
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
@@ -43,6 +42,7 @@ import com.github.pascalgn.jiracli.model.Schema;
 import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.IOUtils;
+import com.github.pascalgn.jiracli.util.LineReader;
 
 @CommandDescription(names = "create", description = "Create new issues")
 class Create implements Command {
@@ -86,7 +86,7 @@ class Create implements Command {
             issueType = null;
         }
 
-        List<CreateRequest> createRequests = CommandUtils.withTemporaryFile("create", ".txt",
+        List<CreateRequest> createRequests = IOUtils.withTemporaryFile("create", ".txt",
                 new Function<File, List<CreateRequest>>() {
                     @Override
                     public List<CreateRequest> apply(File tempFile, Set<Hint> hints) {
@@ -137,7 +137,7 @@ class Create implements Command {
 
     private List<CreateRequest> getCreateRequests(Context context, Project project, IssueType issueType, File file)
             throws IOException {
-        Collection<EditingField> fields = new ArrayList<EditingUtils.EditingField>();
+        Collection<EditingField> fields = new ArrayList<>();
         if (project != null) {
             fields.add(new EditingField("project", "Project", project.getKey()));
         }
@@ -176,7 +176,7 @@ class Create implements Command {
 
         boolean success = context.getConsole().editFile(file);
         if (success) {
-            try (BufferedReader reader = IOUtils.createBufferedReader(file)) {
+            try (LineReader reader = new LineReader(IOUtils.createReader(file))) {
                 return EditingUtils.readCreate(reader);
             }
         } else {
@@ -185,7 +185,7 @@ class Create implements Command {
     }
 
     private Map<String, String> parseFieldValues(Context context) {
-        Map<String, String> map = new LinkedHashMap<String, String>();
+        Map<String, String> map = new LinkedHashMap<>();
         if (fieldValues != null) {
             Schema schema = context.getWebService().getSchema();
             for (String field : fieldValues) {

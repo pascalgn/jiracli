@@ -36,7 +36,7 @@ class Write implements Command {
     @Override
     public None execute(Context context, Data input) {
         TextList textList = input.toTextListOrFail();
-        File file = CommandUtils.getFile(filepath);
+        File file = IOUtils.getFile(filepath);
         if (file.exists()) {
             throw new IllegalArgumentException("File exists: " + filepath);
         }

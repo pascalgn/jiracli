@@ -27,6 +27,8 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,8 +93,8 @@ public class Jiracli {
     }
 
     private static Map<Option, Object> parse(String[] args) {
-        List<String> list = new ArrayList<String>(Arrays.asList(args));
-        Map<Option, Object> map = new HashMap<Option, Object>();
+        List<String> list = new ArrayList<>(Arrays.asList(args));
+        Map<Option, Object> map = new HashMap<>();
         map.put(Option.HELP, list.contains("-h") || list.contains("--help"));
         map.put(Option.CONSOLE, list.contains("-c") || list.contains("--console"));
         map.put(Option.GUI, list.contains("-g") || list.contains("--gui"));
@@ -139,6 +141,16 @@ public class Jiracli {
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
+                try {
+                    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+                } catch (ReflectiveOperationException e) {
+                    LOGGER.warn("Could not set System Look and Feel!", e);
+                } catch (UnsupportedLookAndFeelException e) {
+                    LOGGER.warn("Could not set System Look and Feel!", e);
+                } catch (RuntimeException e) {
+                    LOGGER.warn("Could not set System Look and Feel!", e);
+                }
+
                 openNewWindow();
             }
         });

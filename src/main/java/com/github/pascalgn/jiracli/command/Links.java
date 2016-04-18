@@ -45,7 +45,7 @@ class Links implements Command {
                     if (next == null) {
                         break;
                     } else {
-                        List<Issue> links = context.getWebService().getLinks(next, IssueHint.getFields(hints));
+                        List<Issue> links = context.getWebService().getLinks(next, CommandUtils.getRequest(hints));
                         iterator = links.iterator();
                     }
                 }

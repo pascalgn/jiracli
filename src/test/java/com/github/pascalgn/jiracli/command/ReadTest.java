@@ -34,9 +34,9 @@ import org.junit.rules.TemporaryFolder;
 
 import com.github.pascalgn.jiracli.command.Read.TextFileReader;
 import com.github.pascalgn.jiracli.context.Context;
-import com.github.pascalgn.jiracli.model.Issue;
-import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.None;
+import com.github.pascalgn.jiracli.model.Text;
+import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.testutil.ExcelUtils;
 import com.github.pascalgn.jiracli.testutil.MockContext;
 import com.github.pascalgn.jiracli.util.Hint;
@@ -62,14 +62,14 @@ public class ReadTest {
         Context context = new MockContext();
 
         Read re = new Read(file.getAbsolutePath(), "Sheet1", "U");
-        IssueList list = re.execute(context, None.getInstance());
+        TextList list = re.execute(context, None.getInstance());
         assertNotNull(list);
 
-        List<Issue> issues = list.remaining(Hint.none());
-        assertNotNull(issues);
-        assertEquals(101, issues.size());
-        assertEquals("ISSUE-10", issues.get(0).getKey());
-        assertEquals("ISSUE-110", issues.get(100).getKey());
+        List<Text> texts = list.remaining(Hint.none());
+        assertNotNull(texts);
+        assertEquals(101, texts.size());
+        assertEquals("ISSUE-10", texts.get(0).getText());
+        assertEquals("ISSUE-110", texts.get(100).getText());
     }
 
     @Test
@@ -77,11 +77,11 @@ public class ReadTest {
         File file = folder.newFile("temp.txt");
         IOUtils.write(file, "ISSUE-1\nISSUE-2\n99ISSUE-3 ISSUE-4\r\nISSUE-5");
         TextFileReader fileReader = new TextFileReader(file);
-        List<String> keys = new ArrayList<>();
-        String key;
-        while ((key = fileReader.get(Hint.none())) != null) {
-            keys.add(key);
+        List<String> lines = new ArrayList<>();
+        String line;
+        while ((line = fileReader.get(Hint.none())) != null) {
+            lines.add(line);
         }
-        assertEquals(Arrays.asList("ISSUE-1", "ISSUE-2", "ISSUE-3", "ISSUE-4", "ISSUE-5"), keys);
+        assertEquals(Arrays.asList("ISSUE-1", "ISSUE-2", "99ISSUE-3 ISSUE-4", "ISSUE-5"), lines);
     }
 }

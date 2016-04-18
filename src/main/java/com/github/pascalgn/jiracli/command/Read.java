@@ -22,7 +22,6 @@ import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
@@ -31,12 +30,7 @@ import java.util.Set;
 import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
-import com.github.pascalgn.jiracli.model.Issue;
-import com.github.pascalgn.jiracli.model.IssueHint;
-import com.github.pascalgn.jiracli.model.IssueList;
-import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
-import com.github.pascalgn.jiracli.util.CollectingSupplier;
 import com.github.pascalgn.jiracli.util.ExcelHelper;
 import com.github.pascalgn.jiracli.util.ExcelHelper.CellHandler;
 import com.github.pascalgn.jiracli.util.ExcelHelperFactory;
@@ -69,26 +63,15 @@ class Read implements Command {
     }
 
     @Override
-    public IssueList execute(final Context context, Data input) {
+    public TextList execute(final Context context, Data input) {
         final Supplier<String> supplier;
         if (filename.equals(STDIN_FILENAME)) {
             final TextList textList = input.toTextList();
             if (textList == null) {
                 final List<String> lines = context.getConsole().readLines();
-                supplier = new CollectingSupplier<String>() {
-                    @Override
-                    protected Collection<String> nextItems(Set<Hint> hints) {
-                        return (lines.isEmpty() ? null : CommandUtils.findIssues(lines.remove(0)));
-                    }
-                };
+                return new TextList(TextList.toText(lines.iterator()));
             } else {
-                supplier = new CollectingSupplier<String>() {
-                    @Override
-                    protected Collection<String> nextItems(Set<Hint> hints) {
-                        Text text = textList.next(hints);
-                        return (text == null ? null : CommandUtils.findIssues(text.getText()));
-                    }
-                };
+                return textList;
             }
         } else {
             File file = new File(filename);
@@ -97,24 +80,8 @@ class Read implements Command {
             } else {
                 supplier = new TextFileReader(file);
             }
+            return new TextList(TextList.toText(supplier));
         }
-        return new IssueList(new CollectingSupplier<Issue>() {
-            private static final int ISSUE_FETCH_SIZE = 10;
-
-            @Override
-            protected Collection<Issue> nextItems(Set<Hint> hints) {
-                // Fetch multiple issues at once to reduce server requests
-                List<String> keys = new ArrayList<String>();
-                String key;
-                while ((key = supplier.get(hints)) != null) {
-                    keys.add(key);
-                    if (keys.size() >= ISSUE_FETCH_SIZE) {
-                        break;
-                    }
-                }
-                return (keys.isEmpty() ? null : context.getWebService().getIssues(keys, IssueHint.getFields(hints)));
-            }
-        });
     }
 
     static class TextFileReader implements Supplier<String> {
@@ -123,23 +90,23 @@ class Read implements Command {
         private final File file;
         private long offset;
 
-        private final Deque<String> keys;
+        private final Deque<String> lines;
 
         public TextFileReader(File file) {
             this.file = file;
-            this.keys = new ArrayDeque<>();
+            this.lines = new ArrayDeque<>();
         }
 
         @Override
         public String get(Set<Hint> hints) {
-            if (keys.isEmpty()) {
+            if (lines.isEmpty()) {
                 try {
                     readNext();
                 } catch (IOException e) {
                     throw new IllegalStateException(e);
                 }
             }
-            return (keys.isEmpty() ? null : keys.removeFirst());
+            return (lines.isEmpty() ? null : lines.removeFirst());
         }
 
         private void readNext() throws IOException {
@@ -152,7 +119,7 @@ class Read implements Command {
                             offset = -1;
                             break;
                         } else {
-                            keys.addAll(CommandUtils.findIssues(line));
+                            lines.add(line);
                             if (f.getFilePointer() - offset > READ_SIZE) {
                                 offset = f.getFilePointer();
                                 break;
@@ -169,7 +136,7 @@ class Read implements Command {
         private final String sheet;
         private final String column;
 
-        private transient List<String> keys;
+        private transient List<String> values;
         private transient int index;
 
         public ExcelReader(File file, String sheet, String column) {
@@ -181,16 +148,16 @@ class Read implements Command {
         @Override
         public String get(Set<Hint> hints) {
             init();
-            if (index < keys.size()) {
-                return keys.get(index++);
+            if (index < values.size()) {
+                return values.get(index++);
             } else {
                 return null;
             }
         }
 
         private synchronized void init() {
-            if (keys == null) {
-                keys = new ArrayList<String>();
+            if (values == null) {
+                values = new ArrayList<String>();
                 ExcelHelper excelHelper = ExcelHelperFactory.createExcelHelper();
                 try (InputStream input = new FileInputStream(file)) {
                     CellHandler cellHandler = new CellHandler() {
@@ -201,9 +168,7 @@ class Read implements Command {
                                     return;
                                 }
                             }
-                            for (String key : CommandUtils.findIssues(value)) {
-                                keys.add(key);
-                            }
+                            values.add(value);
                         }
                     };
                     if (sheet == null) {

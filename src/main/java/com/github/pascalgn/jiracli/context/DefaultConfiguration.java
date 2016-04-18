@@ -58,7 +58,7 @@ public class DefaultConfiguration implements Configuration {
 
         baseUrl = emptyToNull(preferences.get(BASE_URL, null));
         if (baseUrl != null) {
-            baseUrl = StringUtils.stripEnd(baseUrl.trim(), "/");
+            baseUrl = StringUtils.stripEnds(baseUrl.trim(), "/");
         }
 
         username = emptyToNull(preferences.get(USERNAME, null));
@@ -102,7 +102,7 @@ public class DefaultConfiguration implements Configuration {
     public void setBaseUrl(String baseUrl) {
         String url = emptyToNull(baseUrl);
         if (url != null) {
-            url = StringUtils.stripEnd(url.trim(), "/");
+            url = StringUtils.stripEnds(url.trim(), "/");
             url = emptyToNull(url);
         }
         this.baseUrl = url;

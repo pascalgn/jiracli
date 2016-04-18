@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
+import com.github.pascalgn.jiracli.context.DefaultRequest;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
@@ -40,8 +41,6 @@ import com.github.pascalgn.jiracli.util.Hint;
 @CommandDescription(names = "transition", description = "Change the status of the given issues")
 class Transitions implements Command {
     private static final Logger LOGGER = LoggerFactory.getLogger(Transitions.class);
-
-    private static final List<String> EMPTY = Collections.emptyList();
 
     @Argument(names = { "-n", "--dry" }, description = "only print the transition order")
     private boolean dry;
@@ -82,7 +81,7 @@ class Transitions implements Command {
         Workflow workflow = context.getWebService().getWorkflow(issue);
         Status status = context.getWebService().getStatus(issue);
 
-        Collection<Text> texts = new ArrayList<Text>();
+        Collection<Text> texts = new ArrayList<>();
         texts.add(new Text(issue.getKey() + ": " + (status == null ? "(unknown)" : status.getName())));
         for (Transition transition : workflow.getTransitions()) {
             Status source = transition.getSource().getStatus();
@@ -121,8 +120,7 @@ class Transitions implements Command {
         for (Transition transition : transitions) {
             context.getWebService().transitionIssue(issue, transition);
         }
-        List<Issue> issues = context.getWebService().getIssues(Collections.singletonList(issue.getKey()), EMPTY);
-        return issues.get(0);
+        return context.getWebService().getIssue(issue.getKey(), new DefaultRequest());
     }
 
     private List<Transition> getTransitions(Context context, Issue issue) {
@@ -139,8 +137,8 @@ class Transitions implements Command {
 
         List<List<Transition>> results = new ArrayList<>();
 
-        List<Transition> result = new ArrayList<Transition>();
-        List<Transition> valid = new ArrayList<Transition>(workflow.getTransitions());
+        List<Transition> result = new ArrayList<>();
+        List<Transition> valid = new ArrayList<>(workflow.getTransitions());
         Status s = source;
 
         while (!valid.isEmpty()) {
@@ -223,7 +221,7 @@ class Transitions implements Command {
                 s = next.getTarget().getStatus();
 
                 if (s.equals(target)) {
-                    results.add(new ArrayList<Transition>(result));
+                    results.add(new ArrayList<>(result));
 
                     if (result.size() == 1) {
                         // we won't find a shorter transition

@@ -40,7 +40,7 @@ class AppleHelper {
         Class<?> applicationType = cl.loadClass("com.apple.eawt.Application");
         Object application = call(applicationType, "getApplication");
 
-        Image icon = Images.getIconNoBorder();
+        Image icon = Images.getIconB();
         if (icon != null) {
             call(applicationType, application, "setDockIconImage", Image.class, icon);
         }

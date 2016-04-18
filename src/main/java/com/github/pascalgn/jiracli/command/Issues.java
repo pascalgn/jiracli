@@ -28,7 +28,6 @@ import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Field;
 import com.github.pascalgn.jiracli.model.FieldList;
 import com.github.pascalgn.jiracli.model.Issue;
-import com.github.pascalgn.jiracli.model.IssueHint;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.Sprint;
 import com.github.pascalgn.jiracli.model.SprintList;
@@ -55,7 +54,7 @@ class Issues implements Command {
                         return new IssueList(issueList.loadingSupplier(new Function<Issue, Collection<Issue>>() {
                             @Override
                             public Collection<Issue> apply(Issue issue, Set<Hint> hints) {
-                                return context.getWebService().getIssues(issue, IssueHint.getFields(hints));
+                                return context.getWebService().getIssues(issue, CommandUtils.getRequest(hints));
                             }
                         }));
                     } else {
@@ -80,7 +79,7 @@ class Issues implements Command {
                     return new IssueList(boardList.loadingSupplier(new Function<Board, Collection<Issue>>() {
                         @Override
                         public Collection<Issue> apply(Board board, Set<Hint> hints) {
-                            return context.getWebService().getIssues(board, IssueHint.getFields(hints));
+                            return context.getWebService().getIssues(board, CommandUtils.getRequest(hints));
                         }
                     }));
                 }
@@ -88,7 +87,7 @@ class Issues implements Command {
                 return new IssueList(sprintList.loadingSupplier(new Function<Sprint, Collection<Issue>>() {
                     @Override
                     public Collection<Issue> apply(Sprint sprint, Set<Hint> hints) {
-                        return context.getWebService().getIssues(sprint, IssueHint.getFields(hints));
+                        return context.getWebService().getIssues(sprint, CommandUtils.getRequest(hints));
                     }
                 }));
             }
@@ -99,7 +98,7 @@ class Issues implements Command {
                 @Override
                 public Issue get(Set<Hint> hints) {
                     if (iterator == null) {
-                        List<Issue> list = context.getWebService().getIssues(issues, IssueHint.getFields(hints));
+                        List<Issue> list = context.getWebService().getIssues(issues, CommandUtils.getRequest(hints));
                         iterator = list.iterator();
                     }
                     return (iterator.hasNext() ? iterator.next() : null);

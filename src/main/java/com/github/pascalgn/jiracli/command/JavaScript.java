@@ -66,7 +66,7 @@ class JavaScript implements Command {
         if (file == null) {
             script = js.trim();
         } else {
-            File f = CommandUtils.getFile(this.file);
+            File f = IOUtils.getFile(this.file);
             if (!f.exists()) {
                 throw new IllegalArgumentException("File not found: " + this.file);
             }
@@ -96,7 +96,7 @@ class JavaScript implements Command {
                 }
             }
         } else {
-            List<String> fields = CommandUtils.getJavaScriptFields(script);
+            List<String> fields = CommandUtils.findJavaScriptFields(script);
             Set<Hint> hints = IssueHint.fields(fields);
             if (list) {
                 if (!hints.isEmpty()) {

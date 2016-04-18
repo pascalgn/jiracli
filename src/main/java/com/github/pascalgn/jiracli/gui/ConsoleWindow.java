@@ -22,6 +22,7 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
@@ -80,7 +81,7 @@ public class ConsoleWindow extends JFrame {
 
     public ConsoleWindow(final Configuration configuration) {
         super(Constants.getTitle());
-        setIconImages(Images.getIcons());
+        setIconImages(Collections.singletonList(Images.getIconsA()));
 
         newWindowListener = new Runnable() {
             @Override

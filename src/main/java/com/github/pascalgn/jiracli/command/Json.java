@@ -26,12 +26,13 @@ import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
+import com.github.pascalgn.jiracli.model.IssueHint;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
+import com.github.pascalgn.jiracli.util.ConversionUtils;
 import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.Hint;
-import com.github.pascalgn.jiracli.util.IssueUtils;
 import com.github.pascalgn.jiracli.util.JsonUtils;
 
 @CommandDescription(names = "json", description = "Format Json strings")
@@ -84,18 +85,19 @@ class Json implements Command {
                 }));
             }
         } else {
+            Set<Hint> hints = IssueHint.fields(fields);
             if (join) {
-                List<Issue> issues = issueList.remaining(Hint.none());
+                List<Issue> issues = issueList.remaining(hints);
                 JSONArray arr = new JSONArray();
                 for (Issue issue : issues) {
-                    arr.put(IssueUtils.toJson(issue, fields));
+                    arr.put(ConversionUtils.toJson(issue, fields));
                 }
                 return new Text(CONTENT_TYPE, format(arr));
             } else {
-                return new TextList(CONTENT_TYPE, issueList.convertingSupplier(new Function<Issue, Text>() {
+                return new TextList(CONTENT_TYPE, issueList.convertingSupplier(hints, new Function<Issue, Text>() {
                     @Override
                     public Text apply(Issue issue, Set<Hint> hints) {
-                        String json = IssueUtils.toJson(issue, fields).toString(indent);
+                        String json = ConversionUtils.toJson(issue, fields).toString(indent);
                         return new Text(CONTENT_TYPE, json);
                     }
                 }));

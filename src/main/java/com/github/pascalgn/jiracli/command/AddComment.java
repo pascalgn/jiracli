@@ -15,28 +15,33 @@
  */
 package com.github.pascalgn.jiracli.command;
 
-import java.util.Collection;
 import java.util.Set;
 
+import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
-import com.github.pascalgn.jiracli.context.DefaultRequest;
-import com.github.pascalgn.jiracli.model.Board;
-import com.github.pascalgn.jiracli.model.BoardList;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.Hint;
 
-@CommandDescription(names = "epics", description = "Show the epics for the given boards")
-class Epics implements Command {
+@CommandDescription(names = "comment", description = "Add a new comment to the given issues")
+class AddComment implements Command {
+    @Argument(parameters = Parameters.ONE, variable = "<text>", description = "the text of the new comment")
+    private String text;
+
     @Override
     public Data execute(final Context context, Data input) {
-        BoardList boardList = input.toBoardListOrFail();
-        return new IssueList(boardList.loadingSupplier(Hint.none(), new Function<Board, Collection<Issue>>() {
+        if (text.isEmpty()) {
+            throw new IllegalArgumentException("Comment text cannot be empty!");
+        }
+
+        IssueList issueList = input.toIssueListOrFail();
+        return new IssueList(issueList.convertingSupplier(new Function<Issue, Issue>() {
             @Override
-            public Collection<Issue> apply(Board board, Set<Hint> hints) {
-                return context.getWebService().getEpics(board, new DefaultRequest());
+            public Issue apply(Issue issue, Set<Hint> hints) {
+                context.getWebService().addComment(issue, text);
+                return issue;
             }
         }));
     }

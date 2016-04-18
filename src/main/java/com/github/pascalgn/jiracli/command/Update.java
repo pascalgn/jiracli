@@ -54,9 +54,9 @@ class Update implements Command {
     public Data execute(final Context context, Data input) {
         IssueList issueList = input.toIssueListOrFail();
         if (dry) {
-            return new TextList(issueList.convertingSupplier(new Function<Issue, Text>() {
+            return new TextList(issueList.loadingSupplier(new Function<Issue, Collection<Text>>() {
                 @Override
-                public Text apply(Issue issue, Set<Hint> hints) {
+                public Collection<Text> apply(Issue issue, Set<Hint> hints) {
                     List<String> invalid;
                     if (check) {
                         invalid = getInvalidFields(context, issue);
@@ -76,7 +76,11 @@ class Update implements Command {
                         }
                     }
 
-                    return new Text(str);
+                    if (str.isEmpty()) {
+                        return Collections.emptyList();
+                    } else {
+                        return Collections.singleton(new Text(str));
+                    }
                 }
             }));
         } else {
@@ -88,7 +92,16 @@ class Update implements Command {
                         if (check) {
                             checkFields(context, issue);
                         }
-                        context.getWebService().updateIssue(issue, notifyUsers);
+                        try {
+                            context.getWebService().updateIssue(issue, notifyUsers);
+                        } catch (RuntimeException e) {
+                            String message = "Error updating issue: " + issue;
+                            String errorMessage = e.getLocalizedMessage();
+                            if (!errorMessage.isEmpty()) {
+                                message += ": " + errorMessage;
+                            }
+                            throw new IllegalStateException(message, e);
+                        }
                     } catch (RuntimeException e) {
                         if (continueOnError) {
                             context.getConsole().println(e.getLocalizedMessage());

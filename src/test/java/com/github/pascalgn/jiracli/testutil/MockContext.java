@@ -27,6 +27,7 @@ import com.github.pascalgn.jiracli.context.Configuration;
 import com.github.pascalgn.jiracli.context.DefaultJavaScriptEngine;
 import com.github.pascalgn.jiracli.context.JavaScriptEngine;
 import com.github.pascalgn.jiracli.context.WebService;
+import com.github.pascalgn.jiracli.context.WebService.Request;
 import com.github.pascalgn.jiracli.model.Issue;
 
 public class MockContext extends AbstractContext {
@@ -37,7 +38,7 @@ public class MockContext extends AbstractContext {
     public MockContext() {
         console = new MockConsole("http://localhost");
         webService = Mockito.mock(WebService.class);
-        Mockito.when(webService.getIssues(Mockito.anyListOf(String.class), Mockito.anyListOf(String.class)))
+        Mockito.when(webService.getIssues(Mockito.anyListOf(String.class), Mockito.any(Request.class)))
                 .thenAnswer(new Answer<List<Issue>>() {
                     @Override
                     public List<Issue> answer(InvocationOnMock invocation) throws Throwable {

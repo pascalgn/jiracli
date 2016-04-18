@@ -15,23 +15,46 @@
  */
 package com.github.pascalgn.jiracli.util;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
 import org.json.JSONObject;
 
 import com.github.pascalgn.jiracli.context.WebService;
+import com.github.pascalgn.jiracli.context.WebService.Request;
+import com.github.pascalgn.jiracli.model.Comment;
 import com.github.pascalgn.jiracli.model.Field;
 import com.github.pascalgn.jiracli.model.FieldMap;
 import com.github.pascalgn.jiracli.model.Issue;
+import com.github.pascalgn.jiracli.model.User;
 import com.github.pascalgn.jiracli.model.Value;
 
-public class IssueUtils {
+public class ConversionUtils {
     private static final String ALL_FIELDS = "*";
-    private static final List<String> EMPTY_FIELDS = Collections.emptyList();
+    private static final Request EMPTY_REQUEST = new Request() {
+        @Override
+        public boolean getAllFields() {
+            return false;
+        }
+
+        @Override
+        public Collection<String> getFields() {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public Collection<String> getExpand() {
+            return Collections.emptyList();
+        }
+    };
+
+    private static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSZ";
 
     /**
      * Returns the Json representation of the issue, never null. All loaded fields will be included.
@@ -53,7 +76,7 @@ public class IssueUtils {
         } else if (fields.contains(ALL_FIELDS)) {
             fieldList = fieldMap.getFields();
         } else {
-            fieldList = new ArrayList<Field>();
+            fieldList = new ArrayList<>();
             for (String f : fields) {
                 Field field = fieldMap.getFieldById(f);
                 if (field != null) {
@@ -74,6 +97,39 @@ public class IssueUtils {
     }
 
     /**
+     * Returns the Json representation of the comment, never null
+     */
+    public static JSONObject toJson(Comment comment) {
+        return new JSONObject().put("author", toJson(comment.getAuthor()))
+                .put("created", formatDate(comment.getCreated())).put("body", comment.getBody());
+    }
+
+    /**
+     * Returns the Json representation of the user, never null
+     */
+    public static JSONObject toJson(User user) {
+        return new JSONObject().put("id", user.getId()).put("name", user.getName());
+    }
+
+    /**
+     * Parses the date, expected to be in the format 2020-12-31T23:59:59.123Z
+     */
+    public static Date parseDate(String date) {
+        try {
+            return new SimpleDateFormat(DATE_FORMAT).parse(date);
+        } catch (ParseException e) {
+            throw new IllegalArgumentException("Invalid date: " + date, e);
+        }
+    }
+
+    /**
+     * Formats the date, returns a string in the format 2020-12-31T23:59:59.123Z
+     */
+    public static String formatDate(Date date) {
+        return new SimpleDateFormat(DATE_FORMAT).format(date);
+    }
+
+    /**
      * Returns the parsed issue, never null
      */
     public static Issue toIssue(WebService webService, JSONObject json) {
@@ -81,7 +137,7 @@ public class IssueUtils {
         if (key == null || key.isEmpty()) {
             throw new IllegalArgumentException("Invalid Json, missing key: " + json);
         }
-        Issue issue = getIssue(webService, key);
+        Issue issue = webService.getIssue(key, EMPTY_REQUEST);
         JSONObject fields = json.optJSONObject("fields");
         if (fields != null) {
             FieldMap fieldMap = issue.getFieldMap();
@@ -102,11 +158,15 @@ public class IssueUtils {
         return issue;
     }
 
-    private static Issue getIssue(WebService webService, String key) {
-        List<Issue> issues = webService.getIssues(Collections.singletonList(key), EMPTY_FIELDS);
-        if (issues.size() != 1) {
-            throw new IllegalStateException("Invalid result for key: " + key);
+    /**
+     * Returns the parsed user, never null
+     */
+    public static User toUser(JSONObject json) {
+        String id = json.optString("key");
+        if (id == null || id.isEmpty()) {
+            id = json.getString("name");
         }
-        return issues.get(0);
+        String name = json.getString("displayName");
+        return new User(id, name);
     }
 }

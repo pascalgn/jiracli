@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--
+
+    Copyright 2016 Pascal
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="121.83293"
+   height="121.83293"
+   viewBox="0 0 34.383961 34.383962"
+   version="1.1"
+   id="svg8"
+   sodipodi:docname="icon.svg"
+   inkscape:version="0.48.5 r10040"
+   inkscape:export-filename="/Users/user/wd/Jiracli/jiracli/src/main/resources/com/github/pascalgn/jiracli/icon-a-256x256.png"
+   inkscape:export-xdpi="189.11"
+   inkscape:export-ydpi="189.11">
+  <defs
+     id="defs2">
+    <linearGradient
+       id="linearGradient3753">
+      <stop
+         style="stop-color:#a6d2ff;stop-opacity:1;"
+         offset="0"
+         id="stop3755" />
+      <stop
+         style="stop-color:#4983ff;stop-opacity:1;"
+         offset="1"
+         id="stop3757" />
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient3753"
+       id="linearGradient3763"
+       x1="5.4075785"
+       y1="19.406178"
+       x2="34.147095"
+       y2="19.406178"
+       gradientUnits="userSpaceOnUse" />
+    <filter
+       style="color-interpolation-filters:sRGB;"
+       inkscape:label="Drop Shadow"
+       id="filter3105">
+      <feFlood
+         flood-opacity="0.75"
+         flood-color="rgb(0,0,0)"
+         result="flood"
+         id="feFlood3107" />
+      <feComposite
+         in="flood"
+         in2="SourceGraphic"
+         operator="in"
+         result="composite1"
+         id="feComposite3109" />
+      <feGaussianBlur
+         in="composite"
+         stdDeviation="0.4"
+         result="blur"
+         id="feGaussianBlur3111" />
+      <feOffset
+         dx="0.1"
+         dy="0.1"
+         result="offset"
+         id="feOffset3113" />
+      <feComposite
+         in="SourceGraphic"
+         in2="offset"
+         operator="over"
+         result="composite2"
+         id="feComposite3115" />
+    </filter>
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="3.959798"
+     inkscape:cx="67.941808"
+     inkscape:cy="46.659279"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     showguides="false"
+     inkscape:window-width="1436"
+     inkscape:window-height="855"
+     inkscape:window-x="4"
+     inkscape:window-y="1"
+     inkscape:window-maximized="1"
+     units="px"
+     fit-margin-top="10"
+     fit-margin-left="10"
+     fit-margin-right="10"
+     fit-margin-bottom="10" />
+  <metadata
+     id="metadata5">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-2.5853565,-2.2141974)">
+    <rect
+       style="fill:url(#linearGradient3763);fill-opacity:1;stroke:#000000;stroke-width:1.41111111999999994;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0;filter:url(#filter3105)"
+       id="rect4491"
+       width="27.328405"
+       height="27.328405"
+       x="6.1131339"
+       y="5.7419753" />
+    <text
+       xml:space="preserve"
+       style="font-size:10.58333302px;font-style:normal;font-weight:normal;line-height:6.61458302px;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       x="15.58755"
+       y="27.0791"
+       id="text3682"><tspan
+         sodipodi:role="line"
+         id="tspan3680"
+         x="15.58755"
+         y="27.0791"
+         style="font-size:20.3200016px;font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;stroke:none;font-family:Futura;-inkscape-font-specification:Futura Medium">J</tspan></text>
+  </g>
+</svg>

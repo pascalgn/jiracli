@@ -21,6 +21,7 @@ import com.github.pascalgn.jiracli.model.Converter;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Field;
 import com.github.pascalgn.jiracli.model.Issue;
+import com.github.pascalgn.jiracli.model.IssueHint;
 import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.Schema;
 import com.github.pascalgn.jiracli.util.Function;
@@ -36,13 +37,14 @@ class Set implements Command {
 
     @Override
     public IssueList execute(Context context, Data input) {
+        final java.util.Set<Hint> hints = IssueHint.fields(field);
         final Schema schema = context.getWebService().getSchema();
-        return new IssueList(input.toIssueListOrFail().convertingSupplier(new Function<Issue, Issue>() {
+        return new IssueList(input.toIssueListOrFail().convertingSupplier(hints, new Function<Issue, Issue>() {
             @Override
-            public Issue apply(Issue issue, java.util.Set<Hint> hints) {
+            public Issue apply(Issue issue, java.util.Set<Hint> h) {
                 Field f = issue.getFieldMap().getField(field, schema);
                 if (f == null) {
-                    throw new IllegalArgumentException("Unknown field: " + field);
+                    throw new IllegalArgumentException("Unknown field: " + field + ": " + issue);
                 }
                 Converter converter = schema.getConverter(f.getId());
                 Object val = converter.fromString(value);
