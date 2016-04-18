@@ -47,6 +47,8 @@ class Get implements Command {
 
     @Override
     public TextList execute(final Context context, Data input) {
+        fields = CommandUtils.getFields(fields);
+
         IssueList issueList = input.toIssueList();
         if (issueList == null) {
             final Iterator<Data> iterator = input.toIterator(Hint.none());

@@ -23,6 +23,7 @@ import java.io.Reader;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.AccessControlException;
 import java.security.GeneralSecurityException;
 import java.util.HashMap;
@@ -30,6 +31,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.zip.GZIPInputStream;
 
 import javax.net.ssl.SSLContext;
@@ -63,6 +65,7 @@ import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.pascalgn.jiracli.context.Console;
 import com.github.pascalgn.jiracli.util.Consumer;
 import com.github.pascalgn.jiracli.util.Credentials;
 import com.github.pascalgn.jiracli.util.Function;
@@ -98,24 +101,43 @@ class HttpClient implements AutoCloseable {
     }
 
     private final Map<String, Credentials> credentials;
+    private final AtomicReference<HttpUriRequest> request;
     private final Supplier<String> baseUrl;
     private final CloseableHttpClient httpClient;
     private final HttpClientContext httpClientContext;
 
-    public HttpClient(Supplier<String> baseUrl, Function<String, Credentials> credentials) {
+    public HttpClient(final Console console) {
         this.credentials = new HashMap<String, Credentials>();
-        this.baseUrl = baseUrl;
-        this.httpClient = createHttpClient(credentials);
-        this.httpClientContext = createHttpClientContext(credentials);
+        this.request = new AtomicReference<>();
+
+        this.baseUrl = new Supplier<String>() {
+            @Override
+            public String get(Set<Hint> hints) {
+                return console.getBaseUrl();
+            }
+        };
+
+        this.httpClient = createHttpClient();
+        this.httpClientContext = createHttpClientContext(console);
+
+        console.onInterrupt(new Runnable() {
+            @Override
+            public void run() {
+                HttpUriRequest req = request.get();
+                if (req != null) {
+                    req.abort();
+                }
+            }
+        });
     }
 
-    private static CloseableHttpClient createHttpClient(final Function<String, Credentials> credentials) {
+    private static CloseableHttpClient createHttpClient() {
         HttpClientBuilder httpClientBuilder = HttpClients.custom();
         httpClientBuilder.setSSLSocketFactory(SSL_SOCKET_FACTORY);
         return httpClientBuilder.build();
     }
 
-    private HttpClientContext createHttpClientContext(final Function<String, Credentials> credentials) {
+    private HttpClientContext createHttpClientContext(final Console console) {
         HttpClientContext context = HttpClientContext.create();
 
         CredentialsProvider credentialsProvider = new CredentialsProvider() {
@@ -128,7 +150,7 @@ class HttpClient implements AutoCloseable {
                 String baseUrl = getBaseUrl();
                 Credentials c = HttpClient.this.credentials.get(baseUrl);
                 if (c == null) {
-                    c = credentials.apply(authscope.getOrigin().toURI(), Hint.none());
+                    c = console.getCredentials(authscope.getOrigin().toURI());
                     if (c == null) {
                         throw new IllegalStateException("No credentials provided!");
                     }
@@ -160,6 +182,10 @@ class HttpClient implements AutoCloseable {
         return url;
     }
 
+    public String get(URI uri) {
+        return execute(new HttpGet(uri), TO_STRING);
+    }
+
     public String get(String path) {
         return get(path, TO_STRING);
     }
@@ -169,7 +195,7 @@ class HttpClient implements AutoCloseable {
     }
 
     public void get(final URI uri, final Consumer<InputStream> consumer) {
-        doExecute(new HttpGet(uri), true, new Function<HttpEntity, Void>() {
+        execute(new HttpGet(uri), true, new Function<HttpEntity, Void>() {
             @Override
             public Void apply(HttpEntity entity, Set<Hint> hints) {
                 if (entity == null) {
@@ -186,14 +212,26 @@ class HttpClient implements AutoCloseable {
         });
     }
 
+    public String post(URI uri, String body) {
+        return post(uri, body, TO_STRING);
+    }
+
     public String post(String path, String body) {
         return post(path, body, TO_STRING);
     }
 
     public <T> T post(String path, String body, Function<Reader, T> function) {
-        HttpPost request = new HttpPost(getUrl(path));
+        return post(getUrl(path), body, function);
+    }
+
+    public <T> T post(URI uri, String body, Function<Reader, T> function) {
+        HttpPost request = new HttpPost(uri);
         request.setEntity(new StringEntity(body, ContentType.APPLICATION_JSON));
         return execute(request, function);
+    }
+
+    public String put(URI uri, String body) {
+        return put(uri, body, TO_STRING);
     }
 
     public String put(String path, String body) {
@@ -201,7 +239,11 @@ class HttpClient implements AutoCloseable {
     }
 
     public <T> T put(String path, String body, Function<Reader, T> function) {
-        HttpPut request = new HttpPut(getUrl(path));
+        return put(getUrl(path), body, function);
+    }
+
+    public <T> T put(URI uri, String body, Function<Reader, T> function) {
+        HttpPut request = new HttpPut(uri);
         request.setEntity(new StringEntity(body, ContentType.APPLICATION_JSON));
         return execute(request, function);
     }
@@ -215,20 +257,29 @@ class HttpClient implements AutoCloseable {
         return execute(request, function);
     }
 
-    private String getUrl(String path) {
+    private URI getUrl(String path) {
         if (!path.startsWith("/")) {
             throw new IllegalArgumentException("Invalid path: " + path);
         }
-        return getBaseUrl() + path;
+        return URI.create(getBaseUrl() + path);
     }
 
     private <T> T execute(final HttpUriRequest request, final Function<Reader, T> function) {
-        return doExecute(request, true, new Function<HttpEntity, T>() {
+        return execute(request, true, new Function<HttpEntity, T>() {
             @Override
             public T apply(HttpEntity entity, Set<Hint> hints) {
                 return (entity == null ? null : readResponse(request.getURI(), entity, function));
             }
         });
+    }
+
+    private <T> T execute(HttpUriRequest request, boolean retry, Function<HttpEntity, T> function) {
+        this.request.set(request);
+        try {
+            return doExecute(request, retry, function);
+        } finally {
+            this.request.set(null);
+        }
     }
 
     private <T> T doExecute(HttpUriRequest request, boolean retry, Function<HttpEntity, T> function) {
@@ -243,7 +294,12 @@ class HttpClient implements AutoCloseable {
         try {
             response = httpClient.execute(request, httpClientContext);
         } catch (IOException e) {
-            throw new IllegalStateException("Could not call URL: " + request.getURI());
+            if (Thread.interrupted()) {
+                LOGGER.trace("Could not call URL: {}", request.getURI(), e);
+                throw new InterruptedError();
+            } else {
+                throw new IllegalStateException("Could not call URL: " + request.getURI(), e);
+            }
         }
 
         LOGGER.debug("Response received ({})", response.getStatusLine().toString().trim());
@@ -267,6 +323,13 @@ class HttpClient implements AutoCloseable {
                     } else {
                         throw e.getCause();
                     }
+                } catch (RuntimeException e) {
+                    if (Thread.interrupted()) {
+                        LOGGER.trace("Could not call URL: {}", request.getURI(), e);
+                        throw new InterruptedError();
+                    } else {
+                        throw e;
+                    }
                 }
 
                 if (Thread.interrupted()) {
@@ -281,6 +344,8 @@ class HttpClient implements AutoCloseable {
                         setCredentials();
                         return doExecute(request, false, function);
                     } else {
+                        String error = readErrorResponse(request.getURI(), entity);
+                        LOGGER.debug("Unauthorized [401]: {}", error);
                         throw new AccessControlException("Unauthorized [401]: " + request.getURI());
                     }
                 } else if (statusCode == HttpURLConnection.HTTP_FORBIDDEN) {
@@ -348,7 +413,7 @@ class HttpClient implements AutoCloseable {
                 }
             }
         }
-        return Charset.defaultCharset();
+        return StandardCharsets.UTF_8;
     }
 
     private void resetAuthentication() {

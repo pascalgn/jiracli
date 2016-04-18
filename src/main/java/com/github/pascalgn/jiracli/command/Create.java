@@ -58,8 +58,8 @@ class Create implements Command {
             description = "The type of issues to create")
     private String issueType;
 
-    @Argument(parameters = Parameters.ZERO_OR_MORE, variable = "<field>", description = "default field values")
-    private List<String> fields;
+    @Argument(parameters = Parameters.ZERO_OR_MORE, variable = "<field-value>", description = "default field values")
+    private List<String> fieldValues;
 
     @Override
     public Data execute(final Context context, Data input) {
@@ -186,12 +186,15 @@ class Create implements Command {
 
     private Map<String, String> parseFieldValues(Context context) {
         Map<String, String> map = new LinkedHashMap<String, String>();
-        if (fields != null) {
+        if (fieldValues != null) {
             Schema schema = context.getWebService().getSchema();
-            for (String field : fields) {
+            for (String field : fieldValues) {
                 String[] str = field.split("=", 2);
+                for (int i = 0; i < str.length; i++) {
+                    str[i] = str[i].trim();
+                }
                 if (str.length != 2 || str[0].isEmpty()) {
-                    throw new IllegalArgumentException("Invalid field: " + field);
+                    throw new IllegalArgumentException("Invalid field value, expected field=value: " + field);
                 }
                 map.put(schema.getId(str[0]), str[1]);
             }

@@ -16,6 +16,7 @@
 package com.github.pascalgn.jiracli.model;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -47,7 +48,7 @@ public class IssueHint extends Hint {
      */
     public static Set<Hint> fields(List<String> fields) {
         if (fields.isEmpty()) {
-            throw new IllegalArgumentException("Empty fields: " + fields);
+            return Collections.emptySet();
         }
         Set<Hint> hints = new HashSet<>();
         for (String field : fields) {

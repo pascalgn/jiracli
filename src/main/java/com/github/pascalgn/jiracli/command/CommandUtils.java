@@ -28,6 +28,7 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.pascalgn.jiracli.model.Converter;
 import com.github.pascalgn.jiracli.model.Field;
 import com.github.pascalgn.jiracli.model.FieldMap;
 import com.github.pascalgn.jiracli.model.Issue;
@@ -43,7 +44,9 @@ class CommandUtils {
     private static final Pattern ISSUE_KEY_PATTERN = Pattern.compile("([A-Z][A-Z0-9]*)-([0-9]+)");
     private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\$\\{([^}]+)\\}|\\$([a-zA-Z]+[a-zA-Z0-9\\.]*)");
 
-    public static List<String> getFields(String pattern) {
+    private static final Pattern FIELD_PATTERN = Pattern.compile("\\.fields\\.([a-zA-Z][a-zA-Z0-9_]*)");
+
+    public static List<String> getPatternFields(String pattern) {
         List<String> fields = new ArrayList<>();
         Matcher m = VARIABLE_PATTERN.matcher(pattern);
         while (m.find()) {
@@ -55,6 +58,30 @@ class CommandUtils {
             fields.add(name);
         }
         return fields;
+    }
+
+    public static List<String> getJavaScriptFields(String script) {
+        List<String> fields = new ArrayList<>();
+        Matcher m = FIELD_PATTERN.matcher(script);
+        while (m.find()) {
+            fields.add(m.group(1));
+        }
+        return fields;
+    }
+
+    /**
+     * Parses the given field parameter, allowing fields separated by comma, for
+     * example <code>summary description,key</code>
+     */
+    public static List<String> getFields(List<String> fields) {
+        if (fields == null) {
+            return null;
+        }
+        List<String> result = new ArrayList<String>();
+        for (String field : fields) {
+            result.addAll(StringUtils.split(field, ","));
+        }
+        return result;
     }
 
     public static String toString(Object object, String pattern, String defaultValue) {
@@ -151,6 +178,21 @@ class CommandUtils {
         }
     }
 
+    public static String getFieldValue(Issue issue, Schema schema, String field) {
+        if (field.equalsIgnoreCase("key")) {
+            return issue.getKey();
+        } else if (field.contains(".")) {
+            return getFieldValue(issue, schema, field, "").toString();
+        } else {
+            String id = schema.getId(field);
+            Converter converter = schema.getConverter(id);
+            FieldMap fieldMap = issue.getFieldMap();
+            Field f = fieldMap.getFieldById(id);
+            Object value = f.getValue().get();
+            return converter.toString(value);
+        }
+    }
+
     public static Pattern getKeyPattern() {
         return ISSUE_KEY_PATTERN;
     }
@@ -193,5 +235,24 @@ class CommandUtils {
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    public static File getFile(String path) {
+        File file;
+        if (path.startsWith("~/") || path.startsWith("~\\")) {
+            file = new File(getHome(), path.substring(1));
+        } else {
+            file = new File(path);
+        }
+        return file.getAbsoluteFile();
+    }
+
+    private static File getHome() {
+        String property = System.getProperty("user.home");
+        File home = new File(property);
+        if (!home.isDirectory()) {
+            throw new IllegalStateException("Invalid home directory: " + property);
+        }
+        return home;
     }
 }

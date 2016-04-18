@@ -17,6 +17,7 @@ package com.github.pascalgn.jiracli.command;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -24,37 +25,85 @@ import org.json.JSONObject;
 import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
+import com.github.pascalgn.jiracli.model.Issue;
+import com.github.pascalgn.jiracli.model.IssueList;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
+import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.Hint;
+import com.github.pascalgn.jiracli.util.IssueUtils;
 import com.github.pascalgn.jiracli.util.JsonUtils;
 
-@CommandDescription(names = "json", description = "Parse Json strings")
+@CommandDescription(names = "json", description = "Format Json strings")
 class Json implements Command {
-    @Argument(names = "-i", parameters = Parameters.ONE, variable = "<indent>", description = "Indentation")
+    private static final String CONTENT_TYPE = "application/json";
+
+    @Argument(names = "-i", parameters = Parameters.ONE, variable = "<indent>", description = "indentation")
     private int indent = 2;
+
+    @Argument(names = { "-j", "--join" }, description = "join lists into a single array")
+    private boolean join;
+
+    @Argument(names = { "-f", "--fields" }, parameters = Parameters.ONE_OR_MORE, variable = "<field>",
+            description = "the fields to include")
+    private List<String> fields;
 
     @Override
     public Data execute(Context context, Data input) {
-        TextList textList = input.toTextListOrFail();
-        List<Text> texts = textList.remaining(Hint.none());
-        if (texts.isEmpty()) {
-            return new Text("");
-        } else if (texts.size() == 1) {
-            Text text = texts.get(0);
-            Object parsed = parse(text.getText());
-            return new Text(toString(parsed));
-        } else {
-            JSONArray arr = new JSONArray();
-            for (Text text : texts) {
-                Object parsed = parse(text.getText());
-                arr.put(parsed);
+        fields = CommandUtils.getFields(fields);
+
+        IssueList issueList = input.toIssueList();
+        if (issueList == null) {
+            if (fields != null) {
+                throw new IllegalArgumentException("Fields may only be given for issue lists!");
             }
-            return new Text(toString(arr));
+            TextList textList = input.toTextListOrFail();
+            if (join) {
+                List<Text> texts = textList.remaining(Hint.none());
+                if (texts.isEmpty()) {
+                    return new Text("");
+                } else if (texts.size() == 1) {
+                    Text text = texts.get(0);
+                    Object parsed = parse(text.getText());
+                    return new Text(CONTENT_TYPE, format(parsed));
+                } else {
+                    JSONArray arr = new JSONArray();
+                    for (Text text : texts) {
+                        Object parsed = parse(text.getText());
+                        arr.put(parsed);
+                    }
+                    return new Text(CONTENT_TYPE, format(arr));
+                }
+            } else {
+                return new TextList(CONTENT_TYPE, textList.convertingSupplier(new Function<Text, Text>() {
+                    @Override
+                    public Text apply(Text text, Set<Hint> hints) {
+                        Object parsed = parse(text.getText());
+                        return new Text(CONTENT_TYPE, format(parsed));
+                    }
+                }));
+            }
+        } else {
+            if (join) {
+                List<Issue> issues = issueList.remaining(Hint.none());
+                JSONArray arr = new JSONArray();
+                for (Issue issue : issues) {
+                    arr.put(IssueUtils.toJson(issue, fields));
+                }
+                return new Text(CONTENT_TYPE, format(arr));
+            } else {
+                return new TextList(CONTENT_TYPE, issueList.convertingSupplier(new Function<Issue, Text>() {
+                    @Override
+                    public Text apply(Issue issue, Set<Hint> hints) {
+                        String json = IssueUtils.toJson(issue, fields).toString(indent);
+                        return new Text(CONTENT_TYPE, json);
+                    }
+                }));
+            }
         }
     }
 
-    private String toString(Object obj) {
+    private String format(Object obj) {
         if (indent > 0) {
             if (obj instanceof JSONObject) {
                 return ((JSONObject) obj).toString(indent);

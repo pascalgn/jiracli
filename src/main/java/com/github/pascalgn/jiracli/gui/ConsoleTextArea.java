@@ -108,21 +108,21 @@ class ConsoleTextArea extends JTextArea {
         contextMenu.setIncreaseZoomListener(new Runnable() {
             @Override
             public void run() {
-                increaseFontSize();
+                increaseZoom();
             }
         });
 
         contextMenu.setDecreaseZoomListener(new Runnable() {
             @Override
             public void run() {
-                decreaseFontSize();
+                decreaseZoom();
             }
         });
 
         contextMenu.setResetZoomListener(new Runnable() {
             @Override
             public void run() {
-                resetFontSize();
+                resetZoom();
             }
         });
 
@@ -150,9 +150,21 @@ class ConsoleTextArea extends JTextArea {
 
         registerAction("new-window-action", KeyStroke.getKeyStroke(KeyEvent.VK_N, shortcut), new NewWindowAction());
 
+        registerAction("increase-zoom-action", KeyStroke.getKeyStroke(KeyEvent.VK_PLUS, shortcut),
+                new IncreaseZoomAction());
+        registerAction("decrease-zoom-action", KeyStroke.getKeyStroke(KeyEvent.VK_MINUS, shortcut),
+                new DecreaseZoomAction());
+        registerAction("reset-zoom-action", KeyStroke.getKeyStroke(KeyEvent.VK_0, shortcut), new ResetZoomAction());
+
         // always use control as modifier, even on macOS!
         registerAction("eof-action", KeyStroke.getKeyStroke("control D"), new EofAction());
         registerAction("interrupt-action", KeyStroke.getKeyStroke("control G"), new InterruptAction());
+        registerAlias("caret-end-line", KeyStroke.getKeyStroke("control E"));
+        registerAlias("delete-previous-word", KeyStroke.getKeyStroke("control W"));
+        registerAlias("caret-begin-line", KeyStroke.getKeyStroke("alt A"));
+        registerAlias("caret-end-line", KeyStroke.getKeyStroke("alt E"));
+        registerAlias("caret-previous-word", KeyStroke.getKeyStroke("alt B"));
+        registerAlias("caret-next-word", KeyStroke.getKeyStroke("alt F"));
 
         addMouseWheelListener(new ZoomListener());
 
@@ -165,6 +177,10 @@ class ConsoleTextArea extends JTextArea {
     private void registerAction(Object actionKey, KeyStroke keyStroke, Action action) {
         getInputMap(JComponent.WHEN_FOCUSED).put(keyStroke, actionKey);
         getActionMap().put(actionKey, action);
+    }
+
+    private void registerAlias(Object actionKey, KeyStroke keyStroke) {
+        getInputMap(JComponent.WHEN_FOCUSED).put(keyStroke, actionKey);
     }
 
     private static int normalize(int size) {
@@ -284,15 +300,15 @@ class ConsoleTextArea extends JTextArea {
         super.setEditable(editable);
     }
 
-    private void increaseFontSize() {
+    private void increaseZoom() {
         setFontSize(getFont().getSize() + 3);
     }
 
-    private void decreaseFontSize() {
+    private void decreaseZoom() {
         setFontSize(getFont().getSize() - 3);
     }
 
-    private void resetFontSize() {
+    private void resetZoom() {
         setFontSize(defaultFontSize);
     }
 
@@ -357,6 +373,7 @@ class ConsoleTextArea extends JTextArea {
                     } catch (BadLocationException e) {
                         LOGGER.trace("BadLocationException", e);
                     }
+                    setSelectionStart(doc.getLength());
                 }
             }
         }
@@ -383,6 +400,7 @@ class ConsoleTextArea extends JTextArea {
                     } catch (BadLocationException e) {
                         LOGGER.trace("BadLocationException", e);
                     }
+                    setSelectionStart(doc.getLength());
                 }
             }
         }
@@ -484,6 +502,33 @@ class ConsoleTextArea extends JTextArea {
         }
     }
 
+    private class IncreaseZoomAction extends AbstractAction {
+        private static final long serialVersionUID = -6412779009926604137L;
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            increaseZoom();
+        }
+    }
+
+    private class DecreaseZoomAction extends AbstractAction {
+        private static final long serialVersionUID = -1579192672548297719L;
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            decreaseZoom();
+        }
+    }
+
+    private class ResetZoomAction extends AbstractAction {
+        private static final long serialVersionUID = -5334815201511396475L;
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            resetZoom();
+        }
+    }
+
     private class DocFilter extends DocumentFilter {
         @Override
         public void remove(FilterBypass fb, int offset, int length) throws BadLocationException {
@@ -508,9 +553,9 @@ class ConsoleTextArea extends JTextArea {
             if ((evt.getModifiers() & shortcut) == shortcut && !evt.isShiftDown() && !evt.isAltDown()
                     && !evt.isAltGraphDown()) {
                 if (evt.getWheelRotation() < 0) {
-                    increaseFontSize();
+                    increaseZoom();
                 } else {
-                    decreaseFontSize();
+                    decreaseZoom();
                 }
             } else {
                 evt.getComponent().getParent().dispatchEvent(evt);

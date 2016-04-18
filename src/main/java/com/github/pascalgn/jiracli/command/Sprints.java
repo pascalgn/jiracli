@@ -44,14 +44,14 @@ class Sprints implements Command {
             description = "only show sprints matching the given ID")
     private Integer sprint;
 
-    @Argument(names = "--state", parameters = Parameters.ONE, variable = "<state>",
+    @Argument(names = { "-t", "--state" }, parameters = Parameters.ONE, variable = "<state>",
             description = "only show sprints with the given state")
-    private String state;
+    private String state = State.ACTIVE.name();
 
     @Override
     public SprintList execute(final Context context, Data input) {
         Filter<Sprint> filter;
-        if (state == null) {
+        if (state == null || state.equals("*") || state.equalsIgnoreCase("any")) {
             filter = ANY;
         } else {
             final State s = State.valueOf(state.toUpperCase());

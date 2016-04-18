@@ -17,11 +17,14 @@ package com.github.pascalgn.jiracli.command;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.None;
+import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.util.IOUtils;
 import com.github.pascalgn.jiracli.util.JsonUtils;
 
@@ -31,21 +34,45 @@ class Open implements Command {
             description = "the file suffix to use")
     private String fileSuffix;
 
+    @Argument(names = { "-e", "--encoding" }, parameters = Parameters.ONE, variable = "<encoding>",
+            description = "the file encoding to use")
+    private String encoding;
+
+    @Argument(names = { "-u", "--unicode" }, description = "use UTF-8 encoding, short for -e UTF-8")
+    private boolean unicode;
+
     @Override
     public Data execute(Context context, Data input) {
-        String str = input.toTextOrFail().getText();
+        Text text = input.toTextOrFail();
+        String str = text.getText();
+
+        Charset charset = StandardCharsets.UTF_8;
 
         String suffix;
         if (fileSuffix == null) {
-            if (JsonUtils.toJsonObject(str) != null || JsonUtils.toJsonArray(str) != null) {
+            String contentType = text.getType();
+            if (contentType.equals("application/json")) {
                 suffix = ".json";
-            } else if (str.startsWith("### ") || str.startsWith("--- ")) {
-                suffix = ".diff";
+            } else if (contentType.equals("text/csv")) {
+                suffix = ".csv";
+                charset = StandardCharsets.ISO_8859_1;
             } else {
-                suffix = ".txt";
+                if (JsonUtils.toJsonObject(str) != null || JsonUtils.toJsonArray(str) != null) {
+                    suffix = ".json";
+                } else if (str.startsWith("### ") || str.startsWith("--- ")) {
+                    suffix = ".diff";
+                } else {
+                    suffix = ".txt";
+                }
             }
         } else {
             suffix = fileSuffix;
+        }
+
+        if (unicode) {
+            charset = StandardCharsets.UTF_8;
+        } else if (encoding != null) {
+            charset = Charset.forName(encoding);
         }
 
         File tempFile;
@@ -55,8 +82,8 @@ class Open implements Command {
             throw new IllegalStateException("Cannot create temporary file!", e);
         }
 
-        IOUtils.write(tempFile, str);
         tempFile.deleteOnExit();
+        IOUtils.write(tempFile, charset, str);
 
         context.getConsole().openFile(tempFile);
 

@@ -15,6 +15,7 @@
  */
 package com.github.pascalgn.jiracli.command;
 
+import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -32,17 +33,20 @@ import com.github.pascalgn.jiracli.util.Supplier;
 
 @CommandDescription(names = "filter", description = "Filter issues by the given field value")
 class Filter implements Command {
-    @Argument(names = { "-e", "--regexp" }, description = "Use regular expressions")
+    @Argument(names = { "-e", "--regexp" }, description = "use regular expressions")
     private boolean regexp;
 
-    @Argument(names = { "-i", "--ignore" }, description = "Ignore case")
+    @Argument(names = { "-i", "--ignore-case" }, description = "ignore case")
     private boolean ignoreCase;
+
+    @Argument(names = { "-j", "--javascript" }, description = "interpret value as a JavaScript expression")
+    private boolean javaScript;
 
     @Argument(names = { "-f", "--field" }, parameters = Parameters.ONE, variable = "<field>",
             description = "issue's field name")
     private String field;
 
-    @Argument(parameters = Parameters.ONE, variable = "<value>", order = 2, description = "the filter value")
+    @Argument(parameters = Parameters.ONE, variable = "<value>", description = "the filter value")
     private String search;
 
     public Filter() {
@@ -63,6 +67,59 @@ class Filter implements Command {
 
     @Override
     public Data execute(final Context context, final Data input) {
+        if (javaScript) {
+            return filterJavaScript(context, input);
+        } else {
+            return filterValue(context, input);
+        }
+    }
+
+    private Data filterJavaScript(final Context context, final Data input) {
+        if (regexp) {
+            throw new IllegalArgumentException("Cannot combine --javascript and --regexp!");
+        } else if (ignoreCase) {
+            throw new IllegalArgumentException("Cannot combine --javascript and --ignore-case!");
+        } else if (field != null) {
+            throw new IllegalArgumentException("Cannot combine --javascript and --field!");
+        }
+
+        final String js = search.trim();
+
+        final IssueList issueList = input.toIssueList();
+        if (issueList == null) {
+            final TextList textList = input.toTextListOrFail();
+            return new TextList(new Supplier<Text>() {
+                @Override
+                public Text get(Set<Hint> hints) {
+                    Text text;
+                    while ((text = textList.next(hints)) != null) {
+                        if (context.getJavaScriptEngine().test(js, text)) {
+                            return text;
+                        }
+                    }
+                    return null;
+                }
+            });
+        } else {
+            List<String> fields = CommandUtils.getJavaScriptFields(js);
+            final Set<Hint> hints = IssueHint.fields(fields);
+            return new IssueList(new Supplier<Issue>() {
+                @Override
+                public Issue get(Set<Hint> localHints) {
+                    Set<Hint> combined = Hint.combine(hints, localHints);
+                    Issue issue;
+                    while ((issue = issueList.next(combined)) != null) {
+                        if (context.getJavaScriptEngine().test(js, issue)) {
+                            return issue;
+                        }
+                    }
+                    return null;
+                }
+            });
+        }
+    }
+
+    private Data filterValue(final Context context, final Data input) {
         int flags = 0;
         if (!regexp) {
             flags |= Pattern.LITERAL;

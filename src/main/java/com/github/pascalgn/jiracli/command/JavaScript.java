@@ -16,14 +16,21 @@
 package com.github.pascalgn.jiracli.command;
 
 import java.io.File;
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.command.CommandFactory.UsageException;
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
+import com.github.pascalgn.jiracli.model.Issue;
+import com.github.pascalgn.jiracli.model.IssueHint;
 import com.github.pascalgn.jiracli.model.IssueList;
+import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
+import com.github.pascalgn.jiracli.util.Function;
+import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.IOUtils;
 
 @CommandDescription(names = { "javascript", "js" }, description = "Execute JavaScript code for the given issues")
@@ -32,9 +39,8 @@ class JavaScript implements Command {
             description = "the script file to read javascript from")
     private String file;
 
-    @Argument(names = { "-f", "--fields" }, variable = "<fields>", parameters = Parameters.ONE_OR_MORE,
-            description = "the fields available to javascript (by default, all loaded fields will be available)")
-    private List<String> fields;
+    @Argument(names = { "-l", "--list" }, description = "pass the input list to the script, not single elements")
+    private boolean list;
 
     @Argument(variable = "<javascript>", description = "the javascript code", parameters = Parameters.ZERO_OR_ONE)
     private String js;
@@ -43,25 +49,26 @@ class JavaScript implements Command {
         // default constructor
     }
 
-    JavaScript(String js) {
+    JavaScript(String js, boolean list) {
         this.js = js;
+        this.list = list;
     }
 
     @Override
-    public Data execute(final Context context, Data data) {
+    public TextList execute(final Context context, Data data) {
         if (js != null && file != null) {
-            throw new UsageException("Either js or file must be given, not both!");
+            throw new UsageException("Either javascript or file must be given, not both!");
         } else if (js == null && file == null) {
-            throw new UsageException("Either js or file must be given!");
+            throw new UsageException("Either javascript or file must be given!");
         }
 
         final String script;
         if (file == null) {
             script = js.trim();
         } else {
-            File f = new File(this.file);
-            if (!f.isAbsolute() || !f.exists()) {
-                throw new UsageException("File not found: " + this.file);
+            File f = CommandUtils.getFile(this.file);
+            if (!f.exists()) {
+                throw new IllegalArgumentException("File not found: " + this.file);
             }
             script = IOUtils.toString(f).trim();
         }
@@ -76,10 +83,40 @@ class JavaScript implements Command {
             if (textList == null) {
                 return context.getJavaScriptEngine().evaluate(script);
             } else {
-                return context.getJavaScriptEngine().evaluate(script, textList);
+                if (list) {
+                    return context.getJavaScriptEngine().evaluate(script, textList);
+                } else {
+                    return new TextList(textList.loadingSupplier(new Function<Text, Collection<Text>>() {
+                        @Override
+                        public Collection<Text> apply(Text text, Set<Hint> hints) {
+                            TextList result = context.getJavaScriptEngine().evaluate(script, text);
+                            return result.remaining(hints);
+                        }
+                    }));
+                }
             }
         } else {
-            return context.getJavaScriptEngine().evaluate(script, issueList);
+            List<String> fields = CommandUtils.getJavaScriptFields(script);
+            Set<Hint> hints = IssueHint.fields(fields);
+            if (list) {
+                if (!hints.isEmpty()) {
+                    issueList = new IssueList(issueList.convertingSupplier(hints, new Function<Issue, Issue>() {
+                        @Override
+                        public Issue apply(Issue issue, Set<Hint> hints) {
+                            return issue;
+                        }
+                    }));
+                }
+                return context.getJavaScriptEngine().evaluate(script, issueList);
+            } else {
+                return new TextList(issueList.loadingSupplier(hints, new Function<Issue, Collection<Text>>() {
+                    @Override
+                    public Collection<Text> apply(Issue issue, Set<Hint> hints) {
+                        TextList result = context.getJavaScriptEngine().evaluate(script, issue);
+                        return result.remaining(hints);
+                    }
+                }));
+            }
         }
     }
 }

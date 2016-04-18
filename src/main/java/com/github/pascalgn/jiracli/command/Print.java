@@ -54,9 +54,11 @@ class Print implements Command {
 
     @Override
     public TextList execute(final Context context, Data input) {
+        List<String> fields = CommandUtils.getPatternFields(pattern);
+        Set<Hint> hints = IssueHint.fields(fields);
         IssueList issueList = input.toIssueList();
         if (issueList == null) {
-            final Iterator<Data> iterator = input.toIterator(Hint.none());
+            final Iterator<Data> iterator = input.toIterator(hints);
             return new TextList(new Supplier<Text>() {
                 @Override
                 public Text get(Set<Hint> hints) {
@@ -75,9 +77,8 @@ class Print implements Command {
                 }
             });
         } else {
-            List<String> fields = CommandUtils.getFields(pattern);
             final Schema schema = context.getWebService().getSchema();
-            return new TextList(issueList.convertingSupplier(IssueHint.fields(fields), new Function<Issue, Text>() {
+            return new TextList(issueList.convertingSupplier(hints, new Function<Issue, Text>() {
                 @Override
                 public Text apply(Issue issue, Set<Hint> hints) {
                     String str;

@@ -18,14 +18,24 @@ package com.github.pascalgn.jiracli.context;
 import java.awt.Desktop;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.github.pascalgn.jiracli.util.Credentials;
 
 public abstract class AbstractConsole implements Console {
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractConsole.class);
+
     private final Configuration configuration;
+    private final List<Runnable> onInterrupt;
 
     public AbstractConsole(Configuration configuration) {
         this.configuration = configuration;
+        this.onInterrupt = new ArrayList<Runnable>();
     }
 
     @Override
@@ -73,7 +83,18 @@ public abstract class AbstractConsole implements Console {
     }
 
     @Override
-    public void onInterrupt(Runnable runnable) {
-        // not supported
+    public final void onInterrupt(Runnable runnable) {
+        Objects.requireNonNull(runnable);
+        onInterrupt.add(runnable);
+    }
+
+    public void interrupt() {
+        for (Runnable runnable : onInterrupt) {
+            try {
+                runnable.run();
+            } catch (RuntimeException e) {
+                LOGGER.trace("Exception while executing onInterrupt action!", e);
+            }
+        }
     }
 }

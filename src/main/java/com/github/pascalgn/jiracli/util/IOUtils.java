@@ -46,7 +46,11 @@ public class IOUtils {
     }
 
     public static Writer createWriter(File file) throws FileNotFoundException {
-        return new OutputStreamWriter(new FileOutputStream(file), CHARSET);
+        return createWriter(file, CHARSET);
+    }
+
+    public static Writer createWriter(File file, Charset charset) throws FileNotFoundException {
+        return new OutputStreamWriter(new FileOutputStream(file), charset);
     }
 
     public static BufferedWriter createBufferedWriter(File file) throws FileNotFoundException {
@@ -130,7 +134,11 @@ public class IOUtils {
     }
 
     public static void write(File file, String content) {
-        try (Writer writer = createWriter(file)) {
+        write(file, CHARSET, content);
+    }
+
+    public static void write(File file, Charset charset, String content) {
+        try (Writer writer = createWriter(file, charset)) {
             writer.write(content);
         } catch (IOException e) {
             throw new IllegalStateException(e);

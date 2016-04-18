@@ -29,9 +29,12 @@ import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
+import com.github.pascalgn.jiracli.model.Text;
+import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.model.Value;
 import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.Hint;
+import com.github.pascalgn.jiracli.util.StringUtils;
 
 @CommandDescription(names = "labels", description = "Add or remove labels of the given issues")
 class Labels implements Command {
@@ -47,7 +50,14 @@ class Labels implements Command {
     public Data execute(Context context, Data input) {
         IssueList issueList = input.toIssueListOrFail();
         if (add == null && remove == null) {
-            return issueList;
+            return new TextList(issueList.convertingSupplier(new Function<Issue, Text>() {
+                @Override
+                public Text apply(Issue issue, Set<Hint> hints) {
+                    Value value = getLabels(issue);
+                    JSONArray arr = (JSONArray) value.get();
+                    return new Text(StringUtils.join(arr, ", "));
+                }
+            }));
         } else {
             final Collection<String> add = readLabels(this.add);
             final Collection<String> remove = readLabels(this.remove);

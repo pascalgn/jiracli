@@ -19,7 +19,6 @@ import java.awt.Image;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,9 +40,8 @@ class AppleHelper {
         Class<?> applicationType = cl.loadClass("com.apple.eawt.Application");
         Object application = call(applicationType, "getApplication");
 
-        List<Image> icons = Images.getIcons();
-        if (!icons.isEmpty()) {
-            Image icon = icons.get(icons.size() - 1);
+        Image icon = Images.getIconNoBorder();
+        if (icon != null) {
             call(applicationType, application, "setDockIconImage", Image.class, icon);
         }
 

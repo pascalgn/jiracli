@@ -15,25 +15,26 @@
  */
 package com.github.pascalgn.jiracli.model;
 
-import java.util.Arrays;
 import java.util.Objects;
 
 import com.github.pascalgn.jiracli.util.StringUtils;
 
 public class Text extends Data {
+    private final String type;
     private final String text;
 
-    public Text(String... texts) {
-        if (texts.length == 0) {
-            this.text = "";
-        } else if (texts.length == 1) {
-            this.text = Objects.requireNonNull(texts[0]);
-        } else {
-            this.text = StringUtils.join(Arrays.asList(texts), System.lineSeparator());
-        }
+    public Text(String text) {
+        this.type = "";
+        this.text = Objects.requireNonNull(text);
+    }
+
+    public Text(String type, String text) {
+        this.type = Objects.requireNonNull(type);
+        this.text = Objects.requireNonNull(text);
     }
 
     public Text(java.util.List<String> texts) {
+        this.type = "";
         if (texts.isEmpty()) {
             this.text = "";
         } else {
@@ -41,6 +42,16 @@ public class Text extends Data {
         }
     }
 
+    /**
+     * Returns the content type, for example <code>text/plain</code>. Never <code>null</code>, but can be empty.
+     */
+    public String getType() {
+        return type;
+    }
+
+    /**
+     * Returns the stored text content
+     */
     public String getText() {
         return text;
     }

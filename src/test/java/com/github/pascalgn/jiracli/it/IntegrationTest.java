@@ -57,7 +57,7 @@ public class IntegrationTest {
     public void testJavaScript1() throws Exception {
         try (Context context = createContext()) {
             ShellHelper.execute(context, "issues JRA-123 | "
-                    + "js \"forEach.call(input, function(issue) { println(issue.fields.issuetype.name); })\"");
+                    + "js -l \"forEach.call(input, function(issue) { println(issue.fields.issuetype.name); })\"");
             assertEquals("Change request", getOutput(context));
         }
     }
@@ -73,7 +73,7 @@ public class IntegrationTest {
     @Test
     public void testEdit1() throws Exception {
         try (Context context = createContext()) {
-            ShellHelper.execute(context, "issues JRA-123 | edit | p");
+            ShellHelper.execute(context, "issues JRA-123 | edit -e | p");
             assertEquals("JRA-123 - A simple Jira issue", getOutput(context));
         }
     }

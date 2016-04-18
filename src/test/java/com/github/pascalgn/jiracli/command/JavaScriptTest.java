@@ -19,6 +19,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.util.Arrays;
+import java.util.List;
 
 import org.json.JSONObject;
 import org.junit.Test;
@@ -39,11 +40,13 @@ public class JavaScriptTest {
         Issue issue1 = IssueFactory.create("ISSUE-1");
         Issue issue2 = IssueFactory.create("ISSUE-2");
 
-        JavaScript javaScript = new JavaScript("input");
+        JavaScript javaScript = new JavaScript("input.key", false);
         Data result = javaScript.execute(context, new IssueList(issue1, issue2));
 
         assertNotNull(result);
-        assertEquals(Arrays.asList(issue1, issue2), result.toIssueList().remaining(Hint.none()));
+        assertNotNull(result.toTextList());
+        List<Text> resultList = result.toTextList().remaining(Hint.none());
+        assertEquals(Arrays.asList(new Text(issue1.getKey()), new Text(issue2.getKey())), resultList);
     }
 
     @Test
@@ -53,7 +56,7 @@ public class JavaScriptTest {
         Issue issue1 = IssueFactory.create("ISSUE-1", "author", new JSONObject("{name:'Author-Name'}"));
 
         String js = "forEach.call(input, function(issue) { print(issue.key + ': ' + issue.fields.author.name); });";
-        JavaScript javaScript = new JavaScript(js);
+        JavaScript javaScript = new JavaScript(js, true);
         Data result = javaScript.execute(context, new IssueList(issue1));
 
         assertNotNull(result);
@@ -63,7 +66,8 @@ public class JavaScriptTest {
     @Test
     public void test3() throws Exception {
         MockContext context = new MockContext();
-        JavaScript javaScript = new JavaScript("if (input == '123') { input += '456'; } println('Hello'); input;");
+        String js = "if (input == '123') { input += '456'; } println('Hello'); input;";
+        JavaScript javaScript = new JavaScript(js, true);
         assertEquals("123456", javaScript.execute(context, new Text("123")).toTextOrFail().getText());
     }
 }

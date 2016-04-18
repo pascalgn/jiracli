@@ -38,9 +38,14 @@ class ConverterProvider {
         return INSTANCE.get(schema);
     }
 
+    public static Converter getIssueConverter() {
+        return INSTANCE.issueConverter;
+    }
+
     private final Map<String, Converter> mappedBySystem;
     private final Map<String, Converter> mappedByCustom;
     private final Converter defaultConverter;
+    private final Converter issueConverter;
 
     private ConverterProvider() {
         Converter string = new StringConverter();
@@ -65,7 +70,7 @@ class ConverterProvider {
         mappedBySystem.put("votes", object);
         mappedBySystem.put("comment", object);
         mappedBySystem.put("issuetype", named);
-        mappedBySystem.put("resolution", object);
+        mappedBySystem.put("resolution", named);
         mappedBySystem.put("project", project);
         mappedBySystem.put("status", named);
         mappedBySystem.put("summary", string);
@@ -115,6 +120,8 @@ class ConverterProvider {
         mappedByCustom.put("com.atlassian.jira.plugin.system.customfieldtypes:version", object);
 
         defaultConverter = new UnknownConverter();
+
+        issueConverter = new NamedObjectConverter("key");
     }
 
     private Converter get(final JSONObject schema) {

@@ -103,12 +103,11 @@ public class CommandFactory {
             throw new IllegalStateException("Could not create instance: " + commandDescriptor.getCommand());
         }
 
-        if (args.contains("-h") || args.contains("--help")) {
-            throw new UsageException(getUsage(commandDescriptor, true));
-        }
-
         boolean parseArguments = true;
         List<String> mainArgs = new ArrayList<String>();
+
+        UsageException exception = null;
+        boolean help = false;
 
         for (int i = 0; i < args.size(); i++) {
             String arg = args.get(i);
@@ -117,16 +116,21 @@ public class CommandFactory {
             } else {
                 if (isOption(arg)) {
                     if (parseArguments) {
-                        ArgumentDescriptor argument = commandDescriptor.getArgument(arg);
-                        if (argument == null) {
-                            throw new UsageException(getUsage(commandDescriptor, false));
+                        if (arg.equals("-h") || arg.equals("--help")) {
+                            help = true;
                         } else {
-                            List<String> params = getParameters(argument, args, i);
-                            if (params == null) {
-                                throw new UsageException(commandName + ": " + arg + ": missing parameter!");
+                            ArgumentDescriptor argument = commandDescriptor.getArgument(arg);
+                            if (argument == null) {
+                                exception = new UsageException(getUsage(commandDescriptor, false));
+                            } else {
+                                List<String> params = getParameters(argument, args, i, false);
+                                if (params == null) {
+                                    exception = new UsageException(commandName + ": " + arg + ": missing parameter!");
+                                } else {
+                                    argument.setParameter(command, params);
+                                    i += params.size();
+                                }
                             }
-                            argument.setParameter(command, params);
-                            i += params.size();
                         }
                     } else {
                         mainArgs.add(arg);
@@ -137,6 +141,12 @@ public class CommandFactory {
             }
         }
 
+        if (help) {
+            throw new UsageException(getUsage(commandDescriptor, true));
+        } else if (exception != null) {
+            throw exception;
+        }
+
         List<ArgumentDescriptor> unnamedArguments = commandDescriptor.getUnnamedArguments();
         if (unnamedArguments.size() > 1) {
             Collections.sort(unnamedArguments, new ArgumentDescriptorComparator());
@@ -144,7 +154,7 @@ public class CommandFactory {
 
         int mainIndex = 0;
         for (ArgumentDescriptor argument : unnamedArguments) {
-            List<String> params = getParameters(argument, mainArgs, mainIndex - 1);
+            List<String> params = getParameters(argument, mainArgs, mainIndex - 1, true);
             if (params != null && !params.isEmpty()) {
                 argument.setParameter(command, params);
                 mainIndex += params.size();
@@ -166,7 +176,7 @@ public class CommandFactory {
         return command;
     }
 
-    private static List<String> getParameters(ArgumentDescriptor argument, List<String> args, int i) {
+    private static List<String> getParameters(ArgumentDescriptor argument, List<String> args, int i, boolean main) {
         switch (argument.getParameters()) {
         case ZERO:
             return Collections.emptyList();
@@ -174,7 +184,7 @@ public class CommandFactory {
         case ZERO_OR_ONE:
             if (i + 1 < args.size()) {
                 String arg = args.get(i + 1);
-                if (!isOption(arg)) {
+                if (!isOption(arg) || main) {
                     return Collections.singletonList(arg);
                 }
             }
@@ -184,7 +194,7 @@ public class CommandFactory {
             List<String> params0 = new ArrayList<String>();
             for (int j = i + 1; j < args.size(); j++) {
                 String arg = args.get(j);
-                if (isOption(arg)) {
+                if (isOption(arg) && !main) {
                     break;
                 } else {
                     params0.add(arg);
@@ -195,7 +205,7 @@ public class CommandFactory {
         case ONE:
             if (i + 1 < args.size()) {
                 String arg = args.get(i + 1);
-                if (!isOption(arg)) {
+                if (!isOption(arg) || main) {
                     return Collections.singletonList(arg);
                 }
             }
@@ -205,7 +215,7 @@ public class CommandFactory {
             List<String> params1 = new ArrayList<String>();
             for (int j = i + 1; j < args.size(); j++) {
                 String arg = args.get(j);
-                if (isOption(arg)) {
+                if (isOption(arg) && !main) {
                     break;
                 } else {
                     params1.add(arg);

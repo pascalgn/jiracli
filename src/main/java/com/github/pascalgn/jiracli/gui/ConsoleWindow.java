@@ -74,7 +74,7 @@ public class ConsoleWindow extends JFrame {
     private final ConsoleTextArea consoleTextArea;
     private final Preferences preferences;
 
-    private final Console console;
+    private final DelegateConsole console;
 
     private Runnable newWindowListener;
 
@@ -113,6 +113,13 @@ public class ConsoleWindow extends JFrame {
         preferences = Constants.getPreferences();
 
         console = new DelegateConsole(configuration);
+
+        consoleTextArea.setInterruptListener(new Runnable() {
+            @Override
+            public void run() {
+                console.interrupt();
+            }
+        });
 
         JScrollPane consoleTextAreaScroll = new JScrollPane(consoleTextArea);
         consoleTextAreaScroll.setBorder(null);
@@ -196,11 +203,6 @@ public class ConsoleWindow extends JFrame {
         @Override
         public List<String> readLines() {
             return consoleTextArea.readLines();
-        }
-
-        @Override
-        public void onInterrupt(Runnable runnable) {
-            consoleTextArea.setInterruptListener(runnable);
         }
 
         @Override

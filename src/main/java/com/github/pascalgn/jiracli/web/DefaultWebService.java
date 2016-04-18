@@ -72,7 +72,6 @@ import com.github.pascalgn.jiracli.model.User;
 import com.github.pascalgn.jiracli.model.Value;
 import com.github.pascalgn.jiracli.model.Workflow;
 import com.github.pascalgn.jiracli.util.Consumer;
-import com.github.pascalgn.jiracli.util.Credentials;
 import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.LoadingList;
@@ -83,7 +82,7 @@ import com.github.pascalgn.jiracli.web.HttpClient.NotAuthenticatedException;
 public class DefaultWebService implements WebService {
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultWebService.class);
 
-    private static final List<String> INITIAL_FIELDS = Arrays.asList("issuetype", "summary", "status");
+    private static final List<String> INITIAL_FIELDS = Arrays.asList("issuetype", "status", "summary");
     private static final List<String> ALL_FIELDS = Collections.singletonList("*");
 
     private static final Function<Reader, JSONObject> TO_OBJECT = new Function<Reader, JSONObject>() {
@@ -105,35 +104,26 @@ public class DefaultWebService implements WebService {
     private final Schema schema;
 
     public DefaultWebService(Console console) {
-        this.httpClient = createHttpClient(console);
+        this.httpClient = new HttpClient(console);
         this.cache = new CacheImpl();
         this.schema = new CachedSchema();
     }
 
-    private static HttpClient createHttpClient(final Console console) {
-        Supplier<String> baseUrl = new Supplier<String>() {
-            @Override
-            public String get(Set<Hint> hints) {
-                return console.getBaseUrl();
-            }
-        };
-        Function<String, Credentials> credentials = new Function<String, Credentials>() {
-            @Override
-            public Credentials apply(String url, Set<Hint> hints) {
-                return console.getCredentials(url);
-            }
-        };
-        return new HttpClient(baseUrl, credentials);
+    @Override
+    public User authenticate() {
+        JSONObject json = get("/rest/auth/latest/session", TO_OBJECT);
+        String name = json.getString("name");
+        return new User(name, name);
     }
 
     @Override
-    public String execute(Method method, String path, String body) {
+    public String execute(Method method, URI uri, String body) {
         if (method == Method.GET) {
-            return httpClient.get(path);
+            return httpClient.get(uri);
         } else if (method == Method.POST) {
-            return httpClient.post(path, body);
+            return httpClient.post(uri, body);
         } else if (method == Method.PUT) {
-            return httpClient.put(path, body);
+            return httpClient.put(uri, body);
         } else {
             throw new UnsupportedOperationException(Objects.toString(method));
         }
@@ -244,6 +234,7 @@ public class DefaultWebService implements WebService {
                 Issue issue = loadIssue(key);
                 return Collections.singletonList(issue);
             } else {
+                // don't check for loaded fields, we will fetch them later, if necessary
                 Issue issue = toIssue(key, fieldJson);
                 return Collections.singletonList(issue);
             }
@@ -257,10 +248,13 @@ public class DefaultWebService implements WebService {
             while (it.hasNext()) {
                 String key = it.next();
                 JSONObject fieldJson = cache.getFields(key);
-                for (String field : fields) {
-                    if (!fieldJson.has(field)) {
-                        // we should fetch this issue again, to get the missing field(s)
-                        fieldJson = null;
+                if (fieldJson != null) {
+                    for (String field : fields) {
+                        if (!fieldJson.has(field)) {
+                            // we should fetch this issue again, to get the missing field(s)
+                            fieldJson = null;
+                            break;
+                        }
                     }
                 }
                 if (fieldJson != null) {
@@ -367,7 +361,7 @@ public class DefaultWebService implements WebService {
             Object value = field.getValue().get();
             if (value instanceof JSONArray) {
                 JSONArray array = (JSONArray) value;
-                List<Issue> links = new ArrayList<Issue>();
+                List<String> links = new ArrayList<>();
                 for (Object obj : array) {
                     JSONObject json = (JSONObject) obj;
                     JSONObject linked = json.optJSONObject("outwardIssue");
@@ -377,10 +371,12 @@ public class DefaultWebService implements WebService {
                     if (linked != null) {
                         String key = linked.getString("key");
                         JSONObject fields = linked.optJSONObject("fields");
-                        links.add(toIssue(key, fields));
+                        cacheFields(key, fields);
+                        cacheIssueLinks(fields);
+                        links.add(key);
                     }
                 }
-                return links;
+                return getIssues(links, initialFields);
             }
         }
         return Collections.emptyList();
@@ -1248,6 +1244,8 @@ public class DefaultWebService implements WebService {
                     Converter converter = ConverterProvider.getConverter(schema);
                     fieldInfos.put(id, new FieldInfo(name, converter));
                 }
+                // Field 'parent' is not included in the array!
+                fieldInfos.put("parent", new FieldInfo("Parent", ConverterProvider.getIssueConverter()));
                 cache.setFieldInfos(fieldInfos);
             }
             return fieldInfos;

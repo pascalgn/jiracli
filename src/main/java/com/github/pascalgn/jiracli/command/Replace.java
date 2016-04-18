@@ -15,13 +15,9 @@
  */
 package com.github.pascalgn.jiracli.command;
 
-import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
@@ -37,16 +33,14 @@ import com.github.pascalgn.jiracli.util.Hint;
 
 @CommandDescription(names = "replace", description = "Replace field values")
 class Replace implements Command {
-    private static final Logger LOGGER = LoggerFactory.getLogger(Replace.class);
-
     @Argument(names = { "-e", "--regexp" }, description = "Use regular expressions")
     private boolean regexp;
 
     @Argument(names = { "-i", "--ignore" }, description = "Ignore case")
     private boolean ignoreCase;
 
-    @Argument(order = 1, parameters = Parameters.ONE, variable = "<field>", description = "The fields to search")
-    private List<String> fields;
+    @Argument(order = 1, parameters = Parameters.ONE, variable = "<field>", description = "The field to search")
+    private String field;
 
     @Argument(order = 2, parameters = Parameters.ONE, variable = "<search>", description = "The search value")
     private String search;
@@ -70,21 +64,18 @@ class Replace implements Command {
             public Issue apply(Issue issue, Set<Hint> hints) {
                 FieldMap fieldMap = issue.getFieldMap();
                 final Schema schema = context.getWebService().getSchema();
-                for (String f : fields) {
-                    Field field = fieldMap.getField(f, schema);
-                    if (field == null) {
-                        LOGGER.debug("Field not found: {}: {}", issue, f);
-                        continue;
-                    }
-                    Object value = field.getValue().get();
-                    Converter converter = schema.getConverter(field.getId());
-                    String original = converter.toString(value);
-                    Matcher m = pattern.matcher(original);
-                    String str = m.replaceAll(replace);
-                    if (!str.equals(original)) {
-                        Object newValue = converter.fromString(str);
-                        field.getValue().set(newValue);
-                    }
+                Field field = fieldMap.getField(Replace.this.field, schema);
+                if (field == null) {
+                    throw new IllegalArgumentException("Field not found: " + issue + ": " + Replace.this.field);
+                }
+                Object value = field.getValue().get();
+                Converter converter = schema.getConverter(field.getId());
+                String original = converter.toString(value);
+                Matcher m = pattern.matcher(original);
+                String str = m.replaceAll(replace);
+                if (!str.equals(original)) {
+                    Object newValue = converter.fromString(str);
+                    field.getValue().set(newValue);
                 }
                 return issue;
             }

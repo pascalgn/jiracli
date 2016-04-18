@@ -15,6 +15,7 @@
  */
 package com.github.pascalgn.jiracli.command;
 
+import java.net.URI;
 import java.util.Objects;
 
 import com.github.pascalgn.jiracli.command.Argument.Parameters;
@@ -29,14 +30,21 @@ class Call implements Command {
             description = "The method, one of GET, POST, PUT, DELETE")
     private String method = "GET";
 
-    @Argument(parameters = Parameters.ONE, variable = "<path>", description = "The path, relative to the root URL")
-    private String path;
+    @Argument(parameters = Parameters.ONE, variable = "<url>",
+            description = "The URL to call. If it is not absolute, it is expected to be relative to the root URL")
+    private String url;
 
     @Override
     public Text execute(Context context, Data input) {
         Text text = input.toText();
         String body = (text == null ? null : text.getText());
-        String response = context.getWebService().execute(toMethod(method), path, body);
+        URI uri;
+        if (url.startsWith("http:") || url.startsWith("https:")) {
+            uri = URI.create(url);
+        } else {
+            uri = URI.create(context.getConsole().getBaseUrl() + url);
+        }
+        String response = context.getWebService().execute(toMethod(method), uri, body);
         return new Text(response);
     }
 

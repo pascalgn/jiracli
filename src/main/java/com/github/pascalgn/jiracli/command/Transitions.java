@@ -41,7 +41,7 @@ import com.github.pascalgn.jiracli.util.Hint;
 class Transitions implements Command {
     private static final Logger LOGGER = LoggerFactory.getLogger(Transitions.class);
 
-    private static final List<String> FIELDS = Collections.emptyList();
+    private static final List<String> EMPTY = Collections.emptyList();
 
     @Argument(names = { "-n", "--dry" }, description = "only print the transition order")
     private boolean dry;
@@ -121,7 +121,7 @@ class Transitions implements Command {
         for (Transition transition : transitions) {
             context.getWebService().transitionIssue(issue, transition);
         }
-        List<Issue> issues = context.getWebService().getIssues(Collections.singletonList(issue.getKey()), FIELDS);
+        List<Issue> issues = context.getWebService().getIssues(Collections.singletonList(issue.getKey()), EMPTY);
         return issues.get(0);
     }
 

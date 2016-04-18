@@ -30,7 +30,7 @@ import com.github.pascalgn.jiracli.util.Hint;
 
 @CommandDescription(names = "link", description = "Link the issues to the given issue")
 class Link implements Command {
-    private static final List<String> FIELDS = Collections.emptyList();
+    private static final List<String> EMPTY = Collections.emptyList();
 
     @Argument(order = 1, parameters = Parameters.ONE, variable = "<issue>",
             description = "the issue to link the other issues to")
@@ -40,7 +40,7 @@ class Link implements Command {
             description = "the name of the link type")
     private String linkName;
 
-    @Argument(names = { "-r", "--reverse" }, description = "create a reverse link between inward and outward issue")
+    @Argument(names = { "-r", "--reverse" }, description = "create the reverse link between the issues")
     private boolean reverse;
 
     @Argument(names = { "-d", "--delete" }, description = "delete the link between the issues")
@@ -50,7 +50,7 @@ class Link implements Command {
     public Data execute(Context context, Data input) {
         final WebService webService = context.getWebService();
 
-        final Issue target = webService.getIssues(Collections.singletonList(issue), FIELDS).get(0);
+        final Issue target = webService.getIssues(Collections.singletonList(issue), EMPTY).get(0);
 
         IssueList issueList = input.toIssueListOrFail();
         return new IssueList(issueList.convertingSupplier(new Function<Issue, Issue>() {

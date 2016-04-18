@@ -15,18 +15,46 @@
  */
 package com.github.pascalgn.jiracli.context;
 
-import java.util.List;
-
-import com.github.pascalgn.jiracli.model.Data;
+import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueList;
+import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
 
 public interface JavaScriptEngine {
-    Data evaluate(String js);
+    /**
+     * Evaluates the given script and returns the result
+     */
+    TextList evaluate(String js);
 
-    Data evaluate(String js, TextList input);
+    /**
+     * Evaluates the given script and returns the result
+     */
+    TextList evaluate(String js, Text input);
 
-    Data evaluate(String js, IssueList input);
+    /**
+     * Evaluates the given script and returns the result
+     */
+    TextList evaluate(String js, TextList input);
 
-    Data evaluate(String js, IssueList input, List<String> fields);
+    /**
+     * Evaluates the given script and returns the result
+     */
+    TextList evaluate(String js, Issue input);
+
+    /**
+     * Evaluates the given script and returns the result
+     */
+    TextList evaluate(String js, IssueList input);
+
+    /**
+     * Evaluates the given script and returns <code>true</code> if the returned
+     * value evaluates to true, otherwise <code>false</code>
+     */
+    boolean test(String js, Text input);
+
+    /**
+     * Evaluates the given script and returns <code>true</code> if the returned
+     * value evaluates to true, otherwise <code>false</code>
+     */
+    boolean test(String js, Issue input);
 }

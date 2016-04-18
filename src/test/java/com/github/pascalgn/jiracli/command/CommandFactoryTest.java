@@ -19,6 +19,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
+import java.util.Collections;
 
 import org.junit.Test;
 
@@ -71,6 +72,12 @@ public class CommandFactoryTest {
     public void testParseBrowse() throws Exception {
         Command browse = parse("browse", "-n");
         assertEquals(true, getFieldValue(browse, "dryRun"));
+    }
+
+    @Test
+    public void testParseEcho() throws Exception {
+        Command echo = parse("echo", "--", "-h");
+        assertEquals(Collections.singletonList("-h"), getFieldValue(echo, "text"));
     }
 
     private Command parse(String name, String... args) {

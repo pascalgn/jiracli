@@ -44,6 +44,7 @@ import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.IOUtils;
+import com.github.pascalgn.jiracli.util.Supplier;
 
 @CommandDescription(names = "sort", description = "Sort the given input")
 class Sort implements Command {
@@ -80,7 +81,9 @@ class Sort implements Command {
     }
 
     @Override
-    public Data execute(Context context, Data input) {
+    public Data execute(final Context context, Data input) {
+        fields = CommandUtils.getFields(fields);
+
         IssueList issueList = input.toIssueList();
         if (issueList != null) {
             return sort(context, issueList);
@@ -94,9 +97,24 @@ class Sort implements Command {
         throw new IllegalArgumentException("Invalid input: " + input);
     }
 
-    private IssueList sort(final Context context, IssueList issueList) {
-        List<Issue> issues = issueList.remaining(IssueHint.fields(fields));
+    private IssueList sort(final Context context, final IssueList issueList) {
+        return new IssueList(new Supplier<Issue>() {
+            private Iterator<Issue> iterator;
 
+            @Override
+            public Issue get(Set<Hint> hints) {
+                if (iterator == null) {
+                    Set<Hint> combined = Hint.combine(IssueHint.fields(fields), hints);
+                    List<Issue> issues = issueList.remaining(combined);
+                    List<Issue> sorted = sort(context, issues);
+                    iterator = sorted.iterator();
+                }
+                return (iterator.hasNext() ? iterator.next() : null);
+            }
+        });
+    }
+
+    private List<Issue> sort(final Context context, List<Issue> issues) {
         Schema schema = context.getWebService().getSchema();
 
         if (fields.equals(KEY)) {
@@ -131,7 +149,7 @@ class Sort implements Command {
             });
         }
 
-        return new IssueList(issues.iterator());
+        return issues;
     }
 
     private List<Issue> edit(Context context, List<Issue> issues, File file) throws IOException {
@@ -151,7 +169,7 @@ class Sort implements Command {
     }
 
     private TextList sort(TextList textList) {
-        if (!fields.isEmpty()) {
+        if (fields != KEY && !fields.isEmpty()) {
             LOGGER.warn("Sorting text list, fields ignored: {}", fields);
         }
 
@@ -159,9 +177,9 @@ class Sort implements Command {
         Collections.sort(list, new TextComparator());
 
         if (unique) {
-            return new TextList(new LinkedHashSet<Text>(list).iterator());
+            return new TextList(textList.getType(), new LinkedHashSet<Text>(list).iterator());
         } else {
-            return new TextList(list.iterator());
+            return new TextList(textList.getType(), list.iterator());
         }
     }
 

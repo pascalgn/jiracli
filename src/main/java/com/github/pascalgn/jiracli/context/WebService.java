@@ -33,6 +33,7 @@ import com.github.pascalgn.jiracli.model.Schema;
 import com.github.pascalgn.jiracli.model.Sprint;
 import com.github.pascalgn.jiracli.model.Status;
 import com.github.pascalgn.jiracli.model.Transition;
+import com.github.pascalgn.jiracli.model.User;
 import com.github.pascalgn.jiracli.model.Workflow;
 import com.github.pascalgn.jiracli.util.Consumer;
 
@@ -49,7 +50,13 @@ public interface WebService extends AutoCloseable {
         void clear();
     }
 
-    String execute(Method method, String path, String body);
+    /**
+     * Returns the current user, triggering an authentication request if the
+     * user is not logged in yet
+     */
+    User authenticate();
+
+    String execute(Method method, URI uri, String body);
 
     void download(URI uri, Consumer<InputStream> consumer);
 

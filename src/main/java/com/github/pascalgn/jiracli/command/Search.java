@@ -15,7 +15,6 @@
  */
 package com.github.pascalgn.jiracli.command;
 
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -33,10 +32,6 @@ import com.github.pascalgn.jiracli.util.Supplier;
 class Search implements Command {
     @Argument(variable = "<jql>", description = "the JQL to search", parameters = Parameters.ONE)
     private String jql;
-
-    @Argument(names = { "-f", "--fields" }, parameters = Parameters.ONE_OR_MORE, variable = "<field>",
-            description = "issue fields to load initially")
-    private List<String> fields = Collections.emptyList();
 
     public Search() {
         // default constructor
@@ -62,9 +57,8 @@ class Search implements Command {
         @Override
         public synchronized Issue get(Set<Hint> hints) {
             if (issues == null) {
-                Set<String> hintFields = IssueHint.getFields(hints);
-                hintFields.addAll(fields);
-                List<Issue> list = context.getWebService().searchIssues(jql, hintFields);
+                Set<String> fields = IssueHint.getFields(hints);
+                List<Issue> list = context.getWebService().searchIssues(jql, fields);
                 issues = list.iterator();
             }
             return (issues.hasNext() ? issues.next() : null);
