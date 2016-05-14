@@ -26,6 +26,8 @@
 	<packaging>jar</packaging>
 
 	<name>jiracli</name>
+	<description>A command line interface for Jira</description>
+	<url>https://github.com/pascalgn/jiracli</url>
 
 	<licenses>
 		<license>
@@ -34,6 +36,20 @@
 			<distribution>repo</distribution>
 		</license>
 	</licenses>
+
+	 <developers>
+		<developer>
+			<name>Pascal</name>
+			<email>pascalgn@users.noreply.github.com</email>
+			<organizationUrl>https://github.com/pascalgn</organizationUrl>
+		</developer>
+	</developers>
+
+	<scm>
+		<connection>scm:git:https://github.com/pascalgn/jiracli.git</connection>
+		<developerConnection>scm:git:ssh://github.com:pascalgn/jiracli.git</developerConnection>
+		<url>https://github.com/pascalgn/jiracli</url>
+	</scm>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
