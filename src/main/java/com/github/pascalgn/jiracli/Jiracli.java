@@ -54,14 +54,14 @@ public class Jiracli {
     private static final AtomicInteger SHELL_THREAD_INDEX = new AtomicInteger(0);
 
     private enum Option {
-        HELP, VERSION, CONSOLE, GUI;
+        HELP, VERSION, CONSOLE, GUI, CMD_MODE, CMD_LINE;
     }
 
     public static void main(String[] args) {
         Map<Option, Object> options = parse(args);
         if (options.get(Option.HELP) == Boolean.TRUE
                 || (options.get(Option.CONSOLE) == Boolean.TRUE && options.get(Option.GUI) == Boolean.TRUE)) {
-            System.out.println("usage: " + Jiracli.class.getSimpleName() + " [-h] [-V] [-g|-c]");
+            System.out.println("usage: " + Jiracli.class.getSimpleName() + " [-h] [-V] [-g|-c] [--command <line>]");
             System.out.println();
             System.out.println("Jira Command Line Interface");
             System.out.println();
@@ -70,24 +70,30 @@ public class Jiracli {
             System.out.println("  -g, --gui       show a graphical console window");
             System.out.println("  -c, --console   run in console mode, using stdin and stdout");
             System.out.println("  -V, --version       show the program version and exit");
+            System.out.println("  --command <line>    execute the line as a command");
         } else if (options.get(Option.VERSION) == Boolean.TRUE) {
             System.out.println(Constants.getTitle());
         } else {
             LOGGER.debug("Starting {}...", Constants.getTitle());
 
-            final boolean gui;
-            if (options.get(Option.CONSOLE) == Boolean.TRUE) {
-                gui = false;
-            } else if (options.get(Option.GUI) == Boolean.TRUE) {
-                gui = true;
+            if (options.get(Option.CMD_MODE) == Boolean.TRUE) {
+                executeCommand((String)options.get(Option.CMD_LINE));
             } else {
-                gui = (System.console() == null && !GraphicsEnvironment.isHeadless());
-            }
 
-            if (gui) {
-                startGUI();
-            } else {
-                startConsole();
+                final boolean gui;
+                if (options.get(Option.CONSOLE) == Boolean.TRUE) {
+                    gui = false;
+                } else if (options.get(Option.GUI) == Boolean.TRUE) {
+                    gui = true;
+                } else {
+                    gui = (System.console() == null && !GraphicsEnvironment.isHeadless());
+                }
+
+                if (gui) {
+                    startGUI();
+                } else {
+                    startConsole();
+                }
             }
         }
     }
@@ -100,6 +106,15 @@ public class Jiracli {
         map.put(Option.GUI, list.contains("-g") || list.contains("--gui"));
         map.put(Option.VERSION, list.contains("-V") || list.contains("--version"));
         list.removeAll(Arrays.asList("-h", "--help", "-c", "--console", "-g", "--gui", "-V", "--version"));
+        String line = null;
+        int commandIndex = list.indexOf("--command") + 1;
+        if (commandIndex > 0 && (list.size() > commandIndex) ) {
+            line = list.get(commandIndex);
+            map.put(Option.CMD_MODE, Boolean.TRUE);
+            map.put(Option.CMD_LINE, line);
+        }
+        list.removeAll(Arrays.asList("--command", line));
+
         if (!list.isEmpty()) {
             map.put(Option.HELP, true);
         }
@@ -230,5 +245,26 @@ public class Jiracli {
         });
 
         window.setVisible(true);
+    }
+
+    private static void executeCommand(String line) {
+        final Configuration configuration = new DefaultConfiguration();
+        Console console = new DefaultConsole(configuration);
+
+        final WebService webService = new DefaultWebService(console);
+        final JavaScriptEngine javaScriptEngine = new DefaultJavaScriptEngine(console, webService);
+        final Context context = new DefaultContext(configuration, console, webService, javaScriptEngine);
+
+        new Shell(context).execute(line);
+        try {
+            webService.close();
+        } finally {
+
+            try {
+                configuration.close();
+            } finally {
+                context.close();
+            }
+        }
     }
 }
