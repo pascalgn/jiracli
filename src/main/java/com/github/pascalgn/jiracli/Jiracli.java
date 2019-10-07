@@ -54,7 +54,7 @@ public class Jiracli {
     private static final AtomicInteger SHELL_THREAD_INDEX = new AtomicInteger(0);
 
     private enum Option {
-        HELP, VERSION, CONSOLE, GUI, CMD_MODE, CMD_LINE;
+        HELP, VERSION, CONSOLE, GUI, CMD_LINE;
     }
 
     public static void main(String[] args) {
@@ -73,27 +73,27 @@ public class Jiracli {
             System.out.println("  --command <line>    execute the line as a command");
         } else if (options.get(Option.VERSION) == Boolean.TRUE) {
             System.out.println(Constants.getTitle());
+        } else if (options.get(Option.CMD_LINE) != null) {
+
+            LOGGER.trace("Executing command {}...", options.get(Option.CMD_LINE));
+            executeCommand((String)options.get(Option.CMD_LINE));
+
         } else {
             LOGGER.debug("Starting {}...", Constants.getTitle());
 
-            if (options.get(Option.CMD_MODE) == Boolean.TRUE) {
-                executeCommand((String)options.get(Option.CMD_LINE));
+            final boolean gui;
+            if (options.get(Option.CONSOLE) == Boolean.TRUE) {
+                gui = false;
+            } else if (options.get(Option.GUI) == Boolean.TRUE) {
+                gui = true;
             } else {
+                gui = (System.console() == null && !GraphicsEnvironment.isHeadless());
+            }
 
-                final boolean gui;
-                if (options.get(Option.CONSOLE) == Boolean.TRUE) {
-                    gui = false;
-                } else if (options.get(Option.GUI) == Boolean.TRUE) {
-                    gui = true;
-                } else {
-                    gui = (System.console() == null && !GraphicsEnvironment.isHeadless());
-                }
-
-                if (gui) {
-                    startGUI();
-                } else {
-                    startConsole();
-                }
+            if (gui) {
+                startGUI();
+            } else {
+                startConsole();
             }
         }
     }
@@ -105,15 +105,10 @@ public class Jiracli {
         map.put(Option.CONSOLE, list.contains("-c") || list.contains("--console"));
         map.put(Option.GUI, list.contains("-g") || list.contains("--gui"));
         map.put(Option.VERSION, list.contains("-V") || list.contains("--version"));
-        list.removeAll(Arrays.asList("-h", "--help", "-c", "--console", "-g", "--gui", "-V", "--version"));
-        String line = null;
-        int commandIndex = list.indexOf("--command") + 1;
-        if (commandIndex > 0 && (list.size() > commandIndex) ) {
-            line = list.get(commandIndex);
-            map.put(Option.CMD_MODE, Boolean.TRUE);
-            map.put(Option.CMD_LINE, line);
-        }
-        list.removeAll(Arrays.asList("--command", line));
+
+        map.put(Option.CMD_LINE, parseCommandArgument(list));
+
+        list.removeAll(Arrays.asList("-h", "--help", "-c", "--console", "-g", "--gui", "-V", "--version", "--command"));
 
         if (!list.isEmpty()) {
             map.put(Option.HELP, true);
@@ -246,6 +241,16 @@ public class Jiracli {
 
         window.setVisible(true);
     }
+
+    private static String parseCommandArgument(List<String> list) {
+        String line = null;
+        int commandIndex = list.indexOf("--command") + 1;
+        if (commandIndex > 0 && (list.size() > commandIndex) ) {
+            line = list.remove(commandIndex);
+        }
+        return line;
+    }
+
 
     private static void executeCommand(String line) {
         final Configuration configuration = new DefaultConfiguration();
