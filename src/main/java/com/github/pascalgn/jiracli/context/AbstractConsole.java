@@ -59,11 +59,18 @@ public abstract class AbstractConsole implements Console {
 
     @Override
     public final Credentials getCredentials(String url) {
-        Credentials c = provideCredentials(configuration.getUsername(), url);
+        String username = configuration.getUsername();
+        String password = configuration.getPassword();
+        if (username != null && password != null) {
+            return Credentials.create(username, password.toCharArray());
+        }
+
+        Credentials c = provideCredentials(username, url);
         if (c == null) {
             throw new IllegalStateException("No credentials provided!");
         }
         configuration.setUsername(c.getUsername());
+
         return c;
     }
 

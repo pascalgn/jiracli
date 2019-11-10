@@ -26,6 +26,8 @@ public interface Configuration extends AutoCloseable {
 
     void setUsername(String username);
 
+    String getPassword();
+
     List<String> getHistory();
 
     void setHistory(List<String> history);

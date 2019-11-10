@@ -64,16 +64,20 @@ modifications, for example:
     jiracli> issues JRA-123 | set summary 'Hello' | set description 'World' | update
 
 #### Authentication
-Jiracli may require you to grant it access permission to some of your Jira board.
-To achieve it, you need to create API token for Jiracli by the following steps:
-- Login in to https://id.atlassian.com/manage/api-tokens, create your API token and keep it.
-- When Jiracli asks for password when using command, paste you API token there.
+
+When using Jira Cloud, you need to create an API token for Jiracli by following these steps:
+
+1. Go to https://id.atlassian.com/manage/api-tokens, create a new API token
+2. When Jiracli asks for a password when using a command, paste you API token there
+
 ```
 Please enter the credentials for https://jira.atlassian.net
 Username: your_jira_account_email@mail.com
 Password: [ENTER_YOUR_API_TOKEN_HERE]
 ```
 
+You can also provide your credentials using the `JIRACLI_USERNAME` and `JIRACLI_PASSWORD`
+environment variables.
 
 ### Commands
 

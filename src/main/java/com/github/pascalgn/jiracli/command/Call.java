@@ -50,10 +50,6 @@ class Call implements Command {
 
     private static Method toMethod(String str) {
         String s = Objects.toString(str, "").trim().toUpperCase();
-        Method m = Method.valueOf(s);
-        if (m == null) {
-            throw new IllegalArgumentException("Unknown method: " + str);
-        }
-        return m;
+        return Method.valueOf(s);
     }
 }

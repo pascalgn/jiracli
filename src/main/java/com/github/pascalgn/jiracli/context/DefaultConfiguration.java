@@ -40,6 +40,9 @@ public class DefaultConfiguration implements Configuration {
     private static final String BASE_URL = "baseUrl";
     private static final String USERNAME = "username";
 
+    private static final String ENV_USERNAME = Constants.getName().toUpperCase() + "_USERNAME";
+    private static final String ENV_PASSWORD = Constants.getName().toUpperCase() + "_PASSWORD";
+
     private final Preferences preferences;
     private final File home;
 
@@ -47,6 +50,7 @@ public class DefaultConfiguration implements Configuration {
 
     private String baseUrl;
     private String username;
+    private String password;
 
     private List<String> history;
 
@@ -61,10 +65,16 @@ public class DefaultConfiguration implements Configuration {
             baseUrl = StringUtils.stripEnds(baseUrl.trim(), "/");
         }
 
-        username = emptyToNull(preferences.get(USERNAME, null));
+        username = emptyToNull(System.getenv(ENV_USERNAME));
+        if (username == null) {
+            username = emptyToNull(preferences.get(USERNAME, null));
+        }
+
         if (username != null) {
             username = username.trim();
         }
+
+        password = emptyToNull(System.getenv(ENV_PASSWORD));
 
         history = readHistory(historyFile);
     }
@@ -118,6 +128,11 @@ public class DefaultConfiguration implements Configuration {
     public void setUsername(String username) {
         this.username = emptyToNull(username);
         preferences.put(USERNAME, Objects.toString(username, ""));
+    }
+
+    @Override
+    public String getPassword() {
+        return password;
     }
 
     @Override

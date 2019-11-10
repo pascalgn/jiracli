@@ -17,14 +17,18 @@ package com.github.pascalgn.jiracli.command;
 
 import com.github.pascalgn.jiracli.context.Context;
 import com.github.pascalgn.jiracli.model.Data;
+import com.github.pascalgn.jiracli.model.None;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.User;
 
 @CommandDescription(names = { "authenticate", "auth" }, description = "Trigger an authentication request")
 class Authenticate implements Command {
+    @Argument(names = { "-i", "--id" }, description = "return the user ID")
+    private boolean id;
+
     @Override
     public Data execute(Context context, Data input) {
         User user = context.getWebService().authenticate();
-        return new Text(user.getId());
+        return id ? new Text(user.getId()) : None.getInstance();
     }
 }
