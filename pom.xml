@@ -161,6 +161,7 @@
 					<failIfUnknown>true</failIfUnknown>
 					<mapping>
 						<g4>SLASHSTAR_STYLE</g4>
+						<java>SLASHSTAR_STYLE</java>
 						<svg>XML_STYLE</svg>
 					</mapping>
 					<excludes>
