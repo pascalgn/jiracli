@@ -27,8 +27,8 @@ import com.github.pascalgn.jiracli.parser.CommandLineParser.ArgumentContext;
 import com.github.pascalgn.jiracli.parser.CommandLineParser.CommandLineContext;
 import com.github.pascalgn.jiracli.parser.CommandLineParser.CommandNameContext;
 
-public final class CommandReference {
-    public static List<CommandReference> parseCommandReferences(String str) {
+public final class CommandPipeline {
+    public static List<CommandPipeline> parseCommandPipelines(String str) {
         CommandLineLexer lexer = new CommandLineLexer(new ANTLRInputStream(str));
         CommandLineParser parser = new CommandLineParser(new CommonTokenStream(lexer));
 
@@ -37,6 +37,8 @@ public final class CommandReference {
 
         CommandLineContext commandLine = parser.commandLine();
 
+        final List<CommandPipeline> commandPipelines = new ArrayList<>();
+
         final List<CommandReference> commands = new ArrayList<>();
 
         final StringBuilder name = new StringBuilder();
@@ -44,12 +46,30 @@ public final class CommandReference {
 
         class Listener extends CommandLineParserBaseListener {
             @Override
+            public void enterCommandPipeline(CommandLineParser.CommandPipelineContext ctx) {
+                if (name.length() > 0) {
+                    List<String> copy = new ArrayList<>(arguments);
+                    CommandReference command = new CommandReference(name.toString(), copy);
+                    commands.add(command);
+                    arguments.clear();
+                    name.setLength(0);
+                }
+
+                if (!commands.isEmpty()) {
+                    List<CommandReference> copy = new ArrayList<>(commands);
+                    CommandPipeline commandPipeline = new CommandPipeline(copy);
+                    commandPipelines.add(commandPipeline);
+                    commands.clear();
+                }
+            }
+
+            @Override
             public void enterCommandName(CommandNameContext ctx) {
                 if (name.length() == 0) {
                     name.append(ctx.getText());
                 } else {
-                    List<String> args = new ArrayList<>(arguments);
-                    CommandReference command = new CommandReference(name.toString(), args);
+                    List<String> copy = new ArrayList<>(arguments);
+                    CommandReference command = new CommandReference(name.toString(), copy);
                     commands.add(command);
                     name.setLength(0);
                     name.append(ctx.getText());
@@ -82,7 +102,12 @@ public final class CommandReference {
             commands.add(command);
         }
 
-        return commands;
+        if (!commands.isEmpty()) {
+            CommandPipeline commandPipeline = new CommandPipeline(commands);
+            commandPipelines.add(commandPipeline);
+        }
+
+        return commandPipelines;
     }
 
     private static String unescape(String str) {
@@ -119,24 +144,41 @@ public final class CommandReference {
         return s.toString();
     }
 
-    private final String name;
-    private final List<String> arguments;
+    public static class CommandReference {
+        private final String name;
+        private final List<String> arguments;
 
-    private CommandReference(String name, List<String> arguments) {
-        this.name = name;
-        this.arguments = arguments;
+        private CommandReference(String name, List<String> arguments) {
+            this.name = name;
+            this.arguments = arguments;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public List<String> getArguments() {
+            return arguments;
+        }
+
+        @Override
+        public String toString() {
+            return "CommandReference[name=" + name + ", arguments=" + arguments + "]";
+        }
     }
 
-    public String getName() {
-        return name;
+    private final List<CommandReference> commands;
+
+    private CommandPipeline(List<CommandReference> commands) {
+        this.commands = commands;
     }
 
-    public List<String> getArguments() {
-        return arguments;
+    public List<CommandReference> getCommands() {
+        return commands;
     }
 
     @Override
     public String toString() {
-        return "CommandReference[name=" + name + ", arguments=" + arguments + "]";
+        return "CommandPipeline[commands=" + commands + "]";
     }
 }

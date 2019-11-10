@@ -22,7 +22,7 @@ NAME
 	;
 
 TEXT
-	: ~[\n\r\t |a-z]+
+	: ~[\n\r\t |;a-z]+
 	;
 
 NEWLINE
@@ -37,6 +37,10 @@ SPACE
 
 PIPE
 	: '|'
+	;
+
+SEMICOLON
+	: ';'
 	;
 
 QUOTED_TEXT

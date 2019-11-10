@@ -29,7 +29,7 @@ import com.github.pascalgn.jiracli.model.Data;
 import com.github.pascalgn.jiracli.model.None;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
-import com.github.pascalgn.jiracli.parser.CommandReference;
+import com.github.pascalgn.jiracli.parser.CommandPipeline;
 import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.InterruptedError;
 
@@ -100,14 +100,20 @@ class Shell {
     }
 
     void execute(String line) {
+        List<CommandPipeline> commands = CommandPipeline.parseCommandPipelines(line);
+        for (CommandPipeline commandPipeline : commands) {
+            executePipeline(commandPipeline);
+        }
+    }
+
+    private void executePipeline(CommandPipeline commandPipeline) {
         Console console = context.getConsole();
 
         Data result;
         try {
             Pipeline.Builder pipelineBuilder = new Pipeline.Builder();
 
-            List<CommandReference> commands = CommandReference.parseCommandReferences(line);
-            for (CommandReference ref : commands) {
+            for (CommandPipeline.CommandReference ref : commandPipeline.getCommands()) {
                 pipelineBuilder.add(commandFactory.parseCommand(ref.getName(), ref.getArguments()));
             }
 

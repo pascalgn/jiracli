@@ -20,7 +20,11 @@ options { tokenVocab=CommandLineLexer; }
 
 
 commandLine
-	: command (SPACE* PIPE SPACE* command)* EOF
+	: commandPipeline (SPACE* SEMICOLON SPACE* commandPipeline)* EOF
+	;
+
+commandPipeline
+	: command (SPACE* PIPE SPACE* command)*
 	;
 
 command
