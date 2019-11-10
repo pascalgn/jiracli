@@ -54,7 +54,7 @@ public class Jiracli {
     private static final AtomicInteger SHELL_THREAD_INDEX = new AtomicInteger(0);
 
     private enum Option {
-        HELP, VERSION, CONSOLE, GUI, CMD_LINE;
+        HELP, VERSION, CONSOLE, GUI, CMD_LINE
     }
 
     public static void main(String[] args) {
@@ -66,18 +66,16 @@ public class Jiracli {
             System.out.println("Jira Command Line Interface");
             System.out.println();
             System.out.println("options:");
-            System.out.println("  -h, --help      show this help message");
-            System.out.println("  -g, --gui       show a graphical console window");
-            System.out.println("  -c, --console   run in console mode, using stdin and stdout");
+            System.out.println("  -h, --help          show this help message");
+            System.out.println("  -g, --gui           show a graphical console window");
+            System.out.println("  -c, --console       run in console mode, using stdin and stdout");
             System.out.println("  -V, --version       show the program version and exit");
             System.out.println("  --command <line>    execute the line as a command");
         } else if (options.get(Option.VERSION) == Boolean.TRUE) {
             System.out.println(Constants.getTitle());
         } else if (options.get(Option.CMD_LINE) != null) {
-
             LOGGER.trace("Executing command {}...", options.get(Option.CMD_LINE));
-            executeCommand((String)options.get(Option.CMD_LINE));
-
+            executeCommand((String) options.get(Option.CMD_LINE));
         } else {
             LOGGER.debug("Starting {}...", Constants.getTitle());
 
@@ -120,27 +118,7 @@ public class Jiracli {
         final Configuration configuration = new DefaultConfiguration();
         Console console = new DefaultConsole(configuration);
 
-        final WebService webService = new DefaultWebService(console);
-        final JavaScriptEngine javaScriptEngine = new DefaultJavaScriptEngine(console, webService);
-        final Context context = new DefaultContext(configuration, console, webService, javaScriptEngine);
-
-        context.onClose(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    webService.close();
-                } finally {
-                    configuration.close();
-                }
-            }
-        });
-
-        Shutdown.addShutdownHook(new Runnable() {
-            @Override
-            public void run() {
-                context.close();
-            }
-        });
+        final Context context = createDefaultContext(configuration, console);
 
         new Shell(context).start();
     }
@@ -153,11 +131,7 @@ public class Jiracli {
             public void run() {
                 try {
                     UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-                } catch (ReflectiveOperationException e) {
-                    LOGGER.warn("Could not set System Look and Feel!", e);
-                } catch (UnsupportedLookAndFeelException e) {
-                    LOGGER.warn("Could not set System Look and Feel!", e);
-                } catch (RuntimeException e) {
+                } catch (ReflectiveOperationException | UnsupportedLookAndFeelException | RuntimeException e) {
                     LOGGER.warn("Could not set System Look and Feel!", e);
                 }
 
@@ -187,27 +161,7 @@ public class Jiracli {
         });
 
         final Console console = window.getConsole();
-        final WebService webService = new DefaultWebService(console);
-        final JavaScriptEngine javaScriptEngine = new DefaultJavaScriptEngine(console, webService);
-        final Context context = new DefaultContext(configuration, console, webService, javaScriptEngine);
-
-        context.onClose(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    webService.close();
-                } finally {
-                    configuration.close();
-                }
-            }
-        });
-
-        Shutdown.addShutdownHook(new Runnable() {
-            @Override
-            public void run() {
-                context.close();
-            }
-        });
+        final Context context = createDefaultContext(configuration, console);
 
         final Thread shellThread = new Thread(new Runnable() {
             @Override
@@ -242,34 +196,47 @@ public class Jiracli {
         window.setVisible(true);
     }
 
+    private static Context createDefaultContext(final Configuration configuration, Console console) {
+        final WebService webService = new DefaultWebService(console);
+        final JavaScriptEngine javaScriptEngine = new DefaultJavaScriptEngine(console, webService);
+        final Context context = new DefaultContext(configuration, console, webService, javaScriptEngine);
+
+        context.onClose(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    webService.close();
+                } finally {
+                    configuration.close();
+                }
+            }
+        });
+
+        Shutdown.addShutdownHook(new Runnable() {
+            @Override
+            public void run() {
+                context.close();
+            }
+        });
+
+        return context;
+    }
+
     private static String parseCommandArgument(List<String> list) {
         String line = null;
         int commandIndex = list.indexOf("--command") + 1;
-        if (commandIndex > 0 && (list.size() > commandIndex) ) {
+        if (commandIndex > 0 && (list.size() > commandIndex)) {
             line = list.remove(commandIndex);
         }
         return line;
     }
 
-
     private static void executeCommand(String line) {
         final Configuration configuration = new DefaultConfiguration();
-        Console console = new DefaultConsole(configuration);
+        final Console console = new DefaultConsole(configuration);
 
-        final WebService webService = new DefaultWebService(console);
-        final JavaScriptEngine javaScriptEngine = new DefaultJavaScriptEngine(console, webService);
-        final Context context = new DefaultContext(configuration, console, webService, javaScriptEngine);
-
-        new Shell(context).execute(line);
-        try {
-            webService.close();
-        } finally {
-
-            try {
-                configuration.close();
-            } finally {
-                context.close();
-            }
+        try (Context context = createDefaultContext(configuration, console)) {
+            new Shell(context).execute(line);
         }
     }
 }

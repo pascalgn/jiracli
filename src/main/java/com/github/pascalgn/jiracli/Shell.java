@@ -138,7 +138,6 @@ class Shell {
             }
         } catch (InterruptedError e) {
             console.println("interrupted");
-            return;
         } catch (RuntimeException e) {
             logException(console, e);
         }
