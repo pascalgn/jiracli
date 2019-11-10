@@ -107,7 +107,7 @@ class HttpClient implements AutoCloseable {
     private final HttpClientContext httpClientContext;
 
     public HttpClient(final Console console) {
-        this.credentials = new HashMap<String, Credentials>();
+        this.credentials = new HashMap<>();
         this.request = new AtomicReference<>();
 
         this.baseUrl = new Supplier<String>() {

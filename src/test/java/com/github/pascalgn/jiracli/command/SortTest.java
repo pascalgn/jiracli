@@ -60,7 +60,7 @@ public class SortTest {
     }
 
     private static List<String> sort(Sort sort, List<String> input) {
-        List<Text> textList = new ArrayList<Text>();
+        List<Text> textList = new ArrayList<>();
         for (String str : input) {
             textList.add(new Text(str));
         }
@@ -68,7 +68,7 @@ public class SortTest {
         Context context = new MockContext();
         TextList result = (TextList) sort.execute(context, new TextList(textList.iterator()));
 
-        List<String> resultList = new ArrayList<String>();
+        List<String> resultList = new ArrayList<>();
         for (Text text : result.remaining(Hint.none())) {
             resultList.add(text.getText());
         }

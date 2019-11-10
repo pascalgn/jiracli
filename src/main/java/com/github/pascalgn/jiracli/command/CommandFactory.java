@@ -83,7 +83,7 @@ public class CommandFactory {
     }
 
     public List<String> getCommandNames() {
-        List<String> names = new ArrayList<String>();
+        List<String> names = new ArrayList<>();
         for (CommandDescriptor commandDescriptor : commandDescriptors) {
             names.addAll(commandDescriptor.getNames());
         }
@@ -104,7 +104,7 @@ public class CommandFactory {
         }
 
         boolean parseArguments = true;
-        List<String> mainArgs = new ArrayList<String>();
+        List<String> mainArgs = new ArrayList<>();
 
         UsageException exception = null;
         boolean help = false;
@@ -191,7 +191,7 @@ public class CommandFactory {
             return Collections.emptyList();
 
         case ZERO_OR_MORE:
-            List<String> params0 = new ArrayList<String>();
+            List<String> params0 = new ArrayList<>();
             for (int j = i + 1; j < args.size(); j++) {
                 String arg = args.get(j);
                 if (isOption(arg) && !main) {
@@ -212,7 +212,7 @@ public class CommandFactory {
             return null;
 
         case ONE_OR_MORE:
-            List<String> params1 = new ArrayList<String>();
+            List<String> params1 = new ArrayList<>();
             for (int j = i + 1; j < args.size(); j++) {
                 String arg = args.get(j);
                 if (isOption(arg) && !main) {

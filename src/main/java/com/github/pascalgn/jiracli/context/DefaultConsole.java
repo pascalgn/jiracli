@@ -47,7 +47,7 @@ public class DefaultConsole extends AbstractConsole {
     @Override
     public List<String> readLines() {
         println("End the input with a single .");
-        List<String> lines = new ArrayList<String>();
+        List<String> lines = new ArrayList<>();
         String line;
         while ((line = doReadLine()) != null) {
             if (line.equals(".")) {

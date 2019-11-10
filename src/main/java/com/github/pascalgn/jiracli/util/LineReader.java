@@ -38,7 +38,7 @@ public class LineReader implements Closeable {
     }
 
     public static List<String> readLines(Reader reader) throws IOException {
-        List<String> lines = new ArrayList<String>();
+        List<String> lines = new ArrayList<>();
         @SuppressWarnings("resource")
         LineReader lineReader = new LineReader(reader);
         String line;

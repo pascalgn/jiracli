@@ -73,7 +73,7 @@ public class DefaultConfiguration implements Configuration {
         if (file.exists()) {
             List<String> result;
             try (BufferedReader reader = IOUtils.createBufferedReader(file)) {
-                result = new ArrayList<String>();
+                result = new ArrayList<>();
                 String line;
                 while ((line = reader.readLine()) != null) {
                     result.add(line);
@@ -128,7 +128,7 @@ public class DefaultConfiguration implements Configuration {
     @Override
     public void setHistory(List<String> history) {
         Objects.requireNonNull(history);
-        this.history = new ArrayList<String>(history);
+        this.history = new ArrayList<>(history);
     }
 
     @Override

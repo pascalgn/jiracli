@@ -64,7 +64,7 @@ class Update implements Command {
                         invalid = Collections.emptyList();
                     }
 
-                    List<String> str = new ArrayList<String>();
+                    List<String> str = new ArrayList<>();
                     for (Field field : issue.getFieldMap().getLoadedFields()) {
                         Value value = field.getValue();
                         if (value.modified()) {
@@ -133,7 +133,7 @@ class Update implements Command {
                 }
                 if (!editable.contains(field)) {
                     if (invalid == null) {
-                        invalid = new ArrayList<String>();
+                        invalid = new ArrayList<>();
                     }
                     invalid.add(field.getId());
                 }

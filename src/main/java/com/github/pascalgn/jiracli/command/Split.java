@@ -44,7 +44,7 @@ class Split implements Command {
     public Data execute(Context context, Data input) {
         final TextList textList = input.toTextListOrFail();
         return new TextList(new Supplier<Text>() {
-            private Deque<Text> list = new ArrayDeque<Text>();
+            private Deque<Text> list = new ArrayDeque<>();
 
             @Override
             public Text get(Set<Hint> hints) {

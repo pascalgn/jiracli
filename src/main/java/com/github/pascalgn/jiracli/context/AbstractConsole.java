@@ -35,7 +35,7 @@ public abstract class AbstractConsole implements Console {
 
     public AbstractConsole(Configuration configuration) {
         this.configuration = configuration;
-        this.onInterrupt = new ArrayList<Runnable>();
+        this.onInterrupt = new ArrayList<>();
     }
 
     @Override

@@ -31,7 +31,7 @@ import com.github.pascalgn.jiracli.util.Supplier;
 public class StringSupplierReaderTest {
     @Test
     public void testRead() throws Exception {
-        final List<String> strs = new ArrayList<String>();
+        final List<String> strs = new ArrayList<>();
         strs.add("Hello ");
         strs.add("World");
         strs.add("!");

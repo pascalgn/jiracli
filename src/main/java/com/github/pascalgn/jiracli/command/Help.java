@@ -29,7 +29,7 @@ import com.github.pascalgn.jiracli.util.StringUtils;
 class Help implements Command {
     @Override
     public Data execute(Context context, Data input) {
-        List<Text> textList = new ArrayList<Text>();
+        List<Text> textList = new ArrayList<>();
         CommandFactory commandFactory = CommandFactory.getInstance();
         for (CommandDescriptor commandDescriptor : commandFactory.getCommandDescriptors()) {
             StringBuilder str = new StringBuilder();

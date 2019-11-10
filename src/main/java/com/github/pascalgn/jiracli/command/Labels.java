@@ -114,7 +114,7 @@ class Labels implements Command {
         if (labels == null || labels.isEmpty()) {
             return Collections.emptyList();
         } else {
-            Collection<String> result = new LinkedHashSet<String>();
+            Collection<String> result = new LinkedHashSet<>();
             for (String label : labels) {
                 if (label.contains(",")) {
                     String[] strs = label.split(",");

@@ -38,7 +38,7 @@ public class ReflectionUtils {
      * Returns all properties of the given object
      */
     public static Collection<String> getProperties(Object instance) {
-        Collection<String> properties = new ArrayList<String>();
+        Collection<String> properties = new ArrayList<>();
         for (Method m : instance.getClass().getMethods()) {
             String name = m.getName();
             if (name.length() > 3 && name.startsWith("get")) {

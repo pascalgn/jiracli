@@ -28,7 +28,7 @@ class Resources {
     private final Map<String, String> resources;
 
     public Resources() {
-        resources = new HashMap<String, String>();
+        resources = new HashMap<>();
         putResource("/issue/JRA-123", "JRA-123.issue.json");
         putResource("/issue/JRA-123/editmeta", "JRA-123.editmeta.json");
         putResource("/search", "search.key_JRA-123.json");

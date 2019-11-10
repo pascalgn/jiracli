@@ -28,7 +28,7 @@ public abstract class AbstractContext implements Context {
     private final List<Runnable> onClose;
 
     public AbstractContext() {
-        onClose = new ArrayList<Runnable>();
+        onClose = new ArrayList<>();
     }
 
     @Override

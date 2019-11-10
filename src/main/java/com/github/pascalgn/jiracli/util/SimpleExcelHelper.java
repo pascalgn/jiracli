@@ -69,8 +69,8 @@ class SimpleExcelHelper implements ExcelHelper {
             }
         };
 
-        Map<Integer, String> sharedStrings = new HashMap<Integer, String>();
-        Map<Integer, String> sheets = new HashMap<Integer, String>();
+        Map<Integer, String> sharedStrings = new HashMap<>();
+        Map<Integer, String> sheets = new HashMap<>();
 
         SharedStringsHandler sharedStringsHandler = new SharedStringsHandler(sharedStrings);
         WorkbookHandler workbookHandler = new WorkbookHandler(sheets);

@@ -49,7 +49,7 @@ class Properties implements Command {
                     Data data = iterator.next();
                     if (data instanceof Issue) {
                         Issue issue = (Issue) data;
-                        List<String> properties = new ArrayList<String>(ReflectionUtils.getProperties(issue));
+                        List<String> properties = new ArrayList<>(ReflectionUtils.getProperties(issue));
                         for (Field field : issue.getFieldMap().getFields()) {
                             properties.add(field.getId());
                             addProperties(properties, field.getId(), field.getValue().get());
@@ -57,7 +57,7 @@ class Properties implements Command {
                         Collections.sort(properties);
                         return new Text(properties);
                     } else {
-                        List<String> properties = new ArrayList<String>(ReflectionUtils.getProperties(data));
+                        List<String> properties = new ArrayList<>(ReflectionUtils.getProperties(data));
                         Collections.sort(properties);
                         return new Text(properties);
                     }

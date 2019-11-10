@@ -52,7 +52,7 @@ class Parse implements Command {
             return new IssueList(new CollectingSupplier<Issue>() {
                 @Override
                 protected Collection<Issue> nextItems(Set<Hint> hints) {
-                    List<String> keys = new ArrayList<String>();
+                    List<String> keys = new ArrayList<>();
                     Text text;
                     // don't use hints for the input, they only apply to the returned issues!
                     while ((text = textList.next(Hint.none())) != null) {

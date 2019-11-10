@@ -37,10 +37,10 @@ public final class CommandReference {
 
         CommandLineContext commandLine = parser.commandLine();
 
-        final List<CommandReference> commands = new ArrayList<CommandReference>();
+        final List<CommandReference> commands = new ArrayList<>();
 
         final StringBuilder name = new StringBuilder();
-        final List<String> arguments = new ArrayList<String>();
+        final List<String> arguments = new ArrayList<>();
 
         class Listener extends CommandLineParserBaseListener {
             @Override
@@ -48,7 +48,7 @@ public final class CommandReference {
                 if (name.length() == 0) {
                     name.append(ctx.getText());
                 } else {
-                    List<String> args = new ArrayList<String>(arguments);
+                    List<String> args = new ArrayList<>(arguments);
                     CommandReference command = new CommandReference(name.toString(), args);
                     commands.add(command);
                     name.setLength(0);

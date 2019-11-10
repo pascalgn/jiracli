@@ -49,7 +49,7 @@ public class SimpleExcelHelperTest {
             buf = out.toByteArray();
         }
 
-        final List<String> cellValues = new ArrayList<String>();
+        final List<String> cellValues = new ArrayList<>();
 
         try (InputStream inputStream = new ByteArrayInputStream(buf)) {
             ExcelHelper excelHelper = new SimpleExcelHelper();

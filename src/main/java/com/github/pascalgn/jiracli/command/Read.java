@@ -157,7 +157,7 @@ class Read implements Command {
 
         private synchronized void init() {
             if (values == null) {
-                values = new ArrayList<String>();
+                values = new ArrayList<>();
                 ExcelHelper excelHelper = ExcelHelperFactory.createExcelHelper();
                 try (InputStream input = new FileInputStream(file)) {
                     CellHandler cellHandler = new CellHandler() {

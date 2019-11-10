@@ -44,7 +44,7 @@ public class MockContext extends AbstractContext {
                     public List<Issue> answer(InvocationOnMock invocation) throws Throwable {
                         @SuppressWarnings("unchecked")
                         List<String> keys = invocation.getArgumentAt(0, List.class);
-                        List<Issue> result = new ArrayList<Issue>();
+                        List<Issue> result = new ArrayList<>();
                         for (String key : keys) {
                             result.add(IssueFactory.create(key));
                         }

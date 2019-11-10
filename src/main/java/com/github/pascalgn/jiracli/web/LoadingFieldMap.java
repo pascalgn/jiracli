@@ -56,12 +56,12 @@ class LoadingFieldMap extends AbstractFieldMap {
 
     @Override
     public Collection<Field> getFields() {
-        return new ArrayList<Field>(getFields(true));
+        return new ArrayList<>(getFields(true));
     }
 
     @Override
     public Collection<Field> getLoadedFields() {
-        return new ArrayList<Field>(getFields(false));
+        return new ArrayList<>(getFields(false));
     }
 
     private synchronized Collection<Field> getFields(boolean loadAll) {

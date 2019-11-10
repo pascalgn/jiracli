@@ -38,7 +38,7 @@ public class IssueFactory {
         if (fields.length % 2 != 0) {
             throw new IllegalArgumentException("Invalid key/value pairs: " + Arrays.toString(fields));
         }
-        List<Field> fieldList = new ArrayList<Field>();
+        List<Field> fieldList = new ArrayList<>();
         Issue issue = new Issue(key, new FieldMapImpl(fieldList));
         for (int i = 0; i < fields.length; i += 2) {
             String id = (String) fields[i];
