@@ -17,23 +17,35 @@ package com.github.pascalgn.jiracli.command;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import org.json.JSONObject;
 
 import com.github.pascalgn.jiracli.command.Argument.Parameters;
 import com.github.pascalgn.jiracli.context.Context;
+import com.github.pascalgn.jiracli.model.AttachmentList;
+import com.github.pascalgn.jiracli.model.Board;
+import com.github.pascalgn.jiracli.model.BoardList;
+import com.github.pascalgn.jiracli.model.CommentList;
 import com.github.pascalgn.jiracli.model.Data;
+import com.github.pascalgn.jiracli.model.FieldList;
 import com.github.pascalgn.jiracli.model.Issue;
 import com.github.pascalgn.jiracli.model.IssueHint;
 import com.github.pascalgn.jiracli.model.IssueList;
+import com.github.pascalgn.jiracli.model.ListVisitor;
+import com.github.pascalgn.jiracli.model.ProjectList;
 import com.github.pascalgn.jiracli.model.Schema;
+import com.github.pascalgn.jiracli.model.Sprint;
+import com.github.pascalgn.jiracli.model.SprintList;
 import com.github.pascalgn.jiracli.model.Text;
 import com.github.pascalgn.jiracli.model.TextList;
 import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.JsonUtils;
 import com.github.pascalgn.jiracli.util.StringUtils;
+import com.github.pascalgn.jiracli.util.Supplier;
 
 @CommandDescription(names = "csv", description = "Convert the input to CSV")
 class Csv implements Command {
@@ -50,17 +62,65 @@ class Csv implements Command {
     private boolean header = true;
 
     @Override
-    public TextList execute(Context context, Data input) {
+    public TextList execute(final Context context, Data input) {
         fields = CommandUtils.getFields(fields);
 
-        IssueList issueList = input.toIssueList();
-        TextList rows;
-        if (issueList == null) {
-            TextList textList = input.toTextListOrFail();
-            rows = toCsv(textList);
-        } else {
-            rows = toCsv(context, issueList);
+        TextList rows = input.toListOrFail().accept(new ListVisitor<TextList>() {
+            @Override
+            public TextList visit(AttachmentList list) {
+                return null;
+            }
+
+            @Override
+            public TextList visit(BoardList list) {
+                return toCsv(list.convertingSupplier(new Function<Board, Map<String, Object>>() {
+                    @Override
+                    public Map<String, Object> apply(Board board, Set<Hint> hints) {
+                        return board.toMap();
+                    }
+                }));
+            }
+
+            @Override
+            public TextList visit(CommentList list) {
+                return null;
+            }
+
+            @Override
+            public TextList visit(FieldList list) {
+                return null;
+            }
+
+            @Override
+            public TextList visit(IssueList list) {
+                return toCsv(context, list);
+            }
+
+            @Override
+            public TextList visit(ProjectList list) {
+                return null;
+            }
+
+            @Override
+            public TextList visit(SprintList list) {
+                return toCsv(list.convertingSupplier(new Function<Sprint, Map<String, Object>>() {
+                    @Override
+                    public Map<String, Object> apply(Sprint sprint, Set<Hint> hints) {
+                        return sprint.toMap();
+                    }
+                }));
+            }
+
+            @Override
+            public TextList visit(TextList list) {
+                return toCsv(list);
+            }
+        });
+
+        if (rows == null) {
+            throw new IllegalStateException("Invalid input type: " + input.getClass().getSimpleName());
         }
+
         if (header) {
             TextList head = new TextList(new Text(StringUtils.join(fields, separator)));
             return new TextList(CONTENT_TYPE, head, rows);
@@ -102,5 +162,23 @@ class Csv implements Command {
                 }
             }
         }));
+    }
+
+    private TextList toCsv(final Supplier<Map<String, Object>> supplier) {
+        return new TextList(CONTENT_TYPE, new Supplier<Text>() {
+            @Override
+            public Text get(Set<Hint> hints) {
+                Map<String, Object> next = supplier.get(hints);
+                if (next == null) {
+                    return null;
+                } else {
+                    List<String> values = new ArrayList<>(fields.size());
+                    for (String field : fields) {
+                        values.add(Objects.toString(next.get(field), ""));
+                    }
+                    return new Text(StringUtils.join(values, separator));
+                }
+            }
+        });
     }
 }

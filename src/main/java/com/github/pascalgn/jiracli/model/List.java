@@ -24,7 +24,7 @@ import com.github.pascalgn.jiracli.util.Function;
 import com.github.pascalgn.jiracli.util.Hint;
 import com.github.pascalgn.jiracli.util.Supplier;
 
-abstract class List<T extends Data> extends Data {
+public abstract class List<T extends Data> extends Data {
     private final Supplier<T> supplier;
 
     public List() {
@@ -81,6 +81,8 @@ abstract class List<T extends Data> extends Data {
             }
         }));
     }
+
+    public abstract <E> E accept(ListVisitor<E> visitor);
 
     public abstract List<T> filteredList(Filter<T> filter);
 

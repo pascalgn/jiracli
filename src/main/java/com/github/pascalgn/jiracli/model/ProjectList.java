@@ -43,6 +43,11 @@ public class ProjectList extends List<Project> {
     }
 
     @Override
+    public <E> E accept(ListVisitor<E> visitor) {
+        return visitor.visit(this);
+    }
+
+    @Override
     public ProjectList filteredList(Filter<Project> filter) {
         return new ProjectList(new FilteredSupplier<>(getSupplier(), filter));
     }

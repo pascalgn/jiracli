@@ -15,6 +15,10 @@
  */
 package com.github.pascalgn.jiracli.model;
 
+import java.util.Map;
+
+import com.github.pascalgn.jiracli.util.ConversionUtils;
+
 public class Board extends Data {
     public enum Type {
         SCRUM, KANBAN, UNKNOWN;
@@ -40,6 +44,10 @@ public class Board extends Data {
 
     public Type getType() {
         return type;
+    }
+
+    public Map<String, Object> toMap() {
+        return ConversionUtils.createMap("id", id, "name", name, "type", type);
     }
 
     @Override

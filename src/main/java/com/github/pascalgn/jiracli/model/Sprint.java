@@ -15,6 +15,10 @@
  */
 package com.github.pascalgn.jiracli.model;
 
+import java.util.Map;
+
+import com.github.pascalgn.jiracli.util.ConversionUtils;
+
 public class Sprint extends Data {
     public enum State {
         CLOSED, ACTIVE, FUTURE, UNKNOWN;
@@ -40,6 +44,10 @@ public class Sprint extends Data {
 
     public State getState() {
         return state;
+    }
+
+    public Map<String, Object> toMap() {
+        return ConversionUtils.createMap("id", id, "name", name, "state", state);
     }
 
     @Override

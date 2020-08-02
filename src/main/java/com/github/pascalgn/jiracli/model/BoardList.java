@@ -43,6 +43,11 @@ public class BoardList extends List<Board> {
     }
 
     @Override
+    public <E> E accept(ListVisitor<E> visitor) {
+        return visitor.visit(this);
+    }
+
+    @Override
     public BoardList filteredList(Filter<Board> filter) {
         return new BoardList(new FilteredSupplier<>(getSupplier(), filter));
     }

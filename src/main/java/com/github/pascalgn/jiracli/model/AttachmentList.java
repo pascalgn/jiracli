@@ -43,6 +43,11 @@ public class AttachmentList extends List<Attachment> {
     }
 
     @Override
+    public <E> E accept(ListVisitor<E> visitor) {
+        return visitor.visit(this);
+    }
+
+    @Override
     public AttachmentList filteredList(Filter<Attachment> filter) {
         return new AttachmentList(new FilteredSupplier<>(getSupplier(), filter));
     }

@@ -43,6 +43,11 @@ public class IssueList extends List<Issue> {
     }
 
     @Override
+    public <E> E accept(ListVisitor<E> visitor) {
+        return visitor.visit(this);
+    }
+
+    @Override
     public IssueList filteredList(Filter<Issue> filter) {
         return new IssueList(new FilteredSupplier<>(getSupplier(), filter));
     }

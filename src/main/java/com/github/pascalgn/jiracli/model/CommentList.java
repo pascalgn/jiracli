@@ -38,6 +38,11 @@ public class CommentList extends List<Comment> {
     }
 
     @Override
+    public <E> E accept(ListVisitor<E> visitor) {
+        return visitor.visit(this);
+    }
+
+    @Override
     public CommentList filteredList(Filter<Comment> filter) {
         return new CommentList(new FilteredSupplier<>(getSupplier(), filter));
     }

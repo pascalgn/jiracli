@@ -43,6 +43,11 @@ public class FieldList extends List<Field> {
     }
 
     @Override
+    public <E> E accept(ListVisitor<E> visitor) {
+        return visitor.visit(this);
+    }
+
+    @Override
     public FieldList filteredList(Filter<Field> filter) {
         return new FieldList(new FilteredSupplier<>(getSupplier(), filter));
     }

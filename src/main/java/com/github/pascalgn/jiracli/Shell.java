@@ -95,7 +95,11 @@ class Shell {
                 continue;
             }
 
-            execute(line);
+            try {
+                execute(line);
+            } catch (RuntimeException e) {
+                logException(console, e);
+            }
         }
     }
 

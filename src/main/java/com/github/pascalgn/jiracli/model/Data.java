@@ -61,8 +61,21 @@ public abstract class Data {
         }
     }
 
+    public final List<Data> toList() {
+        return toList(new Filter<Data>() {
+            @Override
+            public Data get(Supplier<Data> supplier, Set<Hint> hints) {
+                return supplier.get(hints);
+            }
+        });
+    }
+
     public List<Data> toList(Filter<Data> filter) {
         return null;
+    }
+
+    public final List<Data> toListOrFail() {
+        return convertOrFail(toList(), List.class);
     }
 
     public final List<Data> toListOrFail(Filter<Data> filter) {

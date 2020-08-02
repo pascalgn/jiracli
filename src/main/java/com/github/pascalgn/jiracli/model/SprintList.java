@@ -43,6 +43,11 @@ public class SprintList extends List<Sprint> {
     }
 
     @Override
+    public <E> E accept(ListVisitor<E> visitor) {
+        return visitor.visit(this);
+    }
+
+    @Override
     public SprintList filteredList(Filter<Sprint> filter) {
         return new SprintList(new FilteredSupplier<>(getSupplier(), filter));
     }

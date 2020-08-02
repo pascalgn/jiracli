@@ -75,7 +75,7 @@ public class TextList extends List<Text> {
     }
 
     private static Supplier<Text> combine(final TextList[] lists) {
-        final int[] index = { 0 };
+        final int[] index = {0};
         return new Supplier<Text>() {
             @Override
             public Text get(Set<Hint> hints) {
@@ -123,6 +123,11 @@ public class TextList extends List<Text> {
     @Override
     public TextList toTextList() {
         return this;
+    }
+
+    @Override
+    public <E> E accept(ListVisitor<E> visitor) {
+        return visitor.visit(this);
     }
 
     @Override

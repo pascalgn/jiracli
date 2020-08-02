@@ -21,7 +21,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import org.json.JSONObject;
@@ -168,5 +170,16 @@ public class ConversionUtils {
         }
         String name = json.getString("displayName");
         return new User(id, name);
+    }
+
+    /**
+     * Returns a new map based on the given key/value pairs
+     */
+    public static Map<String, Object> createMap(Object... items) {
+        Map<String, Object> map = new HashMap<>();
+        for (int i = 0; i < items.length; i += 2) {
+            map.put(items[i].toString(), items[i + 1]);
+        }
+        return map;
     }
 }
